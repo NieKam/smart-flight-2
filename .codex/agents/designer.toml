@@ -176,6 +176,9 @@ After completing the design:
 4. Commit ONLY the design artifact.
 5. Do not push.
 6. Do not create a PR.
+7. The Designer is the second agent in the task workflow.
+8. The Designer works on the current base branch.
+9. Do not create a task-specific branch.
 
 Use:
 
