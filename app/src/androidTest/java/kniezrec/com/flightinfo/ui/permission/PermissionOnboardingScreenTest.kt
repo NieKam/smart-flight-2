@@ -1,4 +1,4 @@
-package kniezrec.com.flightinfo
+package kniezrec.com.flightinfo.ui.permission
 
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.requiredWidth
@@ -11,6 +11,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import kniezrec.com.flightinfo.permission.LocationPermissionState
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test

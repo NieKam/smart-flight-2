@@ -1,4 +1,4 @@
-package kniezrec.com.flightinfo
+package kniezrec.com.flightinfo.permission
 
 import org.junit.Assert.assertEquals
 import org.junit.Test

@@ -1,6 +1,9 @@
-package kniezrec.com.flightinfo
+package kniezrec.com.flightinfo.permission
 
 import android.Manifest
+import kniezrec.com.flightinfo.ui.permission.actionCyan
+import kniezrec.com.flightinfo.ui.permission.cardPurple
+import kniezrec.com.flightinfo.ui.permission.contrastRatio
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test

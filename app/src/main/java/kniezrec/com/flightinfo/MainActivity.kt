@@ -27,7 +27,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
+import kniezrec.com.flightinfo.permission.FineLocationPermissionPlatform
+import kniezrec.com.flightinfo.permission.LocationPermissionRequestHistory
+import kniezrec.com.flightinfo.permission.LocationPermissionState
+import kniezrec.com.flightinfo.permission.LocationPermissionStateController
+import kniezrec.com.flightinfo.permission.locationPermissionRequest
 import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
+import kniezrec.com.flightinfo.ui.permission.PermissionOnboardingScreen
+import kniezrec.com.flightinfo.ui.permission.smartFlightPageColor
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {

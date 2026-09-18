@@ -1,4 +1,4 @@
-package kniezrec.com.flightinfo
+package kniezrec.com.flightinfo.ui.permission
 
 import androidx.compose.ui.graphics.Color
 import kotlin.math.pow

@@ -1,4 +1,4 @@
-package kniezrec.com.flightinfo
+package kniezrec.com.flightinfo.ui.permission
 
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
@@ -42,6 +42,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kniezrec.com.flightinfo.R
+import kniezrec.com.flightinfo.permission.LocationPermissionState
 
 private val LightLavender = Color(0xFFD9D9ED)
 

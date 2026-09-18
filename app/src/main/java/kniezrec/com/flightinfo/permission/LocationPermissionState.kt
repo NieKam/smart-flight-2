@@ -1,4 +1,4 @@
-package kniezrec.com.flightinfo
+package kniezrec.com.flightinfo.permission
 
 /** The app-owned presentation state derived from Android's current permission state. */
 enum class LocationPermissionState {

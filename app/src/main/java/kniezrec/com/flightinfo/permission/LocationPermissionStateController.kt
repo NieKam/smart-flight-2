@@ -1,4 +1,4 @@
-package kniezrec.com.flightinfo
+package kniezrec.com.flightinfo.permission
 
 /** Platform checks needed to render the location-permission entry state. */
 internal interface FineLocationPermissionPlatform {
