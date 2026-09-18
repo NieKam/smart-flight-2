@@ -209,37 +209,40 @@ private data class StaticState(
     }
 }
 
-@Composable private fun GnssAction(
+@Composable
+private fun GnssAction(
     action: Int,
     hint: Int,
     callback: () -> Unit,
 ) {
     var focused by remember { mutableStateOf(false) }
+    val hintText = stringResource(hint)
+
     TextButton(
-        callback,
-        Modifier
-            .padding(
-                top = 12.dp,
-            ).sizeIn(
-                minWidth = 48.dp,
-                minHeight = 48.dp,
-            ).then(
-                if (focused) {
-                    Modifier.border(
-                        2.dp,
-                        actionCyan,
-                        androidx.compose.foundation.shape
-                            .RoundedCornerShape(4.dp),
-                    )
-                } else {
-                    Modifier
+        onClick = callback,
+        modifier =
+            Modifier
+                .padding(top = 12.dp)
+                .sizeIn(
+                    minWidth = 48.dp,
+                    minHeight = 48.dp,
+                ).then(
+                    if (focused) {
+                        Modifier.border(
+                            2.dp,
+                            actionCyan,
+                            androidx.compose.foundation.shape
+                                .RoundedCornerShape(4.dp),
+                        )
+                    } else {
+                        Modifier
+                    },
+                ).onFocusChanged {
+                    focused = it.isFocused
+                }.semantics {
+                    role = Role.Button
+                    stateDescription = hintText
                 },
-            ).onFocusChanged {
-                focused = it.isFocused
-            }.semantics {
-                role = Role.Button
-                stateDescription = stringResource(hint)
-            },
         contentPadding = PaddingValues(horizontal = 12.dp),
         colors = ButtonDefaults.textButtonColors(contentColor = actionCyan),
     ) {
@@ -248,7 +251,11 @@ private data class StaticState(
             Modifier.semantics {
                 liveRegion = LiveRegionMode.Polite
             },
-            style = MaterialTheme.typography.bodyLarge.copy(fontSize = 18.sp, fontWeight = FontWeight.Medium),
+            style =
+                MaterialTheme.typography.bodyLarge.copy(
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Medium,
+                ),
         )
     }
 }
