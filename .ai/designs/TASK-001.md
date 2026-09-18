@@ -17,10 +17,11 @@ The screen must present only a useful permission state before authorization, and
 
 ### Required behavior from TASK-001
 
-- Request only Android fine location permission. The system runtime prompt is Android-owned and is not redesigned by this document.
+- Fine/precise location is the only authorization that satisfies onboarding. On Android 12+ (API 31+), request `ACCESS_FINE_LOCATION` and `ACCESS_COARSE_LOCATION` together where Android requires the paired request to present its precise/approximate location choice. The coarse companion is a system-prompt requirement only: approximate/coarse-only access is not sufficient.
+- The system runtime prompt, including its precise/approximate controls and version-specific wording, is Android-owned and is not redesigned by this document.
 - The action is `Grant permission` while access is requestable. An ordinary denial leaves the permission screen usable; permanent denial offers `Open settings` for this app’s details page.
-- The view derives its state from the current platform grant and refreshes on resume, including on return from settings.
-- On grant, immediately replace onboarding with the minimal granted entry state. No functional flight cards or data collection are introduced.
+- The view derives its state from the current fine-location grant and refreshes on resume, including on return from settings. A coarse-only platform result remains in the requestable onboarding state.
+- Only a fine-location grant immediately replaces onboarding with the minimal granted entry state. No functional flight cards or data collection are introduced.
 
 ### Design decisions introduced here
 
@@ -76,7 +77,7 @@ Copy is sentence case exactly as shown below in the default English resource. Lo
 
 | Platform-derived state | Title | Body | Action | Result |
 | --- | --- | --- | --- | --- |
-| Fine location not granted; request is available (including initial launch and ordinary denial) | `Location permission` | `Smart Flight needs your location permission to enable flight information cards.` | `Grant permission` | Launch Android request for `ACCESS_FINE_LOCATION`. |
+| Fine location not granted; request is available (including initial launch, ordinary denial, and approximate-only authorization) | `Location permission` | `Smart Flight needs precise location permission to enable flight information cards.` | `Grant permission` | Launch Android’s location request. On Android 12+, request fine and coarse together so the system can offer its precise/approximate choice; only fine is success. |
 | Fine location not granted; platform indicates the user must be directed to settings after an actual request/denial history | `Location permission needed` | `Location permission is turned off. Open settings to allow Smart Flight to enable flight information cards.` | `Open settings` | Open this app’s application-details settings page. |
 | Fine location granted | `Location permission granted` | `Smart Flight is ready for flight information cards. Flight data will be available in a future update.` | None | Remain on the minimal granted entry state. |
 
@@ -96,15 +97,13 @@ The granted body is intentionally forward-looking but must not say the app is co
 
 - The complete action row is a semantic button with a 48 dp minimum height and 48 dp minimum width. Its visible label remains centered and text-only, recalling the legacy control.
 - Use a borderless Material indication/ripple clipped to the card’s content area. Pressed state may darken/overlay the row with 12% black; focused state uses a visible cyan 2 dp outline or equivalent high-contrast focus indicator with 4 dp separation from the card edge.
-- On tap, invoke the Android Activity Result fine-location permission request. While the platform dialog is on screen, the app content remains behind it and no second request can be launched. No custom loading spinner or duplicate in-app dialog is necessary.
-- Resolve the next screen from the actual current permission grant after the result. A grant transitions immediately to the granted card; ordinary denial returns to the same requestable state. Do not display an error snackbar solely for denial—the unchanged actionable explanation is the feedback.
-
+- On tap, invoke the Android Activity Result location permission request. On Android 12+, request fine and coarse together so Android can show its precise/approximate choice; on earlier versions request fine location. While the platform dialog is on screen, the app content remains behind it and no second request can be launched. No custom loading spinner or duplicate in-app dialog is necessary.
+- Resolve the next screen from the actual current fine-location grant after the result. Only fine permission transitions immediately to the granted card. Ordinary denial and an approximate-only selection both return to the same requestable state, with the precise-location explanation and `Grant permission` action still available. Do not display an error snackbar solely for denial or approximate-only selection—the unchanged actionable explanation is the feedback.
 ### Open settings
 
 - Reuse the same text-button geometry and interaction treatment, changing only the label and state copy.
 - Tap opens Android’s application-details settings for the Smart Flight package. The user may return with the permission granted, still denied, or unchanged.
-- On every activity resume, recheck the platform permission before drawing/retaining the state. If it is granted, show the granted state immediately; otherwise keep or rederive the appropriate permission state.
-
+- On every activity resume, recheck the platform fine-location permission before drawing/retaining the state. If fine location is granted, show the granted state immediately; if only coarse is granted, keep or rederive the actionable onboarding state.
 ### State transition motion
 
 - Card changes use a brief 150–200 ms crossfade/size transition respecting the system “remove animations” setting. Do not animate the Android runtime dialog or settings handoff.
@@ -131,7 +130,7 @@ The granted body is intentionally forward-looking but must not say the app is co
 ## Accessibility
 
 - Card text order and accessibility traversal: title, body, then action. The card itself is not separately clickable or announced as a button.
-- The action’s semantic label exactly matches its visible label. Add a concise action hint only if the platform does not already announce the result (for example, “Requests location permission” / “Opens app settings”).
+- The action’s semantic label exactly matches its visible label. Add a concise action hint only if the platform does not already announce the result (for example, “Requests precise location permission” / “Opens app settings”).
 - Body text is selectable only if that is standard project behavior; selection is not required. It must remain readable at the specified muted color: `#A1A0C4` on `#5B5999` is a legacy-faithful visual reference, but implementation must verify sufficient accessible contrast. If it fails contrast testing at the actual rendered sizes, increase the body color toward `#D9D9ED` while retaining hierarchy. Cyan action text must similarly be contrast-verified against the card.
 - Never rely on color alone: title and wording distinguish requestable, settings-required, and granted states. Avoid status icons because no established icon system is needed for this minimal entry screen.
 - Use live-region/polite announcement for a state change caused by a permission result, announcing the new title once. Do not announce repeatedly on ordinary recomposition or resume.
@@ -145,18 +144,18 @@ The granted body is intentionally forward-looking but must not say the app is co
 
 ## Implementation handoff notes
 
-- Add `android.permission.ACCESS_FINE_LOCATION` only; do not add storage permissions or a location/map dependency.
+- Declare `android.permission.ACCESS_FINE_LOCATION`. Also declare `android.permission.ACCESS_COARSE_LOCATION` as the Android 12+ companion needed for the paired runtime request; it must never be used as the success gate. Do not add storage permissions or a location/map dependency.
 - The app currently enables edge-to-edge and has a sample Material 3 theme with dynamic colors. This screen needs fixed legacy-inspired tokens so Android wallpaper/dark-mode choices cannot replace the required purple/cyan identity.
 - Use the Activity Result permission API and platform checks to model requestable versus settings-required states. Do not infer permanent denial merely from the first denied callback; it depends on request history plus the platform rationale result.
-- The supplied Android runtime prompt text, its precise controls, and any Android version-specific approximate-location options are platform UI and outside application visual control. The app requests fine location only, as required.
-
+- The supplied Android runtime prompt text, its precise controls, and any Android version-specific approximate-location options are platform UI and outside application visual control. On Android 12+, the app requests fine and coarse together solely to allow this platform UI; application success still requires fine location.
 ## Design verification checklist
 
 - Fresh install: header, one permission card, and `Grant permission`; no `Hello Android!` or inactive flight cards.
-- Grant: the permission card becomes the minimal granted card in the same session.
-- Ordinary denial: requestable card remains and can request again.
+- Granting precise location: the permission card becomes the minimal granted card in the same session.
+- Ordinary denial or Android 12+ approximate-only selection: requestable card remains, explains that precise location is needed, and can request again.
+- Return from settings after granting precise location: the granted card is shown on resume; coarse-only access remains onboarding.
 - Permanent denial: the cyan action says `Open settings` and handoff opens app details.
-- Return from settings after granting: the granted card is shown on resume.
+
 - Portrait, landscape, RTL, keyboard focus, TalkBack, and 200% font scale retain readable text, a reachable action, safe inset clearance, and no clipping.
 
 ## Inspected source references
