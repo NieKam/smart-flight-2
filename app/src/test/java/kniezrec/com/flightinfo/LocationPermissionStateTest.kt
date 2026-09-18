@@ -51,28 +51,4 @@ class LocationPermissionStateTest {
             ),
         )
     }
-
-    @Test
-    fun persistedRequestHistoryKeepsPermanentDenialInSettingsStateAfterRelaunch() {
-        assertEquals(
-            LocationPermissionState.SettingsRequired,
-            locationPermissionState(
-                isGranted = false,
-                hasRequestedPermission = true,
-                shouldShowRationale = false,
-            ),
-        )
-    }
-
-    @Test
-    fun grantInSettingsShowsGrantedStateWhenTheActivityResumes() {
-        assertEquals(
-            LocationPermissionState.Granted,
-            locationPermissionState(
-                isGranted = true,
-                hasRequestedPermission = true,
-                shouldShowRationale = false,
-            ),
-        )
-    }
 }

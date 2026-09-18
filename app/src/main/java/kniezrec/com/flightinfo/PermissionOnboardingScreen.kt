@@ -30,6 +30,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
@@ -47,6 +48,7 @@ private val LightLavender = Color(0xFFD9D9ED)
 // The legacy muted lavender does not meet contrast at this size; use the accessible light token.
 private val BodyLavender = Color(0xFFD9D9ED)
 internal val smartFlightPageColor = Color(0xFF484685)
+internal const val permissionStateCardTestTag = "permission_state_card"
 
 @Composable
 fun PermissionOnboardingScreen(
@@ -123,9 +125,10 @@ private fun PermissionStateCard(
         modifier =
             Modifier
                 .padding(top = 12.dp, bottom = 12.dp)
-                .fillMaxWidth()
                 .widthIn(max = 600.dp)
-                .heightIn(min = 160.dp),
+                .fillMaxWidth()
+                .heightIn(min = 160.dp)
+                .testTag(permissionStateCardTestTag),
         shape =
             androidx.compose.foundation.shape
                 .RoundedCornerShape(10.dp),
