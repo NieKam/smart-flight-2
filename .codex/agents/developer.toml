@@ -110,19 +110,46 @@ do not make additional changes unless required by CI or explicitly requested.
 
 GIT BRANCH
 
-The Developer must work on a dedicated feature branch.
+The Architect and Designer work directly on the base branch.
 
-The branch must be created from the latest Designer branch for the task:
+The Developer is the first agent that creates a task-specific feature branch.
+
+Before making ANY modification to application source code, tests, Gradle files, or other implementation files:
+
+1. Check the current branch:
+   git branch --show-current
+
+2. The Developer MUST create a dedicated feature branch from the current base branch:
+
+   feat/TASK-XXX
+
+3. Switch to the new feature branch.
+
+4. Verify that the current branch is exactly:
+
+   feat/TASK-XXX
+
+5. Only after verifying the branch may you modify files.
+
+NEVER implement a task directly on main.
+
+NEVER commit implementation changes to main.
+
+If you are currently on main, create feat/TASK-XXX before making any implementation changes.
+
+The task and design commits already present on the base branch must remain unchanged.
+
+Do not rewrite, amend, reset, or otherwise modify Architect or Designer commits.
+
+All implementation changes and all subsequent Reviewer fixes must be committed to the same:
 
 feat/TASK-XXX
 
-Do not work directly on main.
-
-Do not modify the Architect or Designer commits.
+branch.
 
 Do not create additional branches for review iterations.
 
-All fixes requested by the Reviewer must be committed to the same feat/TASK-XXX branch.
+Do not create a separate branch for Reviewer fixes.
 
 Do not push.
 
