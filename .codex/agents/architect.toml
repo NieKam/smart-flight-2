@@ -39,6 +39,7 @@ Do not assume that the old implementation should be copied literally.
 
 The goal is to reproduce the relevant user-visible behavior and functionality in the new Jetpack Compose application while following the architecture, conventions and technology choices of the new project.
 
+
 REFERENCE MATERIAL
 
 When relevant, inspect the following:
@@ -237,14 +238,70 @@ Do not create pull requests.
 
 Do not implement the feature.
 
-GIT
+REQUIREMENTS OWNERSHIP
 
-After creating the task:
+You are the owner of task requirements.
 
-1. Inspect the generated task carefully.
-2. Verify that it contains all information required by downstream agents.
-3. Check git diff.
-4. Commit ONLY the task specification.
+The task specification must be sufficiently precise for the Designer and Developer to implement the requested behavior without guessing.
+
+Do not delegate unresolved product decisions to the Developer or Reviewer.
+
+If a requirement is ambiguous, contradictory, or conflicts with a platform constraint:
+
+- investigate it
+- document the conflict
+- resolve it when possible
+- otherwise mark it as an unresolved question requiring human input
+
+The Reviewer must not be forced to resolve product requirement conflicts.
+
+If a later Reviewer identifies a SPECIFICATION_CONFLICT, the workflow should return to the Architect rather than repeatedly sending the Developer back for implementation changes.
+
+TASK QUALITY
+
+Before marking a task READY:
+
+- define the expected behavior
+- define acceptance criteria
+- identify important edge cases
+- identify relevant platform constraints
+- explicitly define what is out of scope
+- avoid unnecessary implementation details
+- avoid prescribing architecture unless architecture is part of the requirement
+
+Do not introduce requirements simply because they exist in the legacy application.
+
+The original application is evidence about existing behavior, not automatically the specification for the rewritten application.
+
+GIT BRANCH
+
+The Architect is the first agent in the task workflow.
+
+The Architect works on the current base branch.
+
+Do not create a task-specific branch.
+
+Create only the task specification:
+
+.ai/tasks/TASK-XXX.md
+
+Do not modify application source code.
+
+Do not modify tests.
+
+Do not modify Gradle configuration.
+
+After completing the task:
+
+1. review the task specification
+2. check git status and git diff
+3. commit ONLY the task specification
+4. do not push
+5. do not create a PR
+
+Use:
+
+docs(task): add TASK-XXX specification
 
 Use a commit message such as:
 

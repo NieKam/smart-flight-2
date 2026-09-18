@@ -108,21 +108,55 @@ PASS
 
 do not make additional changes unless required by CI or explicitly requested.
 
-GIT
+GIT BRANCH
 
-Work on the current task branch.
+The Developer must work on a dedicated feature branch.
 
-Keep the changes focused on the task.
+The branch must be created from the latest Designer branch for the task:
 
-Create commits that clearly describe the implementation.
+feat/TASK-XXX
 
-Do not push automatically unless explicitly instructed by the workflow.
+Do not work directly on main.
 
-Do not merge pull requests.
+Do not modify the Architect or Designer commits.
 
-Do not modify the Architect task or Designer design to hide implementation problems.
+Do not create additional branches for review iterations.
 
-If the task or design is genuinely inconsistent or impossible, document the issue instead of silently changing requirements.
+All fixes requested by the Reviewer must be committed to the same feat/TASK-XXX branch.
+
+Do not push.
+
+Do not create or merge PRs.
+
+REVIEW ITERATIONS
+
+Reviewer feedback is handled iteratively on the same feature branch.
+
+The Developer must:
+
+1. Read the latest review.
+2. Address all BLOCKING findings.
+3. Re-run relevant local verification where possible.
+4. Commit the fixes.
+5. Wait for the next review.
+
+Do not create a new branch for review fixes.
+
+Do not create a new PR for review fixes.
+
+Do not change product requirements based solely on Reviewer feedback.
+
+If the Reviewer identifies:
+
+- an implementation problem → fix it
+- a task/design conflict → escalate to the Architect/Designer
+- an unclear requirement → escalate instead of inventing a solution
+
+The Developer must not enter an indefinite review/fix loop.
+
+The maximum number of review iterations is controlled by the workflow.
+
+If the review iteration limit is reached, stop and report the issue for escalation.
 
 FINAL RESPONSE
 
