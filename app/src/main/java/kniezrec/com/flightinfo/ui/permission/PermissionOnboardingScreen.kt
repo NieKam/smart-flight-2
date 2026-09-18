@@ -113,14 +113,7 @@ private fun PermissionStateCard(
                     R.string.permission_settings_hint,
                     onOpenSettings,
                 )
-            LocationPermissionState.Granted ->
-                PermissionCardContent(
-                    R.string.permission_granted_title,
-                    R.string.permission_granted_body,
-                    null,
-                    null,
-                    null,
-                )
+            LocationPermissionState.Granted -> error("Fine location is rendered by the GNSS status screen")
         }
     val actionHint = content.actionHint?.let { stringResource(it) }
     Card(

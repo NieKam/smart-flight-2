@@ -6,9 +6,15 @@
     <string name="permission_needed_title">Location permission needed</string>
     <string name="permission_needed_body">Location permission is turned off. Open settings to allow Smart Flight to enable flight information cards.</string>
     <string name="permission_open_settings">Open settings</string>
-    <string name="permission_granted_title">Location permission granted</string>
-    <string name="permission_granted_body">Smart Flight is ready for flight information cards. Flight data will be available in a future update.</string>
     <string name="permission_request_hint">Requests precise location permission</string>
     <string name="permission_settings_hint">Opens app settings</string>
     <string name="settings_unavailable">Unable to open app settings.</string>
+    <string name="gnss_status_title">GNSS status</string>
+    <string name="gnss_waiting">Waiting for GPS signal…</string>
+    <plurals name="gnss_satellites_used"><item quantity="one">Using %d satellite</item><item quantity="other">Using %d satellites</item></plurals>
+    <string name="satellite_number">Satellite %1$d</string><string name="satellite_used">Used for position</string><string name="satellite_not_used">Not used for position</string>
+    <string name="location_services_off_title">Location services are off</string><string name="location_services_off_body">Turn on location services to receive a GNSS signal.</string><string name="open_location_settings">Open location settings</string><string name="open_location_settings_hint">Opens location settings</string>
+    <string name="gnss_unavailable_title">GNSS unavailable</string><string name="gnss_unavailable_body">This device does not provide GNSS hardware.</string>
+    <string name="gnss_error_title">Unable to read GNSS status</string><string name="gnss_error_body">Smart Flight could not start GNSS status.</string><string name="gnss_try_again">Try again</string><string name="gnss_try_again_hint">Retries GNSS status</string>
+    <string name="location_settings_unavailable">Unable to open location settings.</string>
 </resources>

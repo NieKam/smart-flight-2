@@ -3,6 +3,7 @@ package kniezrec.com.flightinfo
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.location.LocationManager
 import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
@@ -27,11 +28,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
+import kniezrec.com.flightinfo.gnss.AndroidGnssStatusPlatform
+import kniezrec.com.flightinfo.gnss.GnssStatusController
+import kniezrec.com.flightinfo.gnss.GnssStatusState
 import kniezrec.com.flightinfo.permission.FineLocationPermissionPlatform
 import kniezrec.com.flightinfo.permission.LocationPermissionRequestHistory
 import kniezrec.com.flightinfo.permission.LocationPermissionState
 import kniezrec.com.flightinfo.permission.LocationPermissionStateController
 import kniezrec.com.flightinfo.permission.locationPermissionRequest
+import kniezrec.com.flightinfo.ui.gnss.GnssStatusScreen
 import kniezrec.com.flightinfo.ui.permission.PermissionOnboardingScreen
 import kniezrec.com.flightinfo.ui.permission.smartFlightPageColor
 import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
@@ -40,6 +45,8 @@ import kotlinx.coroutines.launch
 class MainActivity : ComponentActivity() {
     private var permissionState by mutableStateOf(LocationPermissionState.Requestable)
     private var announcementVersion by mutableIntStateOf(0)
+    private var gnssState by mutableStateOf<GnssStatusState>(GnssStatusState.Waiting)
+    private var isForeground = false
     private val permissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
             refreshPermissionState(announceChange = true)
@@ -64,23 +71,38 @@ class MainActivity : ComponentActivity() {
                         contentWindowInsets = WindowInsets(0, 0, 0, 0),
                         snackbarHost = { SnackbarHost(snackbarHostState) },
                     ) { innerPadding ->
-                        PermissionOnboardingScreen(
-                            state = permissionState,
-                            onGrantPermission = {
-                                requestLocationPermission()
-                            },
-                            onOpenSettings = {
-                                if (!openAppSettings()) {
-                                    scope.launch {
-                                        snackbarHostState.showSnackbar(
-                                            getString(R.string.settings_unavailable),
-                                        )
+                        if (permissionState == LocationPermissionState.Granted) {
+                            GnssStatusScreen(
+                                state = gnssState,
+                                onOpenLocationSettings = {
+                                    if (!openLocationSettings()) {
+                                        scope.launch {
+                                            snackbarHostState.showSnackbar(
+                                                getString(R.string.location_settings_unavailable),
+                                            )
+                                        }
                                     }
-                                }
-                            },
-                            modifier = Modifier.padding(innerPadding).safeDrawingPadding(),
-                            announceStateChange = announcementVersion > 0,
-                        )
+                                },
+                                onRetry = { if (isForeground) gnssStatusController.start() },
+                                modifier = Modifier.padding(innerPadding).safeDrawingPadding(),
+                            )
+                        } else {
+                            PermissionOnboardingScreen(
+                                state = permissionState,
+                                onGrantPermission = { requestLocationPermission() },
+                                onOpenSettings = {
+                                    if (!openAppSettings()) {
+                                        scope.launch {
+                                            snackbarHostState.showSnackbar(
+                                                getString(R.string.settings_unavailable),
+                                            )
+                                        }
+                                    }
+                                },
+                                modifier = Modifier.padding(innerPadding).safeDrawingPadding(),
+                                announceStateChange = announcementVersion > 0,
+                            )
+                        }
                     }
                 }
             }
@@ -89,11 +111,23 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        isForeground = true
         refreshPermissionState()
+    }
+
+    override fun onPause() {
+        isForeground = false
+        gnssStatusController.stop()
+        super.onPause()
     }
 
     private fun refreshPermissionState(announceChange: Boolean = false) {
         permissionState = permissionStateController.currentState()
+        if (isForeground && permissionState == LocationPermissionState.Granted) {
+            gnssStatusController.start()
+        } else {
+            gnssStatusController.stop()
+        }
         if (announceChange) announcementVersion++
     }
 
@@ -105,6 +139,8 @@ class MainActivity : ComponentActivity() {
                 },
             )
         }.isSuccess
+
+    private fun openLocationSettings(): Boolean = runCatching { startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)) }.isSuccess
 
     private fun requestLocationPermission() {
         // Record the launch before invoking the platform dialog so a later process restart can
@@ -145,6 +181,13 @@ class MainActivity : ComponentActivity() {
 
     private val permissionPreferences by lazy {
         getSharedPreferences(PERMISSION_PREFERENCES, MODE_PRIVATE)
+    }
+
+    private val gnssStatusController by lazy {
+        GnssStatusController(
+            platform = AndroidGnssStatusPlatform(getSystemService(LocationManager::class.java), packageManager, mainExecutor),
+            onStateChanged = { gnssState = it },
+        )
     }
 
     private companion object {
