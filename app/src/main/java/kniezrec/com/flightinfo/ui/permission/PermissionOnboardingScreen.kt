@@ -15,12 +15,12 @@ import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextButtonDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -50,7 +50,7 @@ private val LightLavender = Color(0xFFD9D9ED)
 // The legacy muted lavender does not meet contrast at this size; use the accessible light token.
 private val BodyLavender = Color(0xFFD9D9ED)
 internal val smartFlightPageColor = Color(0xFF484685)
-internal const val permissionStateCardTestTag = "permission_state_card"
+internal const val PERMISSION_STATE_CARD_TEST_TAG = "permission_state_card"
 
 @Composable
 fun PermissionOnboardingScreen(
@@ -130,7 +130,7 @@ private fun PermissionStateCard(
                 .widthIn(max = 600.dp)
                 .fillMaxWidth()
                 .heightIn(min = 160.dp)
-                .testTag(permissionStateCardTestTag),
+                .testTag(PERMISSION_STATE_CARD_TEST_TAG),
         shape =
             androidx.compose.foundation.shape
                 .RoundedCornerShape(10.dp),
@@ -186,7 +186,7 @@ private fun PermissionStateCard(
                                 stateDescription = actionHint
                             },
                     contentPadding = PaddingValues(horizontal = 12.dp),
-                    colors = TextButtonDefaults.textButtonColors(contentColor = actionCyan),
+                    colors = ButtonDefaults.textButtonColors(contentColor = actionCyan),
                 ) {
                     Text(
                         text = stringResource(content.action),
