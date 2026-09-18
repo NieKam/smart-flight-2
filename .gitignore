@@ -1,15 +1,22 @@
+# Android Studio / IntelliJ
+.idea/
 *.iml
-.gradle
-/local.properties
-.idea/*
-!.idea/codeStyles
-!.idea/inspectionProfiles
-.DS_Store
-/build
-/captures
-.externalNativeBuild
-.cxx
+
+# Local configuration
 local.properties
 
-# Keystore files
-*.jks
+# Build
+.gradle/
+build/
+*/build/
+
+# APK
+*.apk
+*.aab
+
+# Native
+.cxx/
+.externalNativeBuild/
+
+# OS
+.DS_Store
