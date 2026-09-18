@@ -10,9 +10,9 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -27,21 +27,21 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
-import kotlinx.coroutines.launch
 import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     private var hasRequestedPermission = false
     private var permissionState by mutableStateOf(LocationPermissionState.Requestable)
     private var announcementVersion by mutableIntStateOf(0)
-    private val permissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) {
-        hasRequestedPermission = true
-        refreshPermissionState(announceChange = true)
-    }
+    private val permissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+            refreshPermissionState(announceChange = true)
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        hasRequestedPermission = savedInstanceState?.getBoolean(HAS_REQUESTED_PERMISSION) ?: false
+        hasRequestedPermission = permissionPreferences.getBoolean(HAS_REQUESTED_PERMISSION, false)
         enableEdgeToEdge()
         WindowCompat.getInsetsController(window, window.decorView).apply {
             isAppearanceLightStatusBars = false
@@ -62,7 +62,7 @@ class MainActivity : ComponentActivity() {
                         PermissionOnboardingScreen(
                             state = permissionState,
                             onGrantPermission = {
-                                permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                                requestLocationPermission()
                             },
                             onOpenSettings = {
                                 if (!openAppSettings()) {
@@ -87,30 +87,42 @@ class MainActivity : ComponentActivity() {
         refreshPermissionState()
     }
 
-    override fun onSaveInstanceState(outState: Bundle) {
-        outState.putBoolean(HAS_REQUESTED_PERMISSION, hasRequestedPermission)
-        super.onSaveInstanceState(outState)
-    }
-
     private fun refreshPermissionState(announceChange: Boolean = false) {
         val isGranted =
             ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) ==
                 PackageManager.PERMISSION_GRANTED
-        permissionState = locationPermissionState(
-            isGranted = isGranted,
-            hasRequestedPermission = hasRequestedPermission,
-            shouldShowRationale = shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_FINE_LOCATION),
-        )
+        permissionState =
+            locationPermissionState(
+                isGranted = isGranted,
+                hasRequestedPermission = hasRequestedPermission,
+                shouldShowRationale = shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_FINE_LOCATION),
+            )
         if (announceChange) announcementVersion++
     }
 
-    private fun openAppSettings(): Boolean = runCatching {
-        startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-            data = Uri.fromParts("package", packageName, null)
-        })
-    }.isSuccess
+    private fun openAppSettings(): Boolean =
+        runCatching {
+            startActivity(
+                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                    data = Uri.fromParts("package", packageName, null)
+                },
+            )
+        }.isSuccess
+
+    private fun requestLocationPermission() {
+        // Record the launch before invoking the platform dialog so a later process restart can
+        // distinguish a first launch from Android's no-rationale, settings-required state.
+        hasRequestedPermission = true
+        permissionPreferences.edit().putBoolean(HAS_REQUESTED_PERMISSION, true).apply()
+        permissionLauncher.launch(locationPermissionRequest)
+    }
+
+    private val permissionPreferences by lazy {
+        getSharedPreferences(PERMISSION_PREFERENCES, MODE_PRIVATE)
+    }
 
     private companion object {
         const val HAS_REQUESTED_PERMISSION = "has_requested_location_permission"
+        const val PERMISSION_PREFERENCES = "location_permission"
     }
 }
