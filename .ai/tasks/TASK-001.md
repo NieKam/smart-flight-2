@@ -6,11 +6,11 @@ READY_FOR_DESIGN
 
 ## Goal
 
-Replace the placeholder Compose greeting with a location-permission onboarding state that lets a new user grant the fine-location access required before Smart Flight can provide its flight dashboard.
+Replace the placeholder Compose greeting with a location-permission onboarding state that lets a new user grant the precise/fine-location access required before Smart Flight can provide its flight dashboard.
 
 ## Context
 
-The original app gates all location-dependent dashboard cards behind fine-location permission. This is the smallest complete, user-visible first iteration: it establishes the entry point and prerequisite for satellite, flight-data, location, route, and map features without prematurely implementing any of them. The rewrite currently contains only the Android Studio Compose sample and declares no location permission.
+The original app gates all location-dependent dashboard cards behind fine-location permission. Smart Flight must work offline during a flight and rely on device GNSS/location sensors to establish the best available position as quickly as possible; approximate/coarse-only location is not sufficient for that purpose. This is the smallest complete, user-visible first iteration: it establishes the entry point and prerequisite for satellite, flight-data, location, route, and map features without prematurely implementing any of them. The rewrite currently contains only the Android Studio Compose sample and declares no location permission.
 
 ## Original Application
 
@@ -37,7 +37,8 @@ The original app gates all location-dependent dashboard cards behind fine-locati
 
 - Use the existing Compose and Activity Compose dependencies, including the Activity Result permission API; do not add a location SDK or map library for this task.
 - Keep permission state lifecycle-aware and derive it from the platform permission result/current grant rather than assuming the button outcome.
-- Request fine location only. Do not add legacy external-storage permission.
+- Fine location is required and is the only authorization that may satisfy this task's location prerequisite. Coarse/approximate-only permission must keep the user in onboarding and must never produce the granted entry state.
+- On Android 12+ (API 31+), declare and request ACCESS_FINE_LOCATION and ACCESS_COARSE_LOCATION together when required by the Android permission model to present its precise/approximate location choice. This companion coarse request is solely a platform prompt requirement: it does not weaken the accuracy requirement, and only a granted ACCESS_FINE_LOCATION result is success. Do not add legacy external-storage permission.
 - Preserve edge-to-edge handling and existing package/application identity.
 - Do not start location updates, read GNSS status, or implement a background service in this iteration.
 
@@ -53,6 +54,7 @@ The original app gates all location-dependent dashboard cards behind fine-locati
 - [ ] A fresh install displays a Smart Flight location-permission explanation and a **Grant permission** action instead of `Hello Android!`.
 - [ ] Tapping **Grant permission** opens Android's fine-location runtime permission prompt.
 - [ ] Granting fine location changes the screen to the granted entry state without restarting the app.
+- [ ] On Android 12+, the request presents Android's precise/approximate choice by requesting fine and coarse together when required; selecting approximate-only location keeps the app in the actionable onboarding state.
 - [ ] Denying permission keeps an actionable onboarding screen.
 - [ ] A permanently denied permission presents **Open settings**, which opens this app's system-settings details screen.
 - [ ] Returning from system settings refreshes the state: granting permission there removes the onboarding state.
@@ -61,7 +63,7 @@ The original app gates all location-dependent dashboard cards behind fine-locati
 
 ## Implementation Plan
 
-1. Add the fine-location permission declaration to the rewrite manifest.
+1. Add the fine-location permission declaration and the Android 12+ companion coarse declaration needed to present the system's precise/approximate choice; keep fine location as the sole success gate.
 2. Replace the sample `Greeting` content with a Compose screen that models the permission-entry state and a minimal granted state.
 3. Connect the grant action to the Activity Result runtime-permission launcher and handle grant, ordinary denial, and permanent denial.
 4. Refresh permission state on resume and wire the settings action to the app-details settings intent.
@@ -85,6 +87,7 @@ The original app gates all location-dependent dashboard cards behind fine-locati
 ## Risks and Edge Cases
 
 - Android permission behavior differs by API level and user choice; do not infer permanent denial solely from one denial callback.
+- On Android 12+, fine and coarse must be requested together to present the system's precise/approximate choice. Treat an approximate-only result as insufficient and continue onboarding until fine location is granted.
 - The app may resume after the user changes the permission in settings, so the displayed state must be refreshed.
 - Device/emulator configurations without usable GPS are outside this task; permission onboarding must still work independently of provider availability.
 - Avoid making a promise that location is already being collected; this iteration only establishes authorization.
