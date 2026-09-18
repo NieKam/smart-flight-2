@@ -27,6 +27,8 @@ jobs:
 
       - name: Make Gradle executable
         run: chmod +x ./gradlew
+      - name: Check Kotlin formatting
+        run: ./gradlew ktlintCheck
 
       - name: Run unit tests
         run: ./gradlew testDebugUnitTest
