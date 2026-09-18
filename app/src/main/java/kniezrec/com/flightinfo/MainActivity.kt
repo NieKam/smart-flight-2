@@ -123,6 +123,12 @@ class MainActivity : ComponentActivity() {
                             Manifest.permission.ACCESS_FINE_LOCATION,
                         ) == PackageManager.PERMISSION_GRANTED
 
+                    override fun isCoarseLocationGranted(): Boolean =
+                        ContextCompat.checkSelfPermission(
+                            this@MainActivity,
+                            Manifest.permission.ACCESS_COARSE_LOCATION,
+                        ) == PackageManager.PERMISSION_GRANTED
+
                     override fun shouldShowFineLocationRationale(): Boolean =
                         shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_FINE_LOCATION)
                 },

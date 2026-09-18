@@ -12,12 +12,14 @@ enum class LocationPermissionState {
  * and after a permanent denial. Request history distinguishes those two cases.
  */
 fun locationPermissionState(
-    isGranted: Boolean,
+    isFineLocationGranted: Boolean,
+    isCoarseLocationGranted: Boolean,
     hasRequestedPermission: Boolean,
     shouldShowRationale: Boolean,
 ): LocationPermissionState =
     when {
-        isGranted -> LocationPermissionState.Granted
+        isFineLocationGranted -> LocationPermissionState.Granted
+        isCoarseLocationGranted -> LocationPermissionState.Requestable
         hasRequestedPermission && !shouldShowRationale -> LocationPermissionState.SettingsRequired
         else -> LocationPermissionState.Requestable
     }

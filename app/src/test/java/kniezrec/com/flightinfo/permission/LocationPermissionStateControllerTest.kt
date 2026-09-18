@@ -6,7 +6,12 @@ import org.junit.Test
 class LocationPermissionStateControllerTest {
     @Test
     fun requestHistorySurvivesControllerRecreation() {
-        val platform = FakePermissionPlatform(isGranted = false, shouldShowRationale = false)
+        val platform =
+            FakePermissionPlatform(
+                isFineGranted = false,
+                isCoarseGranted = false,
+                shouldShowRationale = false,
+            )
         val history = FakeRequestHistory()
 
         LocationPermissionStateController(platform, history).recordPermissionRequest()
@@ -19,20 +24,29 @@ class LocationPermissionStateControllerTest {
 
     @Test
     fun refreshUsesTheCurrentGrantAfterReturningFromSettings() {
-        val platform = FakePermissionPlatform(isGranted = false, shouldShowRationale = false)
-        val controller = LocationPermissionStateController(platform, FakeRequestHistory(hasRequested = true))
+        val platform =
+            FakePermissionPlatform(
+                isFineGranted = false,
+                isCoarseGranted = false,
+                shouldShowRationale = false,
+            )
+        val controller =
+            LocationPermissionStateController(platform, FakeRequestHistory(hasRequested = true))
         assertEquals(LocationPermissionState.SettingsRequired, controller.currentState())
 
-        platform.isGranted = true
+        platform.isFineGranted = true
 
         assertEquals(LocationPermissionState.Granted, controller.currentState())
     }
 
     private class FakePermissionPlatform(
-        var isGranted: Boolean,
+        var isFineGranted: Boolean,
+        var isCoarseGranted: Boolean,
         var shouldShowRationale: Boolean,
     ) : FineLocationPermissionPlatform {
-        override fun isFineLocationGranted(): Boolean = isGranted
+        override fun isFineLocationGranted(): Boolean = isFineGranted
+
+        override fun isCoarseLocationGranted(): Boolean = isCoarseGranted
 
         override fun shouldShowFineLocationRationale(): Boolean = shouldShowRationale
     }

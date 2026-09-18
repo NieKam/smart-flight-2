@@ -4,6 +4,8 @@ package kniezrec.com.flightinfo.permission
 internal interface FineLocationPermissionPlatform {
     fun isFineLocationGranted(): Boolean
 
+    fun isCoarseLocationGranted(): Boolean
+
     fun shouldShowFineLocationRationale(): Boolean
 }
 
@@ -24,7 +26,8 @@ internal class LocationPermissionStateController(
 ) {
     fun currentState(): LocationPermissionState =
         locationPermissionState(
-            isGranted = platform.isFineLocationGranted(),
+            isFineLocationGranted = platform.isFineLocationGranted(),
+            isCoarseLocationGranted = platform.isCoarseLocationGranted(),
             hasRequestedPermission = requestHistory.hasRequestedFineLocation,
             shouldShowRationale = platform.shouldShowFineLocationRationale(),
         )

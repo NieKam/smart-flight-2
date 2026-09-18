@@ -9,7 +9,8 @@ class LocationPermissionStateTest {
         assertEquals(
             LocationPermissionState.Granted,
             locationPermissionState(
-                isGranted = true,
+                isFineLocationGranted = true,
+                isCoarseLocationGranted = false,
                 hasRequestedPermission = true,
                 shouldShowRationale = false,
             ),
@@ -21,7 +22,8 @@ class LocationPermissionStateTest {
         assertEquals(
             LocationPermissionState.Requestable,
             locationPermissionState(
-                isGranted = false,
+                isFineLocationGranted = false,
+                isCoarseLocationGranted = false,
                 hasRequestedPermission = false,
                 shouldShowRationale = false,
             ),
@@ -33,7 +35,8 @@ class LocationPermissionStateTest {
         assertEquals(
             LocationPermissionState.Requestable,
             locationPermissionState(
-                isGranted = false,
+                isFineLocationGranted = false,
+                isCoarseLocationGranted = false,
                 hasRequestedPermission = true,
                 shouldShowRationale = true,
             ),
@@ -45,7 +48,21 @@ class LocationPermissionStateTest {
         assertEquals(
             LocationPermissionState.SettingsRequired,
             locationPermissionState(
-                isGranted = false,
+                isFineLocationGranted = false,
+                isCoarseLocationGranted = false,
+                hasRequestedPermission = true,
+                shouldShowRationale = false,
+            ),
+        )
+    }
+
+    @Test
+    fun approximateOnlyPermissionRemainsRequestable() {
+        assertEquals(
+            LocationPermissionState.Requestable,
+            locationPermissionState(
+                isFineLocationGranted = false,
+                isCoarseLocationGranted = true,
                 hasRequestedPermission = true,
                 shouldShowRationale = false,
             ),
