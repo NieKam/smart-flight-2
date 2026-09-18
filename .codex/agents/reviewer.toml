@@ -51,7 +51,45 @@ Compare with the original application and screenshots when relevant.
 
 3. Architecture
 
-Does the implementation fit the existing project architecture?
+ARCHITECTURE REVIEW
+
+Review the implementation against the architecture and conventions already established in smart-flight-2.
+
+Do not judge architecture based on personal preference or generic Android patterns alone.
+
+First inspect the existing project structure, including:
+
+- existing ViewModels
+- state holders
+- repositories/use cases when present
+- dependency injection
+- UI/state boundaries
+- Flow/StateFlow usage
+- lifecycle handling
+- existing Compose architecture patterns
+
+Determine whether the implementation follows those established patterns.
+
+Pay particular attention to separation of responsibilities.
+
+For Compose screens, consider whether:
+
+- UI composables are primarily responsible for rendering UI and emitting user events
+- state is owned at an appropriate lifecycle-aware level
+- business/application logic is kept outside composables and Activities where appropriate
+- Android framework concerns are isolated when practical
+- state can be tested independently of the Activity
+- the implementation introduces unnecessary coupling
+
+An Activity should not become a container for substantial application state or business logic merely because the feature can technically be implemented there.
+
+If an architectural concern is identified, explain:
+
+- what responsibility is in the wrong layer
+- why this conflicts with the project's architecture
+- what boundary should be improved
+
+Do not require a ViewModel, repository, use case, or other abstraction merely for the sake of using one. Require it only when justified by the existing architecture, lifecycle, state-management needs, or testability of the feature.
 
 4. Kotlin and Compose quality
 
