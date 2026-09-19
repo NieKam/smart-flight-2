@@ -19,6 +19,7 @@
     <string name="location_settings_unavailable">Unable to open location settings.</string>
     <string name="flight_parameters_title">Flight parameters</string>
     <string name="flight_parameters_waiting">Waiting for GPS position…</string>
+    <string name="flight_parameters_available">Flight parameters available</string>
     <string name="flight_speed">Speed</string>
     <string name="flight_vertical_speed">Vertical speed</string>
     <string name="flight_altitude">Altitude</string>

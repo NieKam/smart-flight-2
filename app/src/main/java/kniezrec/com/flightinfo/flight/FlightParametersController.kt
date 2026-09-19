@@ -19,6 +19,7 @@ internal class FlightParametersController(
 ) {
     private var registered = false
     private var previousAltitudeSample: AltitudeSample? = null
+    private var hasReceivedDisplayableReading = false
 
     fun start() {
         stop()
@@ -38,17 +39,21 @@ internal class FlightParametersController(
         if (registered) platform.unregisterLocationListener()
         registered = false
         previousAltitudeSample = null
+        hasReceivedDisplayableReading = false
         onStateChanged(FlightParametersState.Waiting)
     }
 
     private fun onLocation(fix: FlightLocationFix) {
         val verticalSpeed = updateVerticalSpeed(fix.altitudeMetres, fix.elapsedRealtimeNanos)
         val speed = fix.speedMetresPerSecond?.takeIf(Double::isFinite)?.let { it * KILOMETRES_PER_HOUR_PER_METRE_PER_SECOND }
+        val altitude = fix.altitudeMetres?.takeIf(Double::isFinite)
+        if (!hasReceivedDisplayableReading && speed == null && altitude == null) return
+        hasReceivedDisplayableReading = true
         onStateChanged(
             FlightParametersState.Readings(
                 speedKilometresPerHour = speed,
                 verticalSpeedMetresPerSecond = verticalSpeed,
-                altitudeMetres = fix.altitudeMetres?.takeIf(Double::isFinite),
+                altitudeMetres = altitude,
             ),
         )
     }

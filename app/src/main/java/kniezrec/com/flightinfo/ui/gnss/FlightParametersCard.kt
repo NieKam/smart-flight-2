@@ -1,6 +1,7 @@
 package kniezrec.com.flightinfo.ui.gnss
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -11,6 +12,11 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -33,17 +39,45 @@ internal fun FlightParametersCard(
     state: FlightParametersState,
     modifier: Modifier = Modifier,
 ) {
+    var wasWaiting by remember { mutableStateOf(state is FlightParametersState.Waiting) }
+    var announceAvailability by remember { mutableStateOf(false) }
+    LaunchedEffect(state) {
+        when (state) {
+            FlightParametersState.Waiting -> {
+                wasWaiting = true
+                announceAvailability = false
+            }
+            is FlightParametersState.Readings -> {
+                if (wasWaiting) announceAvailability = true
+                wasWaiting = false
+            }
+        }
+    }
     Card(
         modifier = modifier.fillMaxWidth().heightIn(min = 160.dp),
         shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp),
         colors = CardDefaults.cardColors(containerColor = cardPurple),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
     ) {
-        when (state) {
-            FlightParametersState.Waiting -> FlightParametersWaiting()
-            is FlightParametersState.Readings -> FlightParametersReadings(state)
+        Box {
+            when (state) {
+                FlightParametersState.Waiting -> FlightParametersWaiting()
+                is FlightParametersState.Readings -> FlightParametersReadings(state)
+            }
+            if (announceAvailability) FlightParametersAvailabilityAnnouncement()
         }
     }
+}
+
+@Composable
+private fun FlightParametersAvailabilityAnnouncement() {
+    val availabilityText = androidx.compose.ui.res.stringResource(R.string.flight_parameters_available)
+    Box(
+        Modifier.semantics {
+            contentDescription = availabilityText
+            liveRegion = LiveRegionMode.Polite
+        },
+    )
 }
 
 @Composable
@@ -80,7 +114,6 @@ private fun FlightParametersReadings(state: FlightParametersState.Readings) {
 private fun FlightParametersTitle(textAlign: TextAlign = TextAlign.Start) {
     Text(
         text = androidx.compose.ui.res.stringResource(R.string.flight_parameters_title),
-        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
         color = textColor,
         style = MaterialTheme.typography.titleLarge.copy(fontSize = 22.sp, lineHeight = 28.sp, fontWeight = FontWeight.Medium, textAlign = textAlign),
     )

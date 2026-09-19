@@ -80,4 +80,16 @@ class FlightParametersControllerTest {
             callback?.invoke(fix)
         }
     }
+
+    @Test fun `initial fix without a displayable field remains waiting`() {
+        val platform = FakePlatform()
+        val states = mutableListOf<FlightParametersState>()
+        FlightParametersController(platform, states::add).start()
+
+        platform.report(FlightLocationFix(null, null, 1_000_000_000L))
+        platform.report(FlightLocationFix(Double.NaN, Double.POSITIVE_INFINITY, 2_000_000_000L))
+
+        assertEquals(listOf(FlightParametersState.Waiting), states)
+    }
+
 }
