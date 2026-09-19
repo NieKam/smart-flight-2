@@ -2,7 +2,7 @@
 
 ## Result
 
-CHANGES_REQUESTED
+PASS
 
 ## Task
 
@@ -14,12 +14,7 @@ Reviewed against the [TASK-003 design specification](../designs/TASK-003.md).
 
 ## Blocking Findings
 
-1. **classification:** BLOCKING_IMPLEMENTATION  
-   **file:** `app/src/main/java/kniezrec/com/flightinfo/ui/gnss/FlightParametersCard.kt`  
-   **location:** `FlightParametersReadings` / `ParameterRow`, lines 89–101 and 119–121  
-   **problem:** The first `ParameterRow` starts with the same 4 dp top padding used between all rows. Consequently, the visual gap from the 28 sp title to the Speed row is 4 dp, not the specified 16 dp.  
-   **why it violates the task/design:** The TASK-003 design requires the readings title to have 16 dp below it before the first row, while retaining 4 dp only between adjacent row containers. The current reading hierarchy does not match that required spacing.  
-   **required correction:** Add 16 dp spacing below the title before the Speed row, while keeping the 4 dp gaps between the Speed, Vertical speed, and Altitude rows.
+None.
 
 ## Non-Blocking Findings
 
@@ -33,11 +28,11 @@ None.
 
 ### Source Review
 
-Inspected the Architect task, Designer specification, iteration-2 review, current feature-branch commits and diff, activity lifecycle/permission coordination, GNSS and flight location controller/platform boundaries, Compose dashboard and accessibility semantics, resources, manifest, focused unit and Compose tests, Gradle configuration, and CI workflow. Confirmed the iteration-2 unresolved `heightIn` import is restored and the duplicate `widthIn` import is absent. `git diff --check 8891fea..HEAD` found no feature-source whitespace errors; the only reported trailing whitespace is in existing prior review artifacts.
+Inspected the Architect task, Designer specification, iteration-2 review, current feature-branch commits and diff, activity permission/lifecycle coordination, GNSS and flight-location controller/platform boundaries, Compose dashboard layout and accessibility semantics, resources, manifest, focused unit and Compose tests, Gradle configuration, and CI workflow. Confirmed the iteration-2 `heightIn` import correction and the iteration-3 title-to-first-row 16 dp spacing correction are present. The flight observer clears session data on stop/restart/unavailable/registration-error paths; location values and altitude timing are validated before presentation; and the flight card meets the required waiting, partial-reading, order, formatting, and accessibility behavior. `git diff --check` reported trailing whitespace only in pre-existing review artifacts, not application or test source.
 
 ### Tests Verified
 
-Attempted `./gradlew testDebugUnitTest ktlintCheck --console=plain --no-daemon` and then `./gradlew testDebugUnitTest --console=plain --no-daemon --stacktrace`. Both Gradle invocations remained in configuration/daemon startup and did not produce unit-test results before they were stopped; no test result report was generated. Formatting report files were generated with no reported violations, but `ktlintCheck` did not reach a confirmed completed Gradle result.
+Attempted `./gradlew testDebugUnitTest ktlintCheck --console=plain --no-daemon` and a focused `./gradlew testDebugUnitTest --console=plain --no-daemon`. The local Gradle invocations did not yield a completed task result or create `app/build/test-results`; unit tests were therefore not verified. Existing focused unit and Compose test sources were reviewed for coverage of calculations, missing fields, invalid intervals, lifecycle cleanup, waiting/partial values, and the availability announcement.
 
 ### Build Verified
 
@@ -49,4 +44,4 @@ CI configuration was inspected only. `.github/workflows/build.yml` runs `ktlintC
 
 ## Recommended Next Action
 
-Developer fixes the title-to-first-row spacing in the flight-parameters readings layout, then reruns the configured checks in an environment where Gradle can complete.
+Workflow may proceed. Run the configured Gradle and Android instrumentation checks in an environment where Gradle can complete before release.
