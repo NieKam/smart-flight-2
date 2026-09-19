@@ -7,6 +7,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kniezrec.com.flightinfo.gnss.GnssSatellite
 import kniezrec.com.flightinfo.gnss.GnssStatusState
+import kniezrec.com.flightinfo.flight.FlightParametersState
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -19,6 +20,7 @@ class GnssStatusScreenTest {
         composeRule.setContent {
             GnssStatusScreen(
                 state = GnssStatusState.Available(listOf(GnssSatellite(true), GnssSatellite(false))),
+                flightParametersState = FlightParametersState.Waiting,
                 onOpenLocationSettings = {},
                 onRetry = {},
             )
@@ -32,8 +34,33 @@ class GnssStatusScreenTest {
 
     @Test fun disabledStateShowsLocationSettingsAction() {
         composeRule.setContent {
-            GnssStatusScreen(GnssStatusState.LocationServicesDisabled, {}, {})
+            GnssStatusScreen(GnssStatusState.LocationServicesDisabled, FlightParametersState.Waiting, {}, {})
         }
         composeRule.onNodeWithText("Open location settings").assertIsDisplayed()
     }
+
+    @Test fun flightParametersShowWaitingAndPartialReadings() {
+        composeRule.setContent {
+            GnssStatusScreen(
+                state = GnssStatusState.Waiting,
+                flightParametersState = FlightParametersState.Waiting,
+                onOpenLocationSettings = {},
+                onRetry = {},
+            )
+        }
+        composeRule.onNodeWithText("Waiting for GPS position…").assertIsDisplayed()
+
+        composeRule.setContent {
+            GnssStatusScreen(
+                state = GnssStatusState.Waiting,
+                flightParametersState = FlightParametersState.Readings(36.0, null, 100.0),
+                onOpenLocationSettings = {},
+                onRetry = {},
+            )
+        }
+        composeRule.onNodeWithText("36.0 km/h").assertIsDisplayed()
+        composeRule.onNodeWithText("—").assertIsDisplayed()
+        composeRule.onNodeWithText("100.0 m").assertIsDisplayed()
+    }
+
 }

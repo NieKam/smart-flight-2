@@ -9,7 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.widthIn
@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.sp
 import kniezrec.com.flightinfo.R
 import kniezrec.com.flightinfo.gnss.GnssSatellite
 import kniezrec.com.flightinfo.gnss.GnssStatusState
+import kniezrec.com.flightinfo.flight.FlightParametersState
 import kniezrec.com.flightinfo.ui.permission.actionCyan
 import kniezrec.com.flightinfo.ui.permission.cardPurple
 
@@ -53,6 +54,7 @@ private val textColor = Color(0xFFD9D9ED)
 @Composable
 fun GnssStatusScreen(
     state: GnssStatusState,
+    flightParametersState: FlightParametersState,
     onOpenLocationSettings: () -> Unit,
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
@@ -66,6 +68,12 @@ fun GnssStatusScreen(
         ) {
             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
                 Crossfade(state, animationSpec = tween(180), label = "GNSS state") { GnssStatusCard(it, onOpenLocationSettings, onRetry) }
+            }
+            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
+                FlightParametersCard(
+                    flightParametersState,
+                    Modifier.padding(bottom = 12.dp).widthIn(max = 600.dp),
+                )
             }
         }
     }

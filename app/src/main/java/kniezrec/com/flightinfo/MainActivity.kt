@@ -31,6 +31,9 @@ import androidx.core.view.WindowCompat
 import kniezrec.com.flightinfo.gnss.AndroidGnssStatusPlatform
 import kniezrec.com.flightinfo.gnss.GnssStatusController
 import kniezrec.com.flightinfo.gnss.GnssStatusState
+import kniezrec.com.flightinfo.flight.AndroidFlightLocationPlatform
+import kniezrec.com.flightinfo.flight.FlightParametersController
+import kniezrec.com.flightinfo.flight.FlightParametersState
 import kniezrec.com.flightinfo.permission.FineLocationPermissionPlatform
 import kniezrec.com.flightinfo.permission.LocationPermissionRequestHistory
 import kniezrec.com.flightinfo.permission.LocationPermissionState
@@ -46,6 +49,7 @@ class MainActivity : ComponentActivity() {
     private var permissionState by mutableStateOf(LocationPermissionState.Requestable)
     private var announcementVersion by mutableIntStateOf(0)
     private var gnssState by mutableStateOf<GnssStatusState>(GnssStatusState.Waiting)
+    private var flightParametersState by mutableStateOf<FlightParametersState>(FlightParametersState.Waiting)
     private var isForeground = false
     private val permissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
@@ -74,6 +78,7 @@ class MainActivity : ComponentActivity() {
                         if (permissionState == LocationPermissionState.Granted) {
                             GnssStatusScreen(
                                 state = gnssState,
+                                flightParametersState = flightParametersState,
                                 onOpenLocationSettings = {
                                     if (!openLocationSettings()) {
                                         scope.launch {
@@ -83,7 +88,7 @@ class MainActivity : ComponentActivity() {
                                         }
                                     }
                                 },
-                                onRetry = { if (isForeground) gnssStatusController.start() },
+                                onRetry = { if (isForeground) startObservation() },
                                 modifier = Modifier.padding(innerPadding).safeDrawingPadding(),
                             )
                         } else {
@@ -118,15 +123,17 @@ class MainActivity : ComponentActivity() {
     override fun onPause() {
         isForeground = false
         gnssStatusController.stop()
+        flightParametersController.stop()
         super.onPause()
     }
 
     private fun refreshPermissionState(announceChange: Boolean = false) {
         permissionState = permissionStateController.currentState()
         if (isForeground && permissionState == LocationPermissionState.Granted) {
-            gnssStatusController.start()
+            startObservation()
         } else {
             gnssStatusController.stop()
+        flightParametersController.stop()
         }
         if (announceChange) announcementVersion++
     }
@@ -188,6 +195,19 @@ class MainActivity : ComponentActivity() {
             platform = AndroidGnssStatusPlatform(getSystemService(LocationManager::class.java), packageManager, mainExecutor),
             onStateChanged = { gnssState = it },
         )
+    }
+
+    private val flightParametersController by lazy {
+        FlightParametersController(
+            platform = AndroidFlightLocationPlatform(getSystemService(LocationManager::class.java), packageManager, mainExecutor),
+            onStateChanged = { flightParametersState = it },
+            onRegistrationFailed = { gnssStatusController.showError() },
+        )
+    }
+
+    private fun startObservation() {
+        gnssStatusController.start()
+        flightParametersController.start()
     }
 
     private companion object {

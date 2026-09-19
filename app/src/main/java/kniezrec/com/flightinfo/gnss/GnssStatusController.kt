@@ -44,6 +44,11 @@ internal class GnssStatusController(
         registered = false
     }
 
+    fun showError() {
+        stop()
+        onStateChanged(GnssStatusState.Error)
+    }
+
     private fun onSatelliteStatus(satellites: List<GnssSatellite>) {
         onStateChanged(
             if (satellites.isEmpty()) GnssStatusState.Waiting else GnssStatusState.Available(satellites),
