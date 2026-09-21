@@ -5,7 +5,7 @@ import org.junit.Test
 
 class CourseControllerTest {
     @Test fun everyCardinalBoundaryMatchesSpecification() {
-        val expected = mapOf(0 to "N", 22 to "N", 23 to "NE", 67 to "NE", 68 to "E", 112 to "E", 113 to "SE", 157 to "SE", 158 to "S", 202 to "S", 203 to "SW", 247 to "SW", 248 to "W", 292 to "W", 293 to "NW", 337 to "NW", 338 to "N", 359 to "N")
+        val expected = mapOf(0 to CompassCardinal.North, 22 to CompassCardinal.North, 23 to CompassCardinal.NorthEast, 67 to CompassCardinal.NorthEast, 68 to CompassCardinal.East, 112 to CompassCardinal.East, 113 to CompassCardinal.SouthEast, 157 to CompassCardinal.SouthEast, 158 to CompassCardinal.South, 202 to CompassCardinal.South, 203 to CompassCardinal.SouthWest, 247 to CompassCardinal.SouthWest, 248 to CompassCardinal.West, 292 to CompassCardinal.West, 293 to CompassCardinal.NorthWest, 337 to CompassCardinal.NorthWest, 338 to CompassCardinal.North, 359 to CompassCardinal.North)
         expected.forEach { (heading, cardinal) -> assertEquals(cardinal, compassCardinal(heading)) }
     }
 

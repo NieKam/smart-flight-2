@@ -4,6 +4,7 @@ import androidx.activity.ComponentActivity
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.layout.width
 import androidx.compose.ui.test.assertExists
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertDoesNotExist
@@ -11,7 +12,9 @@ import androidx.compose.ui.test.hasStateDescription
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNode
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kniezrec.com.flightinfo.flight.FlightParametersState
 import kniezrec.com.flightinfo.course.CourseState
@@ -96,8 +99,22 @@ class GnssStatusScreenTest {
         composeRule.onNodeWithText("23°").assertIsDisplayed()
         composeRule.onNodeWithText("NE").assertIsDisplayed()
         composeRule.onNodeWithText("287°").assertIsDisplayed()
-        composeRule.onNodeWithContentDescription("Compass heading, 23 degrees, NE").assertExists()
+        composeRule.onNodeWithContentDescription("Compass heading, 23 degrees, northeast").assertExists()
         composeRule.onNodeWithContentDescription("GPS bearing, 287°").assertExists()
+    }
+
+    @Test fun courseStateChangesExposePoliteAnnouncementWithoutMakingHeadingLive() {
+        var courseState by mutableStateOf<CourseState>(CourseState.Waiting)
+        composeRule.setContent { GnssStatusScreen(GnssStatusState.Waiting, FlightParametersState.Waiting, {}, {}, courseState, {}) }
+        composeRule.runOnIdle { courseState = CourseState.Available(23, null) }
+        composeRule.onNodeWithContentDescription("Compass heading available").assertExists()
+    }
+
+    @Test fun courseUsesStackedContentAtNarrowWidths() {
+        composeRule.setContent { CourseCard(CourseState.Available(23, 287), {}, androidx.compose.ui.Modifier.width(280.dp)) }
+        composeRule.onNodeWithTag("course-heading").assertIsDisplayed()
+        composeRule.onNodeWithTag("course-direction-visual").assertIsDisplayed()
+        composeRule.onNodeWithText("GPS bearing").assertIsDisplayed()
     }
 
     @Test fun courseUnavailableAndErrorHideReadingsAndExposeRetryHint() {

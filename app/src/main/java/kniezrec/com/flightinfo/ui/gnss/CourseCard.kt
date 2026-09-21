@@ -4,6 +4,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -30,15 +31,20 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kniezrec.com.flightinfo.R
+import kniezrec.com.flightinfo.course.CompassCardinal
 import kniezrec.com.flightinfo.course.CourseState
 import kniezrec.com.flightinfo.course.compassCardinal
 import kniezrec.com.flightinfo.ui.permission.actionCyan
@@ -53,6 +59,7 @@ internal fun CourseCard(state: CourseState, onRetry: () -> Unit, modifier: Modif
         colors = CardDefaults.cardColors(containerColor = cardPurple),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
     ) {
+        CourseStateAnnouncement(state)
         when (state) {
             CourseState.Waiting -> StaticCourse(R.string.course_title, R.string.course_waiting)
             CourseState.Unavailable -> StaticCourse(R.string.compass_unavailable, R.string.compass_unavailable_body)
@@ -65,7 +72,8 @@ internal fun CourseCard(state: CourseState, onRetry: () -> Unit, modifier: Modif
 @Composable
 private fun StaticCourse(title: Int, body: Int, retry: (() -> Unit)? = null) {
     Column(
-        Modifier.fillMaxWidth().heightIn(min = 160.dp).padding(24.dp),
+        Modifier.fillMaxWidth().heightIn(min = 160.dp).padding(24.dp)
+            .semantics { liveRegion = LiveRegionMode.Polite },
         Arrangement.Center,
         Alignment.CenterHorizontally,
     ) {
@@ -80,28 +88,80 @@ private fun CourseReading(state: CourseState.Available) {
     val heading = NumberFormat.getIntegerInstance().format(state.headingDegrees)
     val headingValue = stringResource(R.string.course_degree_value, heading)
     val cardinal = compassCardinal(state.headingDegrees)
-    val bearing = state.gpsBearingDegrees?.let {
-        stringResource(R.string.course_degree_value, NumberFormat.getIntegerInstance().format(it))
-    } ?: stringResource(R.string.course_unavailable)
+    val cardinalValue = stringResource(cardinal.displayResource())
+    val cardinalSpoken = stringResource(cardinal.spokenResource())
+    val bearing = state.gpsBearingDegrees?.let { stringResource(R.string.course_degree_value, NumberFormat.getIntegerInstance().format(it)) } ?: stringResource(R.string.course_unavailable)
     Column(Modifier.fillMaxWidth().padding(24.dp)) {
         Text(stringResource(R.string.course_title), color = textColor, style = MaterialTheme.typography.titleLarge.copy(fontSize = 22.sp, fontWeight = FontWeight.Medium))
-        Row(Modifier.fillMaxWidth().padding(top = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Row(Modifier.weight(1f).semantics(mergeDescendants = true) { contentDescription = stringResource(R.string.course_heading_spoken, heading, cardinal) }) {
-                Text(headingValue, color = textColor, fontSize = 40.sp, fontWeight = FontWeight.Medium)
-                Text(cardinal, Modifier.padding(start = 8.dp, top = 14.dp), color = actionCyan, fontSize = 18.sp, fontWeight = FontWeight.Medium)
+        BoxWithConstraints(Modifier.fillMaxWidth().padding(top = 16.dp)) {
+            if (maxWidth >= 360.dp && LocalDensity.current.fontScale <= 1.3f) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    HeadingValue(heading, headingValue, cardinalValue, cardinalSpoken, Modifier.weight(1f))
+                    CompassDirectionVisual(state.headingDegrees)
+                }
+            } else {
+                Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.Start) {
+                    HeadingValue(heading, headingValue, cardinalValue, cardinalSpoken)
+                    Box(Modifier.fillMaxWidth().padding(top = 12.dp), contentAlignment = Alignment.Center) { CompassDirectionVisual(state.headingDegrees) }
+                }
             }
-            CompassDirectionVisual(state.headingDegrees)
         }
-        Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).semantics(mergeDescendants = true) { contentDescription = stringResource(R.string.course_bearing_spoken, if (state.gpsBearingDegrees == null) stringResource(R.string.course_unavailable_spoken) else bearing) }, verticalAlignment = Alignment.CenterVertically) {
-            Text(stringResource(R.string.course_gps_bearing), Modifier.weight(1f), color = textColor, fontSize = 18.sp)
-            Text(bearing, color = textColor, fontSize = 18.sp)
-        }
+        GpsBearing(state.gpsBearingDegrees, bearing)
     }
 }
 
 @Composable
+private fun HeadingValue(heading: String, headingValue: String, cardinalValue: String, cardinalSpoken: String, modifier: Modifier = Modifier) {
+    Row(modifier.testTag("course-heading").semantics(mergeDescendants = true) { contentDescription = stringResource(R.string.course_heading_spoken, heading, cardinalSpoken) }) {
+        Text(headingValue, color = textColor, fontSize = 40.sp, fontWeight = FontWeight.Medium)
+        Text(cardinalValue, Modifier.padding(start = 8.dp, top = 14.dp), color = actionCyan, fontSize = 18.sp, fontWeight = FontWeight.Medium)
+    }
+}
+
+@Composable
+private fun GpsBearing(bearingDegrees: Int?, bearing: String) {
+    Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).semantics(mergeDescendants = true) { contentDescription = stringResource(R.string.course_bearing_spoken, if (bearingDegrees == null) stringResource(R.string.course_unavailable_spoken) else bearing) }, verticalAlignment = Alignment.CenterVertically) {
+        Text(stringResource(R.string.course_gps_bearing), Modifier.weight(1f), color = textColor, fontSize = 18.sp)
+        Text(bearing, color = textColor, fontSize = 18.sp)
+    }
+}
+
+@Composable
+private fun CourseStateAnnouncement(state: CourseState) {
+    val announcement = when (state) {
+        CourseState.Waiting -> stringResource(R.string.course_waiting)
+        CourseState.Unavailable -> stringResource(R.string.compass_unavailable)
+        CourseState.Error -> stringResource(R.string.compass_error)
+        is CourseState.Available -> stringResource(R.string.course_available_announcement)
+    }
+    Box(Modifier.semantics { liveRegion = LiveRegionMode.Polite; contentDescription = announcement })
+}
+
+private fun CompassCardinal.displayResource(): Int = when (this) {
+    CompassCardinal.North -> R.string.course_cardinal_north
+    CompassCardinal.NorthEast -> R.string.course_cardinal_north_east
+    CompassCardinal.East -> R.string.course_cardinal_east
+    CompassCardinal.SouthEast -> R.string.course_cardinal_south_east
+    CompassCardinal.South -> R.string.course_cardinal_south
+    CompassCardinal.SouthWest -> R.string.course_cardinal_south_west
+    CompassCardinal.West -> R.string.course_cardinal_west
+    CompassCardinal.NorthWest -> R.string.course_cardinal_north_west
+}
+
+private fun CompassCardinal.spokenResource(): Int = when (this) {
+    CompassCardinal.North -> R.string.course_cardinal_north_spoken
+    CompassCardinal.NorthEast -> R.string.course_cardinal_north_east_spoken
+    CompassCardinal.East -> R.string.course_cardinal_east_spoken
+    CompassCardinal.SouthEast -> R.string.course_cardinal_south_east_spoken
+    CompassCardinal.South -> R.string.course_cardinal_south_spoken
+    CompassCardinal.SouthWest -> R.string.course_cardinal_south_west_spoken
+    CompassCardinal.West -> R.string.course_cardinal_west_spoken
+    CompassCardinal.NorthWest -> R.string.course_cardinal_north_west_spoken
+}
+
+@Composable
 private fun CompassDirectionVisual(headingDegrees: Int) {
-    Box(Modifier.size(72.dp).semantics { contentDescription = null }, contentAlignment = Alignment.Center) {
+    Box(Modifier.size(72.dp).testTag("course-direction-visual").semantics { contentDescription = null }, contentAlignment = Alignment.Center) {
         Canvas(Modifier.matchParentSize()) {
             drawCircle(textColor.copy(alpha = 0.45f), size.minDimension / 2f, style = Stroke(width = 2.dp.toPx()))
         }

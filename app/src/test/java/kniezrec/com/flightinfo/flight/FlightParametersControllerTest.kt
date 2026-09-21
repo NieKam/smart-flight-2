@@ -51,6 +51,22 @@ class FlightParametersControllerTest {
         assertEquals(1, failures)
         assertEquals(FlightParametersState.Waiting, states.last())
     }
+    @Test
+     fun `late location callback cannot update a restarted foreground session`() {
+        val platform = FakePlatform()
+        val states = mutableListOf<FlightParametersState>()
+        val forwardedFixes = mutableListOf<FlightLocationFix>()
+        val controller = FlightParametersController(platform, states::add, onLocationFix = forwardedFixes::add)
+        controller.start()
+        val oldCallback = platform.callback()
+        controller.stop()
+        controller.start()
+
+        oldCallback(FlightLocationFix(10.0, 100.0, 1_000_000_000L, 45.0))
+
+        assertEquals(FlightParametersState.Waiting, states.last())
+        assertEquals(emptyList<FlightLocationFix>(), forwardedFixes)
+    }
 
     private class FakePlatform(
         var enabled: Boolean = true,
@@ -79,6 +95,8 @@ class FlightParametersControllerTest {
         fun report(fix: FlightLocationFix) {
             callback?.invoke(fix)
         }
+
+        fun callback(): (FlightLocationFix) -> Unit = requireNotNull(callback)
     }
 
     @Test fun `initial fix without a displayable field remains waiting`() {

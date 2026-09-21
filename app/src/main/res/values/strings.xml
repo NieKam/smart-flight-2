@@ -43,4 +43,21 @@
     <string name="course_degree_value">%1$s°</string>
     <string name="course_heading_spoken">Compass heading, %1$s degrees, %2$s</string>
     <string name="course_bearing_spoken">GPS bearing, %1$s</string>
+    <string name="course_available_announcement">Compass heading available</string>
+    <string name="course_cardinal_north">N</string>
+    <string name="course_cardinal_north_east">NE</string>
+    <string name="course_cardinal_east">E</string>
+    <string name="course_cardinal_south_east">SE</string>
+    <string name="course_cardinal_south">S</string>
+    <string name="course_cardinal_south_west">SW</string>
+    <string name="course_cardinal_west">W</string>
+    <string name="course_cardinal_north_west">NW</string>
+    <string name="course_cardinal_north_spoken">north</string>
+    <string name="course_cardinal_north_east_spoken">northeast</string>
+    <string name="course_cardinal_east_spoken">east</string>
+    <string name="course_cardinal_south_east_spoken">southeast</string>
+    <string name="course_cardinal_south_spoken">south</string>
+    <string name="course_cardinal_south_west_spoken">southwest</string>
+    <string name="course_cardinal_west_spoken">west</string>
+    <string name="course_cardinal_north_west_spoken">northwest</string>
 </resources>

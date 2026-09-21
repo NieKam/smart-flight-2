@@ -19,24 +19,34 @@ internal class FlightParametersController(
     private val onLocationFix: (FlightLocationFix) -> Unit = {},
 ) {
     private var registered = false
+    private var activeSession: Long? = null
+    private var nextSession = 0L
     private var previousAltitudeSample: AltitudeSample? = null
     private var hasReceivedDisplayableReading = false
 
     fun start() {
         stop()
         if (!platform.areLocationServicesEnabled() || !platform.hasGnssHardware()) return
+        val session = ++nextSession
+        activeSession = session
         registered =
             try {
-                platform.registerLocationListener(::onLocation)
+                platform.registerLocationListener { fix ->
+                    if (registered && activeSession == session) onLocation(fix)
+                }
             } catch (_: SecurityException) {
                 false
             } catch (_: RuntimeException) {
                 false
             }
-        if (!registered) onRegistrationFailed()
+        if (!registered) {
+            activeSession = null
+            onRegistrationFailed()
+        }
     }
 
     fun stop() {
+        activeSession = null
         if (registered) platform.unregisterLocationListener()
         registered = false
         previousAltitudeSample = null
