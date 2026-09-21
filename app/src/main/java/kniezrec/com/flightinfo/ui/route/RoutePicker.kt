@@ -74,10 +74,11 @@ fun RoutePicker(
     LaunchedEffect(nearestDraft) { if (nearestDraft != null) selected = nearestDraft }
     LaunchedEffect(selected) { selectionError = selected != null && !validCity(selected!!) }
     BackHandler(onBack = onCancel)
+    val titleDescription = stringResource(R.string.route_picker_title_description)
     Column(Modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(
             stringResource(if (endpoint == RouteEndpoint.DEPARTURE) R.string.route_picker_departure else R.string.route_picker_destination),
-            modifier = Modifier.semantics { contentDescription = stringResource(R.string.route_picker_title_description) },
+            modifier = Modifier.semantics { contentDescription = titleDescription },
         )
         OutlinedTextField(
             value = query,

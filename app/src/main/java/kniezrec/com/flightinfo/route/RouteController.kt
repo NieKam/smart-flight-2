@@ -8,7 +8,7 @@ import kniezrec.com.flightinfo.nearby.NearbyCoordinate
 import java.time.Instant
 import java.util.concurrent.Executor
 
-class RouteController(
+internal class RouteController(
     private val repository: NearbyCityRepository,
     private val preferences: SharedPreferences,
     private val worker: Executor,

@@ -365,10 +365,13 @@ class MainActivity : ComponentActivity() {
     private val cityLookupExecutor by lazy { Executors.newSingleThreadExecutor() }
 
     private val routeController by lazy {
-        RouteController(AndroidNearbyCityRepository(applicationContext), routePreferences, cityLookupExecutor, mainExecutor) {
-            routeState =
-                it
-        }
+        RouteController(
+            repository = AndroidNearbyCityRepository(applicationContext),
+            preferences = routePreferences,
+            worker = cityLookupExecutor,
+            callbackExecutor = mainExecutor,
+            onStateChanged = { routeState = it },
+        )
     }
 
     private val routePreferences by lazy { getSharedPreferences("route", MODE_PRIVATE) }

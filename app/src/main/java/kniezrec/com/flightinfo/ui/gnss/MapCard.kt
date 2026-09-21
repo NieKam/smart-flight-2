@@ -314,12 +314,12 @@ private fun OfflineMap(
                 instance.departureMarker?.apply {
                     title = context.getString(R.string.route_departure_marker, route.departureName)
                     snippet = context.getString(R.string.route_departure_marker_description)
-                    position = GeoPoint(route.departure.latitude, route.departure.longitude)
+                    this.position = GeoPoint(route.departure.latitude, route.departure.longitude)
                 }
                 instance.destinationMarker?.apply {
                     title = context.getString(R.string.route_destination_marker, route.destinationName)
                     snippet = context.getString(R.string.route_destination_marker_description)
-                    position = GeoPoint(route.destination.latitude, route.destination.longitude)
+                    this.position = GeoPoint(route.destination.latitude, route.destination.longitude)
                 }
             }
             map.invalidate()
