@@ -32,6 +32,15 @@ class PressureControllerTest {
         assertFalse(PressureController(failed, {}).start())
     }
 
+    @Test fun `registration exception remains unavailable`() {
+        val platform = FakePressurePlatform(registerException = IllegalStateException("sensor unavailable"))
+        val values = mutableListOf<Double?>()
+
+        assertFalse(PressureController(platform, values::add).start())
+        assertEquals(listOf(null), values)
+        assertEquals(0, platform.unregisters)
+    }
+
     @Test fun `stop unregisters and rejects callbacks from an old session`() {
         val platform = FakePressurePlatform()
         val values = mutableListOf<Double?>()
@@ -50,6 +59,7 @@ class PressureControllerTest {
     private class FakePressurePlatform(
         private val hasSensor: Boolean = true,
         private val registerResult: Boolean = true,
+        private val registerException: RuntimeException? = null,
     ) : PressurePlatform {
         var unregisters = 0
         private var callback: ((Float) -> Unit)? = null
@@ -57,6 +67,7 @@ class PressureControllerTest {
         override fun hasPressureSensor() = hasSensor
 
         override fun registerPressureListener(onPressureMillibars: (Float) -> Unit): Boolean {
+            registerException?.let { throw it }
             callback = onPressureMillibars
             return registerResult
         }
