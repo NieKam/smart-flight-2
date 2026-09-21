@@ -78,6 +78,9 @@ class PressureControllerTest {
         }
 
         fun callback(): (Float) -> Unit = requireNotNull(callback)
-        fun report(value: Float) { callback?.invoke(value) }
+
+        fun report(value: Float) {
+            callback?.invoke(value)
+        }
     }
 }

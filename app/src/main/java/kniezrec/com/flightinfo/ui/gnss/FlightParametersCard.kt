@@ -169,9 +169,10 @@ private fun FlightParametersReadings(state: FlightParametersState.Readings) {
             state.pressureMillibars?.let {
                 format(it, R.string.flight_pressure_value, false)
             },
-            accessibilityValue = state.pressureMillibars?.let {
-                format(it, R.string.flight_pressure_accessibility_value, false)
-            },
+            accessibilityValue =
+                state.pressureMillibars?.let {
+                    format(it, R.string.flight_pressure_accessibility_value, false)
+                },
         )
     }
 }

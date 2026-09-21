@@ -3,7 +3,9 @@ package kniezrec.com.flightinfo.flight
 /** Narrow platform boundary for the optional foreground pressure sensor. */
 internal interface PressurePlatform {
     fun hasPressureSensor(): Boolean
+
     fun registerPressureListener(onPressureMillibars: (Float) -> Unit): Boolean
+
     fun unregisterPressureListener()
 }
 

@@ -16,15 +16,20 @@ internal class AndroidPressurePlatform(
 
     override fun registerPressureListener(onPressureMillibars: (Float) -> Unit): Boolean {
         val sensor = sensorManager.getDefaultSensor(Sensor.TYPE_PRESSURE) ?: return false
-        val newListener = object : SensorEventListener {
-            override fun onSensorChanged(event: SensorEvent) {
-                event.values.firstOrNull()?.let(onPressureMillibars)
+        val newListener =
+            object : SensorEventListener {
+                override fun onSensorChanged(event: SensorEvent) {
+                    event.values.firstOrNull()?.let(onPressureMillibars)
+                }
+
+                override fun onAccuracyChanged(
+                    sensor: Sensor?,
+                    accuracy: Int,
+                ) = Unit
             }
-            override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
-        }
         listener = newListener
         return try {
-            sensorManager.registerListener(newListener, sensor, SensorManager.SENSOR_DELAY_UI, callbackExecutor)
+            sensorManager.registerListener(newListener, sensor, SensorManager.SENSOR_DELAY_UI)
         } catch (_: RuntimeException) {
             listener = null
             false

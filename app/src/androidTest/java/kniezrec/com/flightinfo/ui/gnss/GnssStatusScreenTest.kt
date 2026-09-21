@@ -95,9 +95,13 @@ class GnssStatusScreenTest {
         }
 
         val labels = listOf("Speed", "Vertical speed", "Altitude", "Pressure")
-        val tops = labels.map { label ->
-            composeRule.onNodeWithText(label).fetchSemanticsNode().boundsInRoot.top
-        }
+        val tops =
+            labels.map { label ->
+                composeRule
+                    .onNodeWithText(label)
+                    .fetchSemanticsNode()
+                    .boundsInRoot.top
+            }
         assertTrue(tops.zipWithNext().all { (upper, lower) -> upper < lower })
         composeRule.onNodeWithContentDescription("Pressure, unavailable").assertExists()
     }
