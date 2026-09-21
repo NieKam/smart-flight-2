@@ -27,6 +27,7 @@ internal class AndroidFlightLocationPlatform(
                             speedMetresPerSecond = location.takeIf(Location::hasSpeed)?.speed?.toDouble(),
                             altitudeMetres = location.takeIf(Location::hasAltitude)?.altitude,
                             elapsedRealtimeNanos = location.elapsedRealtimeNanos,
+                            bearingDegrees = location.takeIf(Location::hasBearing)?.bearing?.toDouble(),
                         ),
                     )
                 }

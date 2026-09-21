@@ -1,0 +1,158 @@
+package kniezrec.com.flightinfo.course
+
+import org.junit.Assert.assertEquals
+import org.junit.Test
+
+class CourseControllerTest {
+    @Test fun everyCardinalBoundaryMatchesSpecification() {
+        val expected =
+            mapOf(
+                0 to CompassCardinal.North,
+                22 to CompassCardinal.North,
+                23 to CompassCardinal.NorthEast,
+                67 to CompassCardinal.NorthEast,
+                68 to CompassCardinal.East,
+                112 to CompassCardinal.East,
+                113 to CompassCardinal.SouthEast,
+                157 to CompassCardinal.SouthEast,
+                158 to CompassCardinal.South,
+                202 to CompassCardinal.South,
+                203 to CompassCardinal.SouthWest,
+                247 to CompassCardinal.SouthWest,
+                248 to CompassCardinal.West,
+                292 to CompassCardinal.West,
+                293 to CompassCardinal.NorthWest,
+                337 to CompassCardinal.NorthWest,
+                338 to CompassCardinal.North,
+                359 to CompassCardinal.North,
+            )
+        expected.forEach { (heading, cardinal) -> assertEquals(cardinal, compassCardinal(heading)) }
+    }
+
+    @Test fun normalizationHandlesPositiveNegativeAndInvalidValues() {
+        assertEquals(359, normalizeCourseDegrees(-1.0))
+        assertEquals(1, normalizeCourseDegrees(361.0))
+        assertEquals(0, normalizeCourseDegrees(720.9))
+        assertEquals(null, normalizeCourseDegrees(Double.NaN))
+        assertEquals(null, normalizeCourseDegrees(Double.POSITIVE_INFINITY))
+    }
+
+    @Test fun unavailableAndFailedRegistrationNeverKeepHeading() {
+        val states = mutableListOf<CourseState>()
+        val unavailable = FakePlatform(false)
+        CourseController(unavailable, states::add).start()
+        assertEquals(CourseState.Unavailable, states.last())
+        assertEquals(0, unavailable.registers)
+
+        val failed = FakePlatform(true, false)
+        CourseController(failed, states::add).start()
+        assertEquals(CourseState.Error, states.last())
+    }
+
+    @Test fun bearingIsSupplementaryAndClearedByNewSession() {
+        val platform = FakePlatform(true)
+        val states = mutableListOf<CourseState>()
+        val controller = CourseController(platform, states::add)
+        controller.start()
+        platform.heading(10.0)
+        controller.onGpsBearing(725.0)
+        assertEquals(CourseState.Available(10, 5), states.last())
+        controller.onGpsBearing(null)
+        assertEquals(CourseState.Available(10, null), states.last())
+        controller.stop()
+        assertEquals(CourseState.Waiting, states.last())
+        assertEquals(1, platform.unregisters)
+    }
+
+    @Test fun bearingBeforeFirstHeadingIsPresentedWhenHeadingArrives() {
+        val platform = FakePlatform(true)
+        val states = mutableListOf<CourseState>()
+        val controller = CourseController(platform, states::add)
+        controller.start()
+
+        controller.onGpsBearing(725.0)
+        assertEquals(CourseState.Waiting, states.last())
+
+        platform.heading(10.0)
+        assertEquals(CourseState.Available(10, 5), states.last())
+    }
+
+    @Test fun noBearingFixBeforeFirstHeadingClearsPendingBearing() {
+        val platform = FakePlatform(true)
+        val states = mutableListOf<CourseState>()
+        val controller = CourseController(platform, states::add)
+        controller.start()
+
+        controller.onGpsBearing(99.0)
+        controller.onGpsBearing(null)
+        platform.heading(10.0)
+
+        assertEquals(CourseState.Available(10, null), states.last())
+    }
+
+    @Test fun retryAndRepeatedLifecycleEventsClearSessionAndDoNotAccumulateListeners() {
+        val platform = FakePlatform(true)
+        val states = mutableListOf<CourseState>()
+        val controller = CourseController(platform, states::add)
+        controller.start()
+        platform.heading(42.0)
+        controller.onGpsBearing(99.0)
+        controller.retry(true)
+        assertEquals(CourseState.Waiting, states.last())
+        assertEquals(2, platform.registers)
+        assertEquals(1, platform.unregisters)
+        controller.stop()
+        controller.stop()
+        assertEquals(2, platform.unregisters)
+        controller.retry(false)
+        assertEquals(2, platform.registers)
+    }
+
+    @Test
+    fun lateHeadingFromStoppedOrReplacedSessionCannotRestoreCourse() {
+        val platform = FakePlatform(true)
+        val states = mutableListOf<CourseState>()
+        val controller = CourseController(platform, states::add)
+        controller.start()
+        val firstSessionCallback = platform.callback()
+
+        controller.stop()
+        firstSessionCallback(42.0)
+        assertEquals(CourseState.Waiting, states.last())
+
+        controller.retry(true)
+        firstSessionCallback(99.0)
+        assertEquals(CourseState.Waiting, states.last())
+
+        platform.heading(18.0)
+        assertEquals(CourseState.Available(18, null), states.last())
+    }
+
+    private class FakePlatform(
+        val available: Boolean,
+        val result: Boolean = true,
+    ) : CourseOrientationPlatform {
+        var registers = 0
+        var unregisters = 0
+        private var callback: ((Double) -> Unit)? = null
+
+        override fun isOrientationAvailable() = available
+
+        override fun registerOrientationListener(onHeading: (Double) -> Unit): Boolean {
+            registers++
+            callback = onHeading
+            return result
+        }
+
+        override fun unregisterOrientationListener() {
+            unregisters++
+            callback = null
+        }
+
+        fun heading(value: Double) {
+            callback?.invoke(value)
+        }
+
+        fun callback(): (Double) -> Unit = requireNotNull(callback)
+    }
+}

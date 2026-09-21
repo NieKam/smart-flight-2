@@ -15,27 +15,41 @@ internal interface FlightLocationPlatform {
 internal class FlightParametersController(
     private val platform: FlightLocationPlatform,
     private val onStateChanged: (FlightParametersState) -> Unit,
+    private val onLocationFix: (FlightLocationFix) -> Unit = {},
     private val onRegistrationFailed: () -> Unit = {},
 ) {
     private var registered = false
+    private var activeSession: Long? = null
+    private var nextSession = 0L
     private var previousAltitudeSample: AltitudeSample? = null
     private var hasReceivedDisplayableReading = false
 
-    fun start() {
+    /** Starts a foreground location session and reports whether listener registration succeeded. */
+    fun start(): Boolean {
         stop()
-        if (!platform.areLocationServicesEnabled() || !platform.hasGnssHardware()) return
+        if (!platform.areLocationServicesEnabled() || !platform.hasGnssHardware()) return false
+        val session = ++nextSession
+        activeSession = session
         registered =
             try {
-                platform.registerLocationListener(::onLocation)
+                platform.registerLocationListener { fix ->
+                    if (registered && activeSession == session) onLocation(fix)
+                }
             } catch (_: SecurityException) {
                 false
             } catch (_: RuntimeException) {
                 false
             }
-        if (!registered) onRegistrationFailed()
+        if (!registered) {
+            activeSession = null
+            onRegistrationFailed()
+            return false
+        }
+        return true
     }
 
     fun stop() {
+        activeSession = null
         if (registered) platform.unregisterLocationListener()
         registered = false
         previousAltitudeSample = null
@@ -44,6 +58,7 @@ internal class FlightParametersController(
     }
 
     private fun onLocation(fix: FlightLocationFix) {
+        onLocationFix(fix)
         val verticalSpeed = updateVerticalSpeed(fix.altitudeMetres, fix.elapsedRealtimeNanos)
         val speed = fix.speedMetresPerSecond?.takeIf(Double::isFinite)?.let { it * KILOMETRES_PER_HOUR_PER_METRE_PER_SECOND }
         val altitude = fix.altitudeMetres?.takeIf(Double::isFinite)

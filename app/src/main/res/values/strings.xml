@@ -29,4 +29,35 @@
     <string name="flight_vertical_speed_value">%1$s m/s</string>
     <string name="flight_altitude_value">%1$s m</string>
 
+    <string name="course_title">Course</string>
+    <string name="course_waiting">Waiting for compass heading…</string>
+    <string name="compass_unavailable">Compass unavailable</string>
+    <string name="compass_unavailable_body">This device cannot provide a compass heading.</string>
+    <string name="compass_error">Unable to read compass</string>
+    <string name="compass_error_body">Smart Flight could not start the compass.</string>
+    <string name="course_try_again">Try again</string>
+    <string name="course_try_again_hint">Retries compass</string>
+    <string name="course_gps_bearing">GPS bearing</string>
+    <string name="course_unavailable">—</string>
+    <string name="course_unavailable_spoken">unavailable</string>
+    <string name="course_degree_value">%1$s°</string>
+    <string name="course_heading_spoken">Compass heading, %1$s degrees, %2$s</string>
+    <string name="course_bearing_spoken">GPS bearing, %1$s</string>
+    <string name="course_available_announcement">Compass heading available</string>
+    <string name="course_cardinal_north">N</string>
+    <string name="course_cardinal_north_east">NE</string>
+    <string name="course_cardinal_east">E</string>
+    <string name="course_cardinal_south_east">SE</string>
+    <string name="course_cardinal_south">S</string>
+    <string name="course_cardinal_south_west">SW</string>
+    <string name="course_cardinal_west">W</string>
+    <string name="course_cardinal_north_west">NW</string>
+    <string name="course_cardinal_north_spoken">north</string>
+    <string name="course_cardinal_north_east_spoken">northeast</string>
+    <string name="course_cardinal_east_spoken">east</string>
+    <string name="course_cardinal_south_east_spoken">southeast</string>
+    <string name="course_cardinal_south_spoken">south</string>
+    <string name="course_cardinal_south_west_spoken">southwest</string>
+    <string name="course_cardinal_west_spoken">west</string>
+    <string name="course_cardinal_north_west_spoken">northwest</string>
 </resources>

@@ -13,6 +13,7 @@ WORKFLOW_FILE = PROJECT_PATH / ".ai" / "workflow.json"
 
 MAX_REVIEW_ITERATIONS = 3
 
+
 def resume_workflow():
     workflow = load_workflow()
 
@@ -39,6 +40,7 @@ def resume_workflow():
     print()
     print(f"=== RESUMING WORKFLOW: {task_id} ===")
 
+
     if stage == "ESCALATED":
         feedback = workflow.get("review_feedback")
 
@@ -48,16 +50,34 @@ def resume_workflow():
                 "review_feedback is missing."
             )
 
+        print()
+        print("=" * 80)
+        print("WORKFLOW ESCALATED")
+        print("=" * 80)
+        print()
+        print(f"Task: {task_id}")
+        print()
+        print("Final reviewer feedback:")
+        print("-" * 80)
+        print(feedback)
+        print("-" * 80)
+        print()
+
+        answer = input(
+            "Start another Developer -> Reviewer cycle? [y/N]: "
+        ).strip().lower()
+
+        if answer != "y":
+            print()
+            print("Workflow remains ESCALATED.")
+            return
+
         next_iteration = workflow["review_iteration"] + 1
 
         print()
-        print("Escalation feedback:")
-        print(feedback)
-
-        print()
         print(
-            f"Starting new review cycle with review iteration "
-            f"{next_iteration}."
+            f"Starting new review cycle with "
+            f"review iteration {next_iteration}."
         )
 
         update_workflow(
@@ -67,7 +87,6 @@ def resume_workflow():
             review_result=None,
             review_feedback=feedback,
         )
-
     else:
         print(f"Resuming from stage: {stage}")
 
@@ -265,6 +284,75 @@ def extract_review_feedback(text):
         return ""
 
     return match.group(1).strip()
+
+
+def review_artifact_path(task_id, iteration):
+    return (
+        PROJECT_PATH
+        / ".ai"
+        / "reviews"
+        / f"{task_id}-iteration-{iteration}.md"
+    )
+
+
+def read_review_artifact(task_id, iteration):
+    path = review_artifact_path(task_id, iteration)
+
+    if not path.exists():
+        return None
+
+    return path.read_text(encoding="utf-8")
+
+
+def extract_review_result_from_artifact(text):
+    match = re.search(
+        r"(?mis)^##\s*Result\s*$\s*"
+        r"(PASS|CHANGES_REQUESTED|ESCALATED)\s*$",
+        text,
+    )
+
+    if not match:
+        return None
+
+    return match.group(1).upper()
+
+
+def extract_blocking_findings_from_artifact(text):
+    match = re.search(
+        r"(?ms)^##\s*Blocking Findings\s*$"
+        r"(.*?)"
+        r"(?=^##\s*Non-Blocking Findings\s*$)",
+        text,
+    )
+
+    if match:
+        return match.group(1).strip()
+
+    return text.strip()
+
+
+def recover_review_result(workflow):
+    task_id = workflow["task_id"]
+    iteration = workflow["review_iteration"]
+
+    artifact = read_review_artifact(
+        task_id,
+        iteration,
+    )
+
+    if artifact is None:
+        return None
+
+    result = extract_review_result_from_artifact(artifact)
+
+    if result is None:
+        return None
+
+    feedback = extract_blocking_findings_from_artifact(
+        artifact
+    )
+
+    return result, feedback
 
 
 def run_architect():
@@ -623,7 +711,7 @@ orchestrator.
     result = extract_review_result(response)
     feedback = extract_review_feedback(response)
 
-    return result, feedback, response
+    return result, feedback
 
 
 def start_new_workflow():
@@ -682,6 +770,7 @@ def handle_ready_for_developer(workflow):
         review_result=None,
         review_feedback=None,
     )
+
 
 def _apply_review_result(workflow, result, feedback):
     task_id = workflow["task_id"]
@@ -789,8 +878,49 @@ def handle_reviewing(workflow):
         )
         return
 
-    # Reviewer did not finish, or its result was not persisted.
-    # Re-run the review safely.
+    print()
+    print(
+        "Reviewer result is not persisted. "
+        "Checking for an existing review artifact..."
+    )
+
+    recovered = recover_review_result(workflow)
+
+    if recovered:
+        result, feedback = recovered
+
+        print()
+        print(
+            f"Recovered reviewer result from review artifact: "
+            f"{result}"
+        )
+
+        print()
+        print("Recovered reviewer feedback:")
+        print("-" * 80)
+        print(feedback)
+        print("-" * 80)
+
+        # Persist the recovered result and feedback before continuing.
+        update_workflow(
+            stage="REVIEWING",
+            review_result=result,
+            review_feedback=feedback,
+        )
+
+        _apply_review_result(
+            load_workflow(),
+            result,
+            feedback,
+        )
+        return
+
+    print()
+    print(
+        "No completed review artifact found. "
+        "Re-running reviewer."
+    )
+
     handle_ready_for_review(workflow)
 
 
@@ -807,10 +937,42 @@ def handle_developer_fix(workflow):
     )
 
     if not feedback:
-        raise RuntimeError(
-            f"Developer fix requested for {task_id}, "
-            "but review_feedback is missing."
+        previous_iteration = max(1, iteration - 1)
+
+        print()
+        print(
+            f"review_feedback is missing. "
+            f"Trying to recover feedback from review artifact "
+            f"iteration {previous_iteration}..."
         )
+
+        artifact = read_review_artifact(
+            task_id,
+            previous_iteration,
+        )
+
+        if artifact:
+            feedback = extract_blocking_findings_from_artifact(
+                artifact
+            )
+
+            if feedback:
+                print()
+                print(
+                    "Recovered review feedback from artifact."
+                )
+
+                update_workflow(
+                    review_feedback=feedback,
+                )
+
+        if not feedback:
+            raise RuntimeError(
+                f"Developer fix requested for {task_id}, "
+                "but review_feedback is missing and "
+                "could not be recovered from the previous "
+                "review artifact."
+            )
 
     current = current_branch()
 
@@ -860,6 +1022,7 @@ def handle_ready_for_feature_push(workflow):
         review_feedback=None,
     )
 
+
 def run_workflow():
     while True:
         workflow = load_workflow()
@@ -894,11 +1057,17 @@ def run_workflow():
         elif stage == "ESCALATED":
             print()
             print("Workflow escalated.")
-            print(f"Feedback: {workflow.get('review_feedback')}")
+            print(
+                f"Feedback: "
+                f"{workflow.get('review_feedback')}"
+            )
             return
 
         else:
-            raise RuntimeError(f"Unknown workflow stage: {stage}")
+            raise RuntimeError(
+                f"Unknown workflow stage: {stage}"
+            )
+
 
 def main():
     parser = argparse.ArgumentParser(

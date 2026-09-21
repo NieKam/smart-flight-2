@@ -28,6 +28,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
+import kniezrec.com.flightinfo.course.AndroidCourseOrientationPlatform
+import kniezrec.com.flightinfo.course.CourseController
+import kniezrec.com.flightinfo.course.CourseState
+import kniezrec.com.flightinfo.course.ForegroundCourseObservationCoordinator
 import kniezrec.com.flightinfo.flight.AndroidFlightLocationPlatform
 import kniezrec.com.flightinfo.flight.FlightParametersController
 import kniezrec.com.flightinfo.flight.FlightParametersState
@@ -50,6 +54,7 @@ class MainActivity : ComponentActivity() {
     private var announcementVersion by mutableIntStateOf(0)
     private var gnssState by mutableStateOf<GnssStatusState>(GnssStatusState.Waiting)
     private var flightParametersState by mutableStateOf<FlightParametersState>(FlightParametersState.Waiting)
+    private var courseState by mutableStateOf<CourseState>(CourseState.Waiting)
     private var isForeground = false
     private val permissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
@@ -79,6 +84,8 @@ class MainActivity : ComponentActivity() {
                             GnssStatusScreen(
                                 state = gnssState,
                                 flightParametersState = flightParametersState,
+                                courseState = courseState,
+                                onCourseRetry = { courseController.retry(isForeground) },
                                 onOpenLocationSettings = {
                                     if (!openLocationSettings()) {
                                         scope.launch {
@@ -123,7 +130,7 @@ class MainActivity : ComponentActivity() {
     override fun onPause() {
         isForeground = false
         gnssStatusController.stop()
-        flightParametersController.stop()
+        courseObservationCoordinator.stop()
         super.onPause()
     }
 
@@ -133,7 +140,7 @@ class MainActivity : ComponentActivity() {
             startObservation()
         } else {
             gnssStatusController.stop()
-            flightParametersController.stop()
+            courseObservationCoordinator.stop()
         }
         if (announceChange) announcementVersion++
     }
@@ -202,12 +209,25 @@ class MainActivity : ComponentActivity() {
             platform = AndroidFlightLocationPlatform(getSystemService(LocationManager::class.java), packageManager, mainExecutor),
             onStateChanged = { flightParametersState = it },
             onRegistrationFailed = { gnssStatusController.showError() },
+            onLocationFix = { courseController.onGpsBearing(it.bearingDegrees) },
         )
+    }
+
+    private val courseController by lazy {
+        CourseController(AndroidCourseOrientationPlatform(this, mainExecutor)) { courseState = it }
+    }
+
+    private val courseObservationCoordinator by lazy {
+        ForegroundCourseObservationCoordinator(flightParametersController, courseController)
     }
 
     private fun startObservation() {
         gnssStatusController.start()
-        flightParametersController.start()
+        if (gnssState is GnssStatusState.Waiting || gnssState is GnssStatusState.Available) {
+            courseObservationCoordinator.start()
+        } else {
+            courseObservationCoordinator.stop()
+        }
     }
 
     private companion object {
