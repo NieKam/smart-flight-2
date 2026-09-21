@@ -39,6 +39,13 @@ Do not assume that the old implementation should be copied literally.
 
 The goal is to reproduce the relevant user-visible behavior and functionality in the new Jetpack Compose application while following the architecture, conventions and technology choices of the new project.
 
+Before doing any analysis:
+
+1. Check the current Git branch.
+2. If you are not on main, switch to main.
+3. Verify that the current branch is main.
+4. Check git status.
+5. Do not proceed if the working tree contains unexpected changes.
 
 REFERENCE MATERIAL
 

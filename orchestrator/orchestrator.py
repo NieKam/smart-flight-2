@@ -864,7 +864,7 @@ def run_workflow():
     while True:
         workflow = load_workflow()
 
-        if workflow is None:
+        if workflow is None or workflow["stage"] == "COMPLETED":
             start_new_workflow()
             continue
 
@@ -890,11 +890,6 @@ def run_workflow():
 
         elif stage == "READY_FOR_FEATURE_PUSH":
             handle_ready_for_feature_push(workflow)
-
-        elif stage == "COMPLETED":
-            print()
-            print("Workflow completed.")
-            return
 
         elif stage == "ESCALATED":
             print()
