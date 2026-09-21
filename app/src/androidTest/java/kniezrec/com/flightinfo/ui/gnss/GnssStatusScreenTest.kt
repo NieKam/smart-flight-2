@@ -26,6 +26,9 @@ import kniezrec.com.flightinfo.gnss.GnssStatusState
 import kniezrec.com.flightinfo.map.MapSessionRules
 import kniezrec.com.flightinfo.nearby.NearbyCityRecord
 import kniezrec.com.flightinfo.route.RouteEndpoint
+import kniezrec.com.flightinfo.route.RouteOverlay
+import kniezrec.com.flightinfo.route.RouteState
+import kniezrec.com.flightinfo.ui.route.RouteCard
 import kniezrec.com.flightinfo.ui.route.RoutePicker
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -256,6 +259,90 @@ class GnssStatusScreenTest {
         composeRule.onNodeWithText("Selected: Paris (France)").assertIsDisplayed()
         composeRule.onNodeWithText("Confirm").assertIsEnabled().performClick()
         composeRule.runOnIdle { assertTrue(confirmed) }
+    }
+
+    @Test fun routePickerKeepsMultipleResultsUnselectedUntilExplicitChoiceAndSupportsRetry() {
+        val first = NearbyCityRecord(9L, "Springfield", "US", 39.8, -89.6, "UTC")
+        val second = first.copy(id = 10L, country = "CA")
+        var selected: NearbyCityRecord? = null
+        var retried = false
+        composeRule.setContent {
+            RoutePicker(
+                endpoint = RouteEndpoint.DEPARTURE,
+                initial = null,
+                results = listOf(first, second),
+                loading = false,
+                error = "database unavailable",
+                mapArchive = null,
+                onSearch = {},
+                onNearest = {},
+                onConfirm = { selected = it },
+                onCancel = {},
+                onRetry = { retried = true },
+            )
+        }
+        composeRule.onNodeWithText("Selected: Springfield (US)").assertDoesNotExist()
+        composeRule.onNodeWithText("Springfield (US)").performClick()
+        composeRule.onNodeWithText("Selected: Springfield (US)").assertIsDisplayed()
+        composeRule.onNodeWithText("Retry").performClick()
+        composeRule.runOnIdle { assertTrue(retried) }
+        composeRule.onNodeWithText("Confirm").performClick()
+        composeRule.runOnIdle { assertTrue(selected == first) }
+    }
+
+    @Test fun routeCardExposesEndpointAndDetailSemanticsWithLargeTextContent() {
+        val departure = NearbyCityRecord(11L, "A very long departure city name", "US", 0.0, 0.0, "UTC")
+        val destination = NearbyCityRecord(12L, "A very long destination city name", "DE", 0.0, 1.0, "Europe/Berlin")
+        var cleared = false
+        composeRule.setContent {
+            RouteCard(
+                state = RouteState(
+                    departure = departure,
+                    destination = destination,
+                    details = kniezrec.com.flightinfo.route.RouteDetails(111.2, null, null, null),
+                ),
+                onChoose = {},
+                onClear = {},
+                onClearAll = { cleared = true },
+            )
+        }
+        composeRule.onNodeWithContentDescription("Departure, A very long departure city name").assertHasClickAction()
+        val departureAction = composeRule.onNodeWithContentDescription("Departure, A very long departure city name").assertHasClickAction()
+        assertTrue(departureAction.fetchSemanticsNode().boundsInRoot.height >= 48f * composeRule.density.density)
+        composeRule.onNodeWithContentDescription("Destination, A very long destination city name").assertHasClickAction()
+        composeRule.onNodeWithText("Distance between cities").assertIsDisplayed()
+        composeRule.onNodeWithText("Waiting for current position").assertIsDisplayed()
+        composeRule.onNodeWithText("Clear route").performClick()
+        composeRule.runOnIdle { assertTrue(cleared) }
+    }
+
+    @Test fun mapOverlayUpdatesAndClearsWithoutReplacingMapContent() {
+        val archive = File(composeRule.activity.cacheDir, "route-overlay-test.zip")
+        ZipOutputStream(FileOutputStream(archive)).use { zip ->
+            zip.putNextEntry(ZipEntry("tile.jpg"))
+            zip.write(byteArrayOf(0))
+            zip.closeEntry()
+        }
+        var overlay by mutableStateOf<RouteOverlay?>(
+            RouteOverlay(
+                kniezrec.com.flightinfo.nearby.NearbyCoordinate(0.0, 0.0),
+                kniezrec.com.flightinfo.nearby.NearbyCoordinate(1.0, 1.0),
+                "Alpha",
+                "Beta",
+            ),
+        )
+        try {
+            composeRule.setContent {
+                MapCard(MapCardState.Ready(archive), MapSessionRules(), {}, routeOverlay = overlay)
+            }
+            composeRule.onNodeWithContentDescription("Route overlay from Alpha to Beta").assertExists()
+            composeRule.onNodeWithTag("map-content").assertExists()
+            composeRule.runOnIdle { overlay = null }
+            composeRule.onNodeWithContentDescription("Offline map showing the aircraft position").assertExists()
+            composeRule.onNodeWithTag("map-content").assertExists()
+        } finally {
+            archive.delete()
+        }
     }
 
     private fun setCourse(courseState: CourseState) {

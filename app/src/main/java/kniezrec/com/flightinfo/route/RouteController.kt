@@ -23,10 +23,13 @@ class RouteController(
     private var departure: NearbyCityRecord? = null
     private var destination: NearbyCityRecord? = null
     private var fix: RouteFix? = null
+    private var acceptedFixTimestampNanos: Long? = null
 
     fun start() {
         active = true
         session++
+        fix = null
+        acceptedFixTimestampNanos = null
         restore(session, false)
     }
 
@@ -34,6 +37,7 @@ class RouteController(
         active = false
         session++
         fix = null
+        acceptedFixTimestampNanos = null
         publish()
     }
 
@@ -41,7 +45,10 @@ class RouteController(
         if (!active) return
         val coordinate =
             NearbyCoordinate.from(value.latitude, value.longitude) ?: return
+        val timestamp = value.elapsedRealtimeNanos
+        if (acceptedFixTimestampNanos?.let { timestamp <= it } == true) return
         fix = RouteFix(coordinate, value.speedMetresPerSecond)
+        acceptedFixTimestampNanos = timestamp
         publish()
     }
 

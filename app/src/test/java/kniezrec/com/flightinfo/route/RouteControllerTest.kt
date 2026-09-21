@@ -65,6 +65,50 @@ class RouteControllerTest {
         assertEquals(stoppedStateCount, states.size)
     }
 
+    @Test fun `older valid fix cannot replace newer accepted fix`() {
+        val states = mutableListOf<RouteState>()
+        val controller = RouteController(FakeRepository(listOf(departure, destination)), MemoryPreferences(), direct, direct, states::add)
+        controller.start()
+        controller.choose(RouteEndpoint.DEPARTURE, departure)
+        controller.choose(RouteEndpoint.DESTINATION, destination)
+        controller.onFix(FlightLocationFix(100.0, 0.0, 20L, 0.0, 0.0, 0.9))
+        val newerRemaining = states.last().details!!.remainingDistanceKm
+        val stateCount = states.size
+        controller.onFix(FlightLocationFix(1.0, 0.0, 10L, 0.0, 0.0, 0.1))
+        assertEquals(stateCount, states.size)
+        assertEquals(newerRemaining!!, states.last().details!!.remainingDistanceKm!!, 0.0001)
+    }
+
+    @Test fun `clearing one endpoint durably removes only that saved id`() {
+        val preferences = MemoryPreferences()
+        val controller = RouteController(FakeRepository(listOf(departure, destination)), preferences, direct, direct, {})
+        controller.start()
+        controller.choose(RouteEndpoint.DEPARTURE, departure)
+        controller.choose(RouteEndpoint.DESTINATION, destination)
+        controller.clear(RouteEndpoint.DEPARTURE)
+        assertEquals(Long.MIN_VALUE, preferences.getLong("route_departure_id", Long.MIN_VALUE))
+        assertEquals(destination.id, preferences.getLong("route_destination_id", Long.MIN_VALUE))
+    }
+
+    @Test fun `search passes normalized query and reload flag to repository`() {
+        var query = ""
+        var reload = false
+        val repository = object : NearbyCityRepository {
+            override fun searchByName(value: String, forceReload: Boolean): List<NearbyCityRecord> {
+                query = value
+                reload = forceReload
+                return listOf(destination)
+            }
+        }
+        var answer: Result<List<NearbyCityRecord>>? = null
+        val controller = RouteController(repository, MemoryPreferences(), direct, direct, {})
+        controller.start()
+        controller.search("  BeTa  ", reload = true) { answer = it }
+        assertEquals("beta", query)
+        assertTrue(reload)
+        assertEquals(listOf(destination), answer!!.getOrThrow())
+    }
+
     @Test fun restoreReadFailuresAreSurfacedForRetry() {
         val preferences = MemoryPreferences().apply { edit().putLong("route_departure_id", departure.id).commit() }
         val repository = object : NearbyCityRepository {
