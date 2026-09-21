@@ -35,12 +35,14 @@ internal class AndroidCourseOrientationPlatform(
                 SensorManager.remapCoordinateSystem(matrix, axes.first, axes.second, adjusted)
                 val orientation = FloatArray(3)
                 SensorManager.getOrientation(adjusted, orientation)
-                onHeading(Math.toDegrees(orientation[0].toDouble()).let { if (it < 0) it + 360 else it })
+                val heading = Math.toDegrees(orientation[0].toDouble())
+                    .let { if (it < 0) it + 360 else it }
+                callbackExecutor.execute { onHeading(heading) }
             }
             override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
         }
         listener = newListener
-        return sensorManager.registerListener(newListener, sensor, SensorManager.SENSOR_DELAY_UI, callbackExecutor)
+        return sensorManager.registerListener(newListener, sensor, SensorManager.SENSOR_DELAY_UI)
     }
 
     override fun unregisterOrientationListener() {

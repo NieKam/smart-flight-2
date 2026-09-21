@@ -120,7 +120,13 @@ private fun HeadingValue(heading: String, headingValue: String, cardinalValue: S
 
 @Composable
 private fun GpsBearing(bearingDegrees: Int?, bearing: String) {
-    Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).semantics(mergeDescendants = true) { contentDescription = stringResource(R.string.course_bearing_spoken, if (bearingDegrees == null) stringResource(R.string.course_unavailable_spoken) else bearing) }, verticalAlignment = Alignment.CenterVertically) {
+    val spokenBearing = if (bearingDegrees == null) {
+        stringResource(R.string.course_unavailable_spoken)
+    } else {
+        bearing
+    }
+    val contentDescription = stringResource(R.string.course_bearing_spoken, spokenBearing)
+    Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).semantics(mergeDescendants = true) { this.contentDescription = contentDescription }, verticalAlignment = Alignment.CenterVertically) {
         Text(stringResource(R.string.course_gps_bearing), Modifier.weight(1f), color = textColor, fontSize = 18.sp)
         Text(bearing, color = textColor, fontSize = 18.sp)
     }
