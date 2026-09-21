@@ -18,7 +18,7 @@ internal sealed interface NearbyCityState {
         val country: String,
         val distanceKilometres: Double,
         val localTime: String,
-        val utcOffset: String,
+        val utcOffsetSeconds: Int,
     ) : NearbyCityState
 
     data object Unavailable : NearbyCityState
@@ -61,12 +61,15 @@ internal class NearbyCityController(
     private var fix = 0L
     private var active = false
     private var latestPosition: NearbyCoordinate? = null
+    private var pendingRequest: LookupRequest? = null
+    private var workerScheduled = false
 
     fun start() = synchronized(this) {
         session++
         fix = 0
         active = true
         latestPosition = null
+        pendingRequest = null
         onStateChanged(NearbyCityState.WaitingForPosition)
     }
 
@@ -74,6 +77,7 @@ internal class NearbyCityController(
         session++
         active = false
         latestPosition = null
+        pendingRequest = null
         onStateChanged(NearbyCityState.WaitingForPosition)
     }
 
@@ -85,7 +89,7 @@ internal class NearbyCityController(
             fix++
             LookupRequest(session, fix, position, false).also { onStateChanged(NearbyCityState.LookingUp) }
         }
-        execute(request)
+        submit(request)
     }
 
     fun retry() {
@@ -96,11 +100,29 @@ internal class NearbyCityController(
                 onStateChanged(if (it == null) NearbyCityState.WaitingForPosition else NearbyCityState.LookingUp)
             }
         }
-        request?.let(::execute)
+        request?.let(::submit)
     }
 
-    private fun execute(request: LookupRequest) {
-        worker.execute {
+    /** Keeps one lookup active and replaces any queued lookup with the newest accepted fix. */
+    private fun submit(request: LookupRequest) {
+        val scheduleWorker = synchronized(this) {
+            pendingRequest = request
+            if (workerScheduled) false else {
+                workerScheduled = true
+                true
+            }
+        }
+        if (scheduleWorker) worker.execute(::runPendingLookups)
+    }
+
+    private fun runPendingLookups() {
+        while (true) {
+            val request = synchronized(this) {
+                pendingRequest?.also { pendingRequest = null } ?: run {
+                    workerScheduled = false
+                    return
+                }
+            }
             val result = runCatching { repository.findNearest(request.position, request.reload) }
                 .mapCatching { city -> city?.let { present(it, request.position) } }
             callbackExecutor.execute {
@@ -116,8 +138,13 @@ internal class NearbyCityController(
         val zone = ZoneId.of(city.timeZoneId)
         val local = clock().atZone(zone)
         val time = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(Locale.getDefault()).format(local)
-        val offset = "UTC${local.offset.id.takeUnless { it == "Z" } ?: "+00:00"}"
-        return NearbyCityState.Available(city.name, city.country, distanceKilometres(position, NearbyCoordinate(city.latitude, city.longitude)), time, offset)
+        return NearbyCityState.Available(
+            city.name,
+            city.country,
+            distanceKilometres(position, NearbyCoordinate(city.latitude, city.longitude)),
+            time,
+            local.offset.totalSeconds,
+        )
     }
 
     private data class LookupRequest(val session: Long, val fix: Long, val position: NearbyCoordinate, val reload: Boolean)
