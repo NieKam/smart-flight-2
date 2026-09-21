@@ -45,8 +45,8 @@ import kniezrec.com.flightinfo.ui.permission.actionCyan
 import kniezrec.com.flightinfo.ui.permission.cardPurple
 import org.osmdroid.config.Configuration
 import org.osmdroid.tileprovider.modules.OfflineTileProvider
-import org.osmdroid.tileprovider.util.SimpleRegisterReceiver
 import org.osmdroid.tileprovider.tilesource.XYTileSource
+import org.osmdroid.tileprovider.util.SimpleRegisterReceiver
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
