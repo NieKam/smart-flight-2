@@ -1,16 +1,21 @@
 package kniezrec.com.flightinfo.ui.gnss
 
 import androidx.activity.ComponentActivity
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertDoesNotExist
 import androidx.compose.ui.test.assertExists
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasStateDescription
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNode
 import androidx.compose.ui.test.onNodeWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kniezrec.com.flightinfo.horizon.HorizonState
 import org.junit.Rule
+
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -19,6 +24,23 @@ class HorizonCardTest {
     @get:Rule val composeRule = createAndroidComposeRule<ComponentActivity>()
 
     @Test fun waitingAndUnavailableDoNotOfferAttitudeActions() {
+
+    @Test fun requiredStateTransitionsHavePoliteAnnouncements() {
+        var state by mutableStateOf<HorizonState>(HorizonState.Waiting)
+        composeRule.setContent { HorizonCard(state, {}, {}) }
+
+        composeRule.runOnIdle { state = HorizonState.Recalibrating }
+        composeRule.onNode(hasContentDescription("Horizon recalibrating. Waiting for attitude data.")).assertExists()
+
+        composeRule.runOnIdle { state = HorizonState.Available(0, 0, 0f, 0f) }
+        composeRule.onNode(hasContentDescription("Horizon calibrated")).assertExists()
+
+        composeRule.runOnIdle { state = HorizonState.Unavailable }
+        composeRule.onNode(hasContentDescription("Horizon unavailable")).assertExists()
+
+        composeRule.runOnIdle { state = HorizonState.Error }
+        composeRule.onNode(hasContentDescription("Unable to read horizon")).assertExists()
+    }
         composeRule.setContent { HorizonCard(HorizonState.Waiting, {}, {}) }
         composeRule.onNodeWithText("Horizon").assertIsDisplayed()
         composeRule.onNodeWithText("Waiting for attitude data…").assertIsDisplayed()
