@@ -31,21 +31,25 @@ internal class AndroidNearbyCityRepository(
     private fun readAll(reload: Boolean): List<NearbyCityRecord> {
         val databaseFile = copyAsset(reload)
         SQLiteDatabase.openDatabase(databaseFile.path, null, SQLiteDatabase.OPEN_READONLY).use { database ->
-            database.rawQuery("SELECT _id, city, latitude, longitude, timezone, country FROM cities_info ORDER BY _id", null).use { cursor ->
-                val records = mutableListOf<NearbyCityRecord>()
-                while (cursor.moveToNext()) {
-                    records +=
-                        NearbyCityRecord(
-                            cursor.getLong(0),
-                            cursor.getString(1),
-                            cursor.getString(5),
-                            cursor.getDouble(2),
-                            cursor.getDouble(3),
-                            cursor.getString(4),
-                        )
+            database
+                .rawQuery(
+                    "SELECT _id, city, latitude, longitude, timezone, country FROM cities_info ORDER BY _id",
+                    null,
+                ).use { cursor ->
+                    val records = mutableListOf<NearbyCityRecord>()
+                    while (cursor.moveToNext()) {
+                        records +=
+                            NearbyCityRecord(
+                                cursor.getLong(0),
+                                cursor.getString(1),
+                                cursor.getString(5),
+                                cursor.getDouble(2),
+                                cursor.getDouble(3),
+                                cursor.getString(4),
+                            )
+                    }
+                    return records
                 }
-                return records
-            }
         }
     }
 
