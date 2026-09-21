@@ -9,11 +9,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.matchParentSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
-import androidx.compose.foundation.layout.weight
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
@@ -28,8 +26,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -40,7 +40,6 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kniezrec.com.flightinfo.R
@@ -50,6 +49,8 @@ import kniezrec.com.flightinfo.course.compassCardinal
 import kniezrec.com.flightinfo.ui.permission.actionCyan
 import kniezrec.com.flightinfo.ui.permission.cardPurple
 import java.text.NumberFormat
+
+private val textColor = Color(0xFFD9D9ED)
 
 @Composable
 internal fun CourseCard(
@@ -149,10 +150,10 @@ private fun HeadingValue(
     cardinalSpoken: String,
     modifier: Modifier = Modifier,
 ) {
+    val contentDescription = stringResource(R.string.course_heading_spoken, heading, cardinalSpoken)
     Row(
         modifier.testTag("course-heading").semantics(mergeDescendants = true) {
-            contentDescription =
-                stringResource(R.string.course_heading_spoken, heading, cardinalSpoken)
+            this.contentDescription = contentDescription
         },
     ) {
         Text(headingValue, color = textColor, fontSize = 40.sp, fontWeight = FontWeight.Medium)
@@ -233,7 +234,7 @@ private fun CompassCardinal.spokenResource(): Int =
 @Composable
 private fun CompassDirectionVisual(headingDegrees: Int) {
     Box(
-        Modifier.size(72.dp).testTag("course-direction-visual").semantics { contentDescription = null },
+        Modifier.size(72.dp).testTag("course-direction-visual"),
         contentAlignment = Alignment.Center,
     ) {
         Canvas(Modifier.matchParentSize()) {
