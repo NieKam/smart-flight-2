@@ -24,7 +24,7 @@ sealed interface NearbyCityState {
     data object Unavailable : NearbyCityState
 }
 
-internal data class NearbyCoordinate(
+data class NearbyCoordinate(
     val latitude: Double,
     val longitude: Double,
 ) {
@@ -41,7 +41,7 @@ internal data class NearbyCoordinate(
     }
 }
 
-internal data class NearbyCityRecord(
+data class NearbyCityRecord(
     val id: Long,
     val name: String,
     val country: String,
@@ -56,6 +56,9 @@ internal interface NearbyCityRepository {
         position: NearbyCoordinate,
         reload: Boolean = false,
     ): NearbyCityRecord?
+    fun searchByName(query: String, reload: Boolean = false): List<NearbyCityRecord> = emptyList()
+
+    fun findById(id: Long, reload: Boolean = false): NearbyCityRecord? = null
 }
 
 /** Owns city lookup state; callbacks from obsolete sessions or fixes are ignored. */

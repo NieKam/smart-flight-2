@@ -53,6 +53,12 @@ import kniezrec.com.flightinfo.nearby.NearbyCityState
 import kniezrec.com.flightinfo.ui.gnss.MapCardState
 import kniezrec.com.flightinfo.ui.permission.actionCyan
 import kniezrec.com.flightinfo.ui.permission.cardPurple
+import kniezrec.com.flightinfo.route.RouteEndpoint
+import kniezrec.com.flightinfo.route.RouteState
+import kniezrec.com.flightinfo.route.RouteOverlay
+import kniezrec.com.flightinfo.nearby.NearbyCityRecord
+import kniezrec.com.flightinfo.ui.route.RouteCard
+import kniezrec.com.flightinfo.ui.route.RoutePicker
 
 private val textColor = Color(0xFFD9D9ED)
 
@@ -74,6 +80,19 @@ fun GnssStatusScreen(
     mapPositionVersion: Int = 0,
     onMapRetry: () -> Unit = {},
     onMapUnavailable: () -> Unit = {},
+    routeState: RouteState = RouteState(),
+    onRouteChoose: (RouteEndpoint) -> Unit = {},
+    onRouteClear: (RouteEndpoint) -> Unit = {},
+    onRouteClearAll: () -> Unit = {},
+    routePicker: RouteEndpoint? = null,
+    routePickerInitial: NearbyCityRecord? = null,
+    routeSearchResults: List<NearbyCityRecord> = emptyList(),
+    routeSearchLoading: Boolean = false,
+    routeSearchError: String? = null,
+    onRouteSearch: (String) -> Unit = {},
+    onRouteConfirm: (NearbyCityRecord) -> Unit = {},
+    onRouteCancel: () -> Unit = {},
+    onRouteRetry: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     mapPositionVersion
@@ -100,11 +119,15 @@ fun GnssStatusScreen(
                 NearbyCityCard(nearbyCityState, onNearbyCityRetry, Modifier.padding(bottom = 12.dp).widthIn(max = 600.dp))
             }
             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
+                RouteCard(routeState, onRouteChoose, onRouteClear, onRouteClearAll, Modifier.padding(bottom = 12.dp).widthIn(max = 600.dp))
+            }
+            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
                 MapCard(
                     state = mapState,
                     rules = mapRules,
                     onRetry = onMapRetry,
                     onUnavailable = onMapUnavailable,
+                    routeOverlay = routeState.overlay,
                     modifier = Modifier.padding(bottom = 12.dp).widthIn(max = 600.dp),
                 )
             }

@@ -44,6 +44,10 @@ import kniezrec.com.flightinfo.map.MapArchiveRepository
 import kniezrec.com.flightinfo.map.MapSessionRules
 import kniezrec.com.flightinfo.nearby.AndroidNearbyCityRepository
 import kniezrec.com.flightinfo.nearby.NearbyCityController
+import kniezrec.com.flightinfo.nearby.NearbyCityRecord
+import kniezrec.com.flightinfo.route.RouteController
+import kniezrec.com.flightinfo.route.RouteEndpoint
+import kniezrec.com.flightinfo.route.RouteState
 import kniezrec.com.flightinfo.nearby.NearbyCityState
 import kniezrec.com.flightinfo.orientation.AndroidOrientationSource
 import kniezrec.com.flightinfo.orientation.SharedCourseOrientationPlatform
@@ -70,6 +74,11 @@ class MainActivity : ComponentActivity() {
     private var horizonState by mutableStateOf<HorizonState>(HorizonState.Waiting)
     private var nearbyCityState by mutableStateOf<NearbyCityState>(NearbyCityState.WaitingForPosition)
     private var mapState by mutableStateOf<MapCardState>(MapCardState.Inactive)
+    private var routeState by mutableStateOf(RouteState())
+    private var routePicker by mutableStateOf<RouteEndpoint?>(null)
+    private var routeResults by mutableStateOf<List<NearbyCityRecord>>(emptyList())
+    private var routeSearchLoading by mutableStateOf(false)
+    private var routeSearchError by mutableStateOf<String?>(null)
     private val mapRules = MapSessionRules()
     private var mapLoadToken = 0L
     private var mapPositionVersion by mutableIntStateOf(0)
@@ -114,6 +123,26 @@ class MainActivity : ComponentActivity() {
                                 mapPositionVersion = mapPositionVersion,
                                 onMapRetry = { startMapLoad() },
                                 onMapUnavailable = { mapState = MapCardState.Unavailable },
+                                routeState = routeState,
+                                onRouteChoose = { routePicker = it; routeResults = emptyList(); routeSearchError = null },
+                                onRouteClear = { routeController.clear(it) },
+                                onRouteClearAll = { routeController.clearRoute() },
+                                routePicker = routePicker,
+                                routePickerInitial = if (routePicker == RouteEndpoint.DEPARTURE) routeState.departure else routeState.destination,
+                                routeSearchResults = routeResults,
+                                routeSearchLoading = routeSearchLoading,
+                                routeSearchError = routeSearchError,
+                                onRouteSearch = { query ->
+                                    routeSearchLoading = true
+                                    routeSearchError = null
+                                    routeController.search(query) { result ->
+                                        routeSearchLoading = false
+                                        result.fold({ routeResults = it }, { routeSearchError = getString(R.string.route_error) })
+                                    }
+                                },
+                                onRouteConfirm = { city -> routePicker?.let { routeController.choose(it, city) }; routePicker = null },
+                                onRouteCancel = { routePicker = null },
+                                onRouteRetry = { routePicker?.let { endpoint -> routeSearchLoading = true; routeController.search("") { routeSearchLoading = false } } },
                                 onOpenLocationSettings = {
                                     if (!openLocationSettings()) {
                                         scope.launch {
@@ -167,6 +196,7 @@ class MainActivity : ComponentActivity() {
         isForeground = false
         gnssStatusController.stop()
         courseObservationCoordinator.stop()
+        routeController.stop()
         horizonController.stop()
         super.onPause()
     }
@@ -184,6 +214,7 @@ class MainActivity : ComponentActivity() {
         } else {
             gnssStatusController.stop()
             courseObservationCoordinator.stop()
+            routeController.stop()
             horizonController.stop()
             stopMap()
         }
@@ -257,6 +288,7 @@ class MainActivity : ComponentActivity() {
             onLocationFix = {
                 courseController.onGpsBearing(it.bearingDegrees)
                 nearbyCityController.onLocationFix(it)
+                routeController.onFix(it)
                 if (mapRules.accept(it)) mapPositionVersion++
             },
         )
@@ -267,6 +299,12 @@ class MainActivity : ComponentActivity() {
     }
 
     private val cityLookupExecutor by lazy { Executors.newSingleThreadExecutor() }
+
+    private val routeController by lazy {
+        RouteController(AndroidNearbyCityRepository(applicationContext), routePreferences, cityLookupExecutor, mainExecutor) { routeState = it }
+    }
+
+    private val routePreferences by lazy { getSharedPreferences("route", MODE_PRIVATE) }
 
     private val nearbyCityController by lazy {
         NearbyCityController(
@@ -288,6 +326,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun startObservation() {
+        routeController.start()
         gnssStatusController.start()
         if (gnssState is GnssStatusState.Waiting || gnssState is GnssStatusState.Available) {
             courseObservationCoordinator.start()
