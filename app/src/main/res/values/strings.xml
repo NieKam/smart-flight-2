@@ -60,4 +60,22 @@
     <string name="course_cardinal_south_west_spoken">southwest</string>
     <string name="course_cardinal_west_spoken">west</string>
     <string name="course_cardinal_north_west_spoken">northwest</string>
+    <string name="horizon_title">Horizon</string>
+    <string name="horizon_waiting">Waiting for attitude data…</string>
+    <string name="horizon_unavailable">Horizon unavailable</string>
+    <string name="horizon_unavailable_body">This device cannot provide attitude data.</string>
+    <string name="horizon_error">Unable to read horizon</string>
+    <string name="horizon_error_body">Smart Flight could not start the attitude sensor.</string>
+    <string name="horizon_try_again">Try again</string>
+    <string name="horizon_try_again_hint">Retries the attitude sensor.</string>
+    <string name="horizon_calibrate">Calibrate</string>
+    <string name="horizon_calibrate_hint">Sets the current pitch as level.</string>
+    <string name="horizon_level">level</string>
+    <string name="horizon_up">up</string>
+    <string name="horizon_down">down</string>
+    <string name="horizon_left">left</string>
+    <string name="horizon_right">right</string>
+    <string name="horizon_degrees_direction">%1$s° %2$s</string>
+    <string name="horizon_summary">Pitch: %1$s · Roll: %2$s</string>
+    <string name="horizon_summary_spoken">Horizon. Pitch %1$s. Roll %2$s.</string>
 </resources>

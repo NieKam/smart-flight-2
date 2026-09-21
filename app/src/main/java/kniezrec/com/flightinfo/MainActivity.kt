@@ -28,7 +28,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
-import kniezrec.com.flightinfo.course.AndroidCourseOrientationPlatform
 import kniezrec.com.flightinfo.course.CourseController
 import kniezrec.com.flightinfo.course.CourseState
 import kniezrec.com.flightinfo.course.ForegroundCourseObservationCoordinator
@@ -38,6 +37,11 @@ import kniezrec.com.flightinfo.flight.FlightParametersState
 import kniezrec.com.flightinfo.gnss.AndroidGnssStatusPlatform
 import kniezrec.com.flightinfo.gnss.GnssStatusController
 import kniezrec.com.flightinfo.gnss.GnssStatusState
+import kniezrec.com.flightinfo.horizon.HorizonController
+import kniezrec.com.flightinfo.horizon.HorizonState
+import kniezrec.com.flightinfo.orientation.AndroidOrientationSource
+import kniezrec.com.flightinfo.orientation.SharedCourseOrientationPlatform
+import kniezrec.com.flightinfo.orientation.SharedHorizonOrientationPlatform
 import kniezrec.com.flightinfo.permission.FineLocationPermissionPlatform
 import kniezrec.com.flightinfo.permission.LocationPermissionRequestHistory
 import kniezrec.com.flightinfo.permission.LocationPermissionState
@@ -55,6 +59,7 @@ class MainActivity : ComponentActivity() {
     private var gnssState by mutableStateOf<GnssStatusState>(GnssStatusState.Waiting)
     private var flightParametersState by mutableStateOf<FlightParametersState>(FlightParametersState.Waiting)
     private var courseState by mutableStateOf<CourseState>(CourseState.Waiting)
+    private var horizonState by mutableStateOf<HorizonState>(HorizonState.Waiting)
     private var isForeground = false
     private val permissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
@@ -86,6 +91,9 @@ class MainActivity : ComponentActivity() {
                                 flightParametersState = flightParametersState,
                                 courseState = courseState,
                                 onCourseRetry = { courseController.retry(isForeground) },
+                                horizonState = horizonState,
+                                onHorizonCalibrate = { horizonController.calibrate() },
+                                onHorizonRetry = { horizonController.retry(isForeground) },
                                 onOpenLocationSettings = {
                                     if (!openLocationSettings()) {
                                         scope.launch {
@@ -131,6 +139,7 @@ class MainActivity : ComponentActivity() {
         isForeground = false
         gnssStatusController.stop()
         courseObservationCoordinator.stop()
+        horizonController.stop()
         super.onPause()
     }
 
@@ -141,6 +150,7 @@ class MainActivity : ComponentActivity() {
         } else {
             gnssStatusController.stop()
             courseObservationCoordinator.stop()
+            horizonController.stop()
         }
         if (announceChange) announcementVersion++
     }
@@ -214,7 +224,13 @@ class MainActivity : ComponentActivity() {
     }
 
     private val courseController by lazy {
-        CourseController(AndroidCourseOrientationPlatform(this, mainExecutor)) { courseState = it }
+        CourseController(SharedCourseOrientationPlatform(orientationSource)) { courseState = it }
+    }
+
+    private val orientationSource by lazy { AndroidOrientationSource(this, mainExecutor) }
+
+    private val horizonController by lazy {
+        HorizonController(SharedHorizonOrientationPlatform(orientationSource)) { horizonState = it }
     }
 
     private val courseObservationCoordinator by lazy {
@@ -228,6 +244,7 @@ class MainActivity : ComponentActivity() {
         } else {
             courseObservationCoordinator.stop()
         }
+        horizonController.start()
     }
 
     private companion object {
