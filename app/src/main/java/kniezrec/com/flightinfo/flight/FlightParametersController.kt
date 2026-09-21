@@ -15,8 +15,8 @@ internal interface FlightLocationPlatform {
 internal class FlightParametersController(
     private val platform: FlightLocationPlatform,
     private val onStateChanged: (FlightParametersState) -> Unit,
-    private val onRegistrationFailed: () -> Unit = {},
     private val onLocationFix: (FlightLocationFix) -> Unit = {},
+    private val onRegistrationFailed: () -> Unit = {},
 ) {
     private var registered = false
     private var activeSession: Long? = null
