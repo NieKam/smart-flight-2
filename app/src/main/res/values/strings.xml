@@ -82,4 +82,27 @@
     <string name="horizon_calibrated_announcement">Horizon calibrated</string>
     <string name="horizon_unavailable_announcement">Horizon unavailable</string>
     <string name="horizon_error_announcement">Unable to read horizon</string>
+    <string name="nearby_city_title">Nearby city</string>
+    <string name="nearby_city_waiting">Waiting for GPS position…</string>
+    <string name="nearby_city_looking_up">Looking up nearby city…</string>
+    <string name="nearby_city_unavailable">Nearby city unavailable</string>
+    <string name="nearby_city_unavailable_body">City data could not be loaded.</string>
+    <string name="nearby_city_closest">Closest city</string>
+    <string name="nearby_city_country">Country</string>
+    <string name="nearby_city_distance">Distance to the city</string>
+    <string name="nearby_city_time">Time</string>
+    <string name="nearby_city_distance_value">%1$s km</string>
+    <string name="nearby_city_distance_spoken">%1$s kilometres</string>
+    <string name="nearby_city_time_value">%1$s (%2$s)</string>
+    <string name="nearby_city_time_spoken">%1$s, %2$s</string>
+    <string name="nearby_city_utc_offset_plus">+</string>
+    <string name="nearby_city_utc_offset_minus">−</string>
+    <string name="nearby_city_utc_offset_spoken_plus">plus</string>
+    <string name="nearby_city_utc_offset_spoken_minus">minus</string>
+    <string name="nearby_city_utc_offset_visible">UTC%1$s%2$02d:%3$02d</string>
+    <string name="nearby_city_utc_offset_spoken">UTC %1$s %2$s %3$s</string>
+    <plurals name="nearby_city_utc_offset_hours"><item quantity="one">%d hour</item><item quantity="other">%d hours</item></plurals>
+    <plurals name="nearby_city_utc_offset_minutes"><item quantity="one">%d minute</item><item quantity="other">%d minutes</item></plurals>
+    <string name="nearby_city_retry">Try again</string>
+    <string name="nearby_city_retry_hint">Reloads nearby city data and tries the latest GPS position.</string>
 </resources>

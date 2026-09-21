@@ -40,6 +40,9 @@ import kniezrec.com.flightinfo.gnss.GnssStatusController
 import kniezrec.com.flightinfo.gnss.GnssStatusState
 import kniezrec.com.flightinfo.horizon.HorizonController
 import kniezrec.com.flightinfo.horizon.HorizonState
+import kniezrec.com.flightinfo.nearby.AndroidNearbyCityRepository
+import kniezrec.com.flightinfo.nearby.NearbyCityController
+import kniezrec.com.flightinfo.nearby.NearbyCityState
 import kniezrec.com.flightinfo.orientation.AndroidOrientationSource
 import kniezrec.com.flightinfo.orientation.SharedCourseOrientationPlatform
 import kniezrec.com.flightinfo.orientation.SharedHorizonOrientationPlatform
@@ -53,6 +56,7 @@ import kniezrec.com.flightinfo.ui.permission.PermissionOnboardingScreen
 import kniezrec.com.flightinfo.ui.permission.smartFlightPageColor
 import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
 import kotlinx.coroutines.launch
+import java.util.concurrent.Executors
 
 class MainActivity : ComponentActivity() {
     private var permissionState by mutableStateOf(LocationPermissionState.Requestable)
@@ -61,6 +65,7 @@ class MainActivity : ComponentActivity() {
     private var flightParametersState by mutableStateOf<FlightParametersState>(FlightParametersState.Waiting)
     private var courseState by mutableStateOf<CourseState>(CourseState.Waiting)
     private var horizonState by mutableStateOf<HorizonState>(HorizonState.Waiting)
+    private var nearbyCityState by mutableStateOf<NearbyCityState>(NearbyCityState.WaitingForPosition)
     private var isForeground = false
     private val permissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
@@ -95,6 +100,8 @@ class MainActivity : ComponentActivity() {
                                 horizonState = horizonState,
                                 onHorizonCalibrate = { horizonController.calibrate() },
                                 onHorizonRetry = { horizonController.retry(isForeground) },
+                                nearbyCityState = nearbyCityState,
+                                onNearbyCityRetry = { nearbyCityController.retry() },
                                 onOpenLocationSettings = {
                                     if (!openLocationSettings()) {
                                         scope.launch {
@@ -149,6 +156,11 @@ class MainActivity : ComponentActivity() {
         courseObservationCoordinator.stop()
         horizonController.stop()
         super.onPause()
+    }
+
+    override fun onDestroy() {
+        cityLookupExecutor.shutdownNow()
+        super.onDestroy()
     }
 
     private fun refreshPermissionState(announceChange: Boolean = false) {
@@ -227,12 +239,26 @@ class MainActivity : ComponentActivity() {
             platform = AndroidFlightLocationPlatform(getSystemService(LocationManager::class.java), packageManager, mainExecutor),
             onStateChanged = { flightParametersState = it },
             onRegistrationFailed = { gnssStatusController.showError() },
-            onLocationFix = { courseController.onGpsBearing(it.bearingDegrees) },
+            onLocationFix = {
+                courseController.onGpsBearing(it.bearingDegrees)
+                nearbyCityController.onLocationFix(it)
+            },
         )
     }
 
     private val courseController by lazy {
         CourseController(SharedCourseOrientationPlatform(orientationSource)) { courseState = it }
+    }
+
+    private val cityLookupExecutor by lazy { Executors.newSingleThreadExecutor() }
+
+    private val nearbyCityController by lazy {
+        NearbyCityController(
+            repository = AndroidNearbyCityRepository(applicationContext),
+            worker = cityLookupExecutor,
+            callbackExecutor = mainExecutor,
+            onStateChanged = { nearbyCityState = it },
+        )
     }
 
     private val orientationSource by lazy { AndroidOrientationSource(this, mainExecutor) }
@@ -242,7 +268,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private val courseObservationCoordinator by lazy {
-        ForegroundCourseObservationCoordinator(flightParametersController, courseController)
+        ForegroundCourseObservationCoordinator(flightParametersController, courseController, nearbyCityController)
     }
 
     private fun startObservation() {
