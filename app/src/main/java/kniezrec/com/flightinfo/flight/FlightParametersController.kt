@@ -16,6 +16,7 @@ internal class FlightParametersController(
     private val platform: FlightLocationPlatform,
     private val onStateChanged: (FlightParametersState) -> Unit,
     private val onRegistrationFailed: () -> Unit = {},
+    private val onLocationFix: (FlightLocationFix) -> Unit = {},
 ) {
     private var registered = false
     private var previousAltitudeSample: AltitudeSample? = null
@@ -44,6 +45,7 @@ internal class FlightParametersController(
     }
 
     private fun onLocation(fix: FlightLocationFix) {
+        onLocationFix(fix)
         val verticalSpeed = updateVerticalSpeed(fix.altitudeMetres, fix.elapsedRealtimeNanos)
         val speed = fix.speedMetresPerSecond?.takeIf(Double::isFinite)?.let { it * KILOMETRES_PER_HOUR_PER_METRE_PER_SECOND }
         val altitude = fix.altitudeMetres?.takeIf(Double::isFinite)

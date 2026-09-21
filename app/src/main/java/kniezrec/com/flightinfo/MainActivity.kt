@@ -29,6 +29,9 @@ import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import kniezrec.com.flightinfo.flight.AndroidFlightLocationPlatform
+import kniezrec.com.flightinfo.course.AndroidCourseOrientationPlatform
+import kniezrec.com.flightinfo.course.CourseController
+import kniezrec.com.flightinfo.course.CourseState
 import kniezrec.com.flightinfo.flight.FlightParametersController
 import kniezrec.com.flightinfo.flight.FlightParametersState
 import kniezrec.com.flightinfo.gnss.AndroidGnssStatusPlatform
@@ -50,6 +53,7 @@ class MainActivity : ComponentActivity() {
     private var announcementVersion by mutableIntStateOf(0)
     private var gnssState by mutableStateOf<GnssStatusState>(GnssStatusState.Waiting)
     private var flightParametersState by mutableStateOf<FlightParametersState>(FlightParametersState.Waiting)
+    private var courseState by mutableStateOf<CourseState>(CourseState.Waiting)
     private var isForeground = false
     private val permissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
@@ -79,6 +83,8 @@ class MainActivity : ComponentActivity() {
                             GnssStatusScreen(
                                 state = gnssState,
                                 flightParametersState = flightParametersState,
+                                courseState = courseState,
+                                onCourseRetry = { courseController.retry(isForeground) },
                                 onOpenLocationSettings = {
                                     if (!openLocationSettings()) {
                                         scope.launch {
@@ -124,6 +130,7 @@ class MainActivity : ComponentActivity() {
         isForeground = false
         gnssStatusController.stop()
         flightParametersController.stop()
+        courseController.stop()
         super.onPause()
     }
 
@@ -134,6 +141,7 @@ class MainActivity : ComponentActivity() {
         } else {
             gnssStatusController.stop()
             flightParametersController.stop()
+        courseController.stop()
         }
         if (announceChange) announcementVersion++
     }
@@ -202,12 +210,23 @@ class MainActivity : ComponentActivity() {
             platform = AndroidFlightLocationPlatform(getSystemService(LocationManager::class.java), packageManager, mainExecutor),
             onStateChanged = { flightParametersState = it },
             onRegistrationFailed = { gnssStatusController.showError() },
+            onLocationFix = { courseController.onGpsBearing(it.bearingDegrees) },
         )
+    }
+
+    private val courseController by lazy {
+        CourseController(AndroidCourseOrientationPlatform(this, mainExecutor)) { courseState = it }
     }
 
     private fun startObservation() {
         gnssStatusController.start()
-        flightParametersController.start()
+        if (gnssState is GnssStatusState.Waiting || gnssState is GnssStatusState.Available) {
+            flightParametersController.start()
+            courseController.start()
+        } else {
+            flightParametersController.stop()
+            courseController.stop()
+        }
     }
 
     private companion object {

@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kniezrec.com.flightinfo.R
 import kniezrec.com.flightinfo.flight.FlightParametersState
+import kniezrec.com.flightinfo.course.CourseState
 import kniezrec.com.flightinfo.gnss.GnssSatellite
 import kniezrec.com.flightinfo.gnss.GnssStatusState
 import kniezrec.com.flightinfo.ui.permission.actionCyan
@@ -57,6 +58,8 @@ fun GnssStatusScreen(
     flightParametersState: FlightParametersState,
     onOpenLocationSettings: () -> Unit,
     onRetry: () -> Unit,
+    courseState: CourseState = CourseState.Waiting,
+    onCourseRetry: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxSize()) {
@@ -70,10 +73,10 @@ fun GnssStatusScreen(
                 Crossfade(state, animationSpec = tween(180), label = "GNSS state") { GnssStatusCard(it, onOpenLocationSettings, onRetry) }
             }
             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
-                FlightParametersCard(
-                    flightParametersState,
-                    Modifier.padding(bottom = 12.dp).widthIn(max = 600.dp),
-                )
+                FlightParametersCard(flightParametersState, Modifier.padding(bottom = 12.dp).widthIn(max = 600.dp))
+            }
+            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
+                CourseCard(courseState, onCourseRetry, Modifier.padding(bottom = 12.dp).widthIn(max = 600.dp))
             }
         }
     }

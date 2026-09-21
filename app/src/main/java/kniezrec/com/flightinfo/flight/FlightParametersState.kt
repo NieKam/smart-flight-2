@@ -16,4 +16,5 @@ data class FlightLocationFix(
     val speedMetresPerSecond: Double?,
     val altitudeMetres: Double?,
     val elapsedRealtimeNanos: Long,
+    val bearingDegrees: Double? = null,
 )

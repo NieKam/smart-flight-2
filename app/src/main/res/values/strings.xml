@@ -29,4 +29,16 @@
     <string name="flight_vertical_speed_value">%1$s m/s</string>
     <string name="flight_altitude_value">%1$s m</string>
 
+    <string name="course_title">Course</string>
+    <string name="course_waiting">Waiting for compass heading…</string>
+    <string name="compass_unavailable">Compass unavailable</string>
+    <string name="compass_unavailable_body">This device cannot provide a compass heading.</string>
+    <string name="compass_error">Unable to read compass</string>
+    <string name="compass_error_body">Smart Flight could not start the compass.</string>
+    <string name="course_try_again">Try again</string>
+    <string name="course_gps_bearing">GPS bearing</string>
+    <string name="course_unavailable">—</string>
+    <string name="course_unavailable_spoken">unavailable</string>
+    <string name="course_heading_spoken">Compass heading, %1$s degrees, %2$s</string>
+    <string name="course_bearing_spoken">GPS bearing, %1$s</string>
 </resources>
