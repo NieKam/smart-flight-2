@@ -6,30 +6,41 @@ import java.io.File
 import java.io.FileOutputStream
 
 /** Read-only platform boundary for the immutable legacy city asset. Call only from a worker. */
-internal class AndroidNearbyCityRepository(private val context: Context) : NearbyCityRepository {
-    override fun findNearest(position: NearbyCoordinate, reload: Boolean): NearbyCityRecord? {
+internal class AndroidNearbyCityRepository(
+    private val context: Context,
+) : NearbyCityRepository {
+    override fun findNearest(
+        position: NearbyCoordinate,
+        reload: Boolean,
+    ): NearbyCityRecord? {
         val databaseFile = copyAsset(reload)
         SQLiteDatabase.openDatabase(databaseFile.path, null, SQLiteDatabase.OPEN_READONLY).use { database ->
-            database.rawQuery(
-                "SELECT _id, city, latitude, longitude, timezone, country FROM cities_info ORDER BY _id",
-                null,
-            ).use { cursor ->
-                var nearest: NearbyCityRecord? = null
-                var shortest = Double.POSITIVE_INFINITY
-                while (cursor.moveToNext()) {
-                    val record = NearbyCityRecord(
-                        cursor.getLong(0), cursor.getString(1), cursor.getString(5), cursor.getDouble(2),
-                        cursor.getDouble(3), cursor.getString(4),
-                    )
-                    val coordinate = NearbyCoordinate.from(record.latitude, record.longitude) ?: continue
-                    val distance = distanceKilometres(position, coordinate)
-                    if (distance < shortest) {
-                        nearest = record
-                        shortest = distance
+            database
+                .rawQuery(
+                    "SELECT _id, city, latitude, longitude, timezone, country FROM cities_info ORDER BY _id",
+                    null,
+                ).use { cursor ->
+                    var nearest: NearbyCityRecord? = null
+                    var shortest = Double.POSITIVE_INFINITY
+                    while (cursor.moveToNext()) {
+                        val record =
+                            NearbyCityRecord(
+                                cursor.getLong(0),
+                                cursor.getString(1),
+                                cursor.getString(5),
+                                cursor.getDouble(2),
+                                cursor.getDouble(3),
+                                cursor.getString(4),
+                            )
+                        val coordinate = NearbyCoordinate.from(record.latitude, record.longitude) ?: continue
+                        val distance = distanceKilometres(position, coordinate)
+                        if (distance < shortest) {
+                            nearest = record
+                            shortest = distance
+                        }
                     }
+                    return nearest
                 }
-                return nearest
-            }
         }
     }
 
@@ -49,5 +60,7 @@ internal class AndroidNearbyCityRepository(private val context: Context) : Nearb
         return target
     }
 
-    private companion object { const val ASSET_PATH = "databases/cities_info.db" }
+    private companion object {
+        const val ASSET_PATH = "databases/cities_info.db"
+    }
 }
