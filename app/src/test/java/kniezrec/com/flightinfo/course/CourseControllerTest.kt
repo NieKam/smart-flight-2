@@ -44,6 +44,32 @@ class CourseControllerTest {
         assertEquals(1, platform.unregisters)
     }
 
+    @Test fun bearingBeforeFirstHeadingIsPresentedWhenHeadingArrives() {
+        val platform = FakePlatform(true)
+        val states = mutableListOf<CourseState>()
+        val controller = CourseController(platform, states::add)
+        controller.start()
+
+        controller.onGpsBearing(725.0)
+        assertEquals(CourseState.Waiting, states.last())
+
+        platform.heading(10.0)
+        assertEquals(CourseState.Available(10, 5), states.last())
+    }
+
+    @Test fun noBearingFixBeforeFirstHeadingClearsPendingBearing() {
+        val platform = FakePlatform(true)
+        val states = mutableListOf<CourseState>()
+        val controller = CourseController(platform, states::add)
+        controller.start()
+
+        controller.onGpsBearing(99.0)
+        controller.onGpsBearing(null)
+        platform.heading(10.0)
+
+        assertEquals(CourseState.Available(10, null), states.last())
+    }
+
     @Test fun retryAndRepeatedLifecycleEventsClearSessionAndDoNotAccumulateListeners() {
         val platform = FakePlatform(true)
         val states = mutableListOf<CourseState>()
