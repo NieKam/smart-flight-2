@@ -47,6 +47,7 @@ import kniezrec.com.flightinfo.map.MapArchiveRepository
 import kniezrec.com.flightinfo.map.MapSessionRules
 import kniezrec.com.flightinfo.nearby.AndroidNearbyCityRepository
 import kniezrec.com.flightinfo.nearby.NearbyCityController
+import kniezrec.com.flightinfo.nearby.NearbyCityRecord
 import kniezrec.com.flightinfo.nearby.NearbyCityState
 import kniezrec.com.flightinfo.orientation.AndroidOrientationSource
 import kniezrec.com.flightinfo.orientation.SharedCourseOrientationPlatform
@@ -56,6 +57,10 @@ import kniezrec.com.flightinfo.permission.LocationPermissionRequestHistory
 import kniezrec.com.flightinfo.permission.LocationPermissionState
 import kniezrec.com.flightinfo.permission.LocationPermissionStateController
 import kniezrec.com.flightinfo.permission.locationPermissionRequest
+import kniezrec.com.flightinfo.route.RouteController
+import kniezrec.com.flightinfo.route.RouteEndpoint
+import kniezrec.com.flightinfo.route.RouteState
+import kniezrec.com.flightinfo.route.validCity
 import kniezrec.com.flightinfo.ui.gnss.GnssStatusScreen
 import kniezrec.com.flightinfo.ui.gnss.MapCardState
 import kniezrec.com.flightinfo.ui.permission.PermissionOnboardingScreen
@@ -74,6 +79,13 @@ class MainActivity : ComponentActivity() {
     private var horizonState by mutableStateOf<HorizonState>(HorizonState.Waiting)
     private var nearbyCityState by mutableStateOf<NearbyCityState>(NearbyCityState.WaitingForPosition)
     private var mapState by mutableStateOf<MapCardState>(MapCardState.Inactive)
+    private var routeState by mutableStateOf(RouteState())
+    private var routePicker by mutableStateOf<RouteEndpoint?>(null)
+    private var routeResults by mutableStateOf<List<NearbyCityRecord>>(emptyList())
+    private var routeSearchLoading by mutableStateOf(false)
+    private var routeSearchError by mutableStateOf<String?>(null)
+    private var routeNearestDraft by mutableStateOf<NearbyCityRecord?>(null)
+    private var lastRouteSearchQuery = ""
     private val mapRules = MapSessionRules()
     private var mapLoadToken = 0L
     private var mapPositionVersion by mutableIntStateOf(0)
@@ -118,6 +130,92 @@ class MainActivity : ComponentActivity() {
                                 mapPositionVersion = mapPositionVersion,
                                 onMapRetry = { startMapLoad() },
                                 onMapUnavailable = { mapState = MapCardState.Unavailable },
+                                routeState = routeState,
+                                onRouteChoose = {
+                                    routePicker = it
+                                    routeResults = emptyList()
+                                    routeSearchError = null
+                                    routeNearestDraft = null
+                                    lastRouteSearchQuery = ""
+                                },
+                                onRouteClear = { routeController.clear(it) },
+                                onRouteClearAll = { routeController.clearRoute() },
+                                routePicker = routePicker,
+                                routePickerInitial =
+                                    if (routePicker ==
+                                        RouteEndpoint.DEPARTURE
+                                    ) {
+                                        routeState.departure
+                                    } else {
+                                        routeState.destination
+                                    },
+                                routeSearchResults = routeResults,
+                                routeSearchLoading = routeSearchLoading,
+                                routeSearchError = routeSearchError,
+                                onRouteSearch = { query ->
+                                    lastRouteSearchQuery = query
+                                    routeSearchLoading = true
+                                    routeSearchError = null
+                                    routeController.search(query) { result ->
+                                        routeSearchLoading = false
+                                        result.fold({ routeResults = it }, { routeSearchError = getString(R.string.route_error) })
+                                    }
+                                },
+                                onRouteConfirm = { city ->
+                                    routePicker?.let { endpoint ->
+                                        if (routeController.choose(endpoint, city)) {
+                                            routeNearestDraft = null
+                                            routePicker = null
+                                            true
+                                        } else {
+                                            false
+                                        }
+                                    } ?: false
+                                },
+                                onRouteCancel = {
+                                    routeNearestDraft = null
+                                    routePicker = null
+                                },
+                                onRouteRetry = {
+                                    routePicker?.let {
+                                        routeSearchLoading = true
+                                        routeSearchError = null
+                                        routeController.search(lastRouteSearchQuery, reload = true) { result ->
+                                            routeSearchLoading = false
+                                            result.fold(
+                                                { routeResults = it },
+                                                { routeSearchError = getString(R.string.route_error) },
+                                            )
+                                        }
+                                    }
+                                },
+                                onRouteRestoreRetry = { routeController.retryRestore() },
+                                onRouteNearest = { coordinate ->
+                                    routeSearchLoading = true
+                                    routeSearchError = null
+                                    routeController.nearest(coordinate) { result ->
+                                        routeSearchLoading = false
+                                        result.fold(
+                                            { city ->
+                                                if (city == null) {
+                                                    routeNearestDraft = null
+                                                    routeResults = emptyList()
+                                                    routeSearchError = getString(R.string.route_no_city_at_location)
+                                                } else if (!validCity(city)) {
+                                                    routeNearestDraft = null
+                                                    routeResults = emptyList()
+                                                    routeSearchError = getString(R.string.route_invalid_city)
+                                                } else {
+                                                    routeNearestDraft = city
+                                                    routeResults = listOf(city)
+                                                }
+                                            },
+                                            { routeSearchError = getString(R.string.route_error) },
+                                        )
+                                    }
+                                },
+                                routeNearestLoading = routeSearchLoading,
+                                routePickerMapArchive = (mapState as? MapCardState.Ready)?.archive,
                                 onOpenLocationSettings = {
                                     if (!openLocationSettings()) {
                                         scope.launch {
@@ -172,6 +270,7 @@ class MainActivity : ComponentActivity() {
         gnssStatusController.stop()
         pressureController.stop()
         courseObservationCoordinator.stop()
+        routeController.stop()
         horizonController.stop()
         super.onPause()
     }
@@ -191,6 +290,7 @@ class MainActivity : ComponentActivity() {
             gnssStatusController.stop()
             pressureController.stop()
             courseObservationCoordinator.stop()
+            routeController.stop()
             horizonController.stop()
             stopMap()
         }
@@ -267,6 +367,7 @@ class MainActivity : ComponentActivity() {
             onLocationFix = {
                 courseController.onGpsBearing(it.bearingDegrees)
                 nearbyCityController.onLocationFix(it)
+                routeController.onFix(it)
                 if (mapRules.accept(it)) mapPositionVersion++
             },
         )
@@ -291,6 +392,18 @@ class MainActivity : ComponentActivity() {
 
     private val cityLookupExecutor by lazy { Executors.newSingleThreadExecutor() }
 
+    private val routeController by lazy {
+        RouteController(
+            repository = AndroidNearbyCityRepository(applicationContext),
+            preferences = routePreferences,
+            worker = cityLookupExecutor,
+            callbackExecutor = mainExecutor,
+            onStateChanged = { routeState = it },
+        )
+    }
+
+    private val routePreferences by lazy { getSharedPreferences("route", MODE_PRIVATE) }
+
     private val nearbyCityController by lazy {
         NearbyCityController(
             repository = AndroidNearbyCityRepository(applicationContext),
@@ -312,6 +425,7 @@ class MainActivity : ComponentActivity() {
 
     private fun startObservation() {
         pressureController.start()
+        routeController.start()
         gnssStatusController.start()
         if (gnssState is GnssStatusState.Waiting || gnssState is GnssStatusState.Available) {
             courseObservationCoordinator.start()

@@ -41,6 +41,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import kniezrec.com.flightinfo.R
 import kniezrec.com.flightinfo.map.MapSessionRules
+import kniezrec.com.flightinfo.route.RouteOverlay
 import kniezrec.com.flightinfo.ui.permission.actionCyan
 import kniezrec.com.flightinfo.ui.permission.cardPurple
 import org.osmdroid.config.Configuration
@@ -50,6 +51,7 @@ import org.osmdroid.tileprovider.util.SimpleRegisterReceiver
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
+import org.osmdroid.views.overlay.Polyline
 import java.io.File
 
 sealed interface MapCardState {
@@ -72,6 +74,7 @@ fun MapCard(
     rules: MapSessionRules,
     onRetry: () -> Unit,
     onUnavailable: () -> Unit = {},
+    routeOverlay: RouteOverlay? = null,
     modifier: Modifier = Modifier,
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -94,6 +97,7 @@ fun MapCard(
                             archive = state.archive,
                             rules = rules,
                             instance = instance,
+                            routeOverlay = routeOverlay,
                             onOpenFailure = onUnavailable,
                             modifier = Modifier.fillMaxSize(),
                         )
@@ -180,6 +184,9 @@ private fun MapButton(
 private class MapInstance {
     var map: MapView? = null
     var marker: Marker? = null
+    var routeLine: Polyline? = null
+    var departureMarker: Marker? = null
+    var destinationMarker: Marker? = null
 
     fun recenter(rules: MapSessionRules) {
         val map = map ?: return
@@ -189,9 +196,12 @@ private class MapInstance {
     }
 
     fun dispose() {
-        map?.overlays?.clear()
+        map?.overlays?.removeAll { it !== marker }
         map?.onDetach()
         marker = null
+        routeLine = null
+        departureMarker = null
+        destinationMarker = null
         map = null
     }
 }
@@ -201,6 +211,7 @@ private fun OfflineMap(
     archive: File,
     rules: MapSessionRules,
     instance: MapInstance,
+    routeOverlay: RouteOverlay?,
     onOpenFailure: () -> Unit,
     modifier: Modifier,
 ) {
@@ -213,7 +224,9 @@ private fun OfflineMap(
     AndroidView(
         modifier =
             modifier.semantics {
-                contentDescription = context.getString(R.string.map_ready_summary)
+                contentDescription =
+                    routeOverlay?.let { context.getString(R.string.route_map_summary, it.departureName, it.destinationName) }
+                        ?: context.getString(R.string.map_ready_summary)
                 stateDescription =
                     if (rules.latestPosition ==
                         null
@@ -264,6 +277,52 @@ private fun OfflineMap(
                 }
                 map.invalidate()
             }
+            val route = routeOverlay
+            if (route == null) {
+                instance.routeLine?.let { map.overlays.remove(it) }
+                instance.departureMarker?.let { map.overlays.remove(it) }
+                instance.destinationMarker?.let { map.overlays.remove(it) }
+                instance.routeLine = null
+                instance.departureMarker = null
+                instance.destinationMarker = null
+            } else {
+                if (instance.routeLine == null) {
+                    instance.routeLine =
+                        Polyline(map).also {
+                            it.color = android.graphics.Color.CYAN
+                            map.overlays.add(it)
+                        }
+                    instance.departureMarker =
+                        Marker(map).also { marker ->
+                            marker.icon = ContextCompat.getDrawable(context, R.drawable.ic_route_departure)
+                            marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                            map.overlays.add(marker)
+                        }
+                    instance.destinationMarker =
+                        Marker(map).also { marker ->
+                            marker.icon = ContextCompat.getDrawable(context, R.drawable.ic_route_destination)
+                            marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                            map.overlays.add(marker)
+                        }
+                }
+                instance.routeLine?.setPoints(
+                    listOf(
+                        GeoPoint(route.departure.latitude, route.departure.longitude),
+                        GeoPoint(route.destination.latitude, route.destination.longitude),
+                    ),
+                )
+                instance.departureMarker?.apply {
+                    title = context.getString(R.string.route_departure_marker, route.departureName)
+                    snippet = context.getString(R.string.route_departure_marker_description)
+                    this.position = GeoPoint(route.departure.latitude, route.departure.longitude)
+                }
+                instance.destinationMarker?.apply {
+                    title = context.getString(R.string.route_destination_marker, route.destinationName)
+                    snippet = context.getString(R.string.route_destination_marker_description)
+                    this.position = GeoPoint(route.destination.latitude, route.destination.longitude)
+                }
+            }
+            map.invalidate()
         },
     )
 }
