@@ -123,15 +123,20 @@ internal class RouteController(
         }
     }
 
-    private fun restore(token: Long, reload: Boolean) {
+    private fun restore(
+        token: Long,
+        reload: Boolean,
+    ) {
         worker.execute {
             var readFailed = false
-            fun resolve(id: Long): NearbyCityRecord? = try {
-                repository.findById(id, reload)
-            } catch (_: Exception) {
-                readFailed = true
-                null
-            }
+
+            fun resolve(id: Long): NearbyCityRecord? =
+                try {
+                    repository.findById(id, reload)
+                } catch (_: Exception) {
+                    readFailed = true
+                    null
+                }
             val departureId = preferences.getLong(DEPARTURE, Long.MIN_VALUE)
             val destinationId = preferences.getLong(DESTINATION, Long.MIN_VALUE)
             val restoredDeparture = departureId.takeIf { it != Long.MIN_VALUE }?.let(::resolve)

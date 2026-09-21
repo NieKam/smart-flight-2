@@ -94,7 +94,14 @@ fun RouteCard(
     val roleText = stringResource(role)
     val chooseText = stringResource(choose)
     val icon = if (endpoint == RouteEndpoint.DEPARTURE) R.drawable.ic_route_departure else R.drawable.ic_route_destination
-    val iconDescription = if (endpoint == RouteEndpoint.DEPARTURE) R.string.route_departure_icon_description else R.string.route_destination_icon_description
+    val iconDescription =
+        if (endpoint ==
+            RouteEndpoint.DEPARTURE
+        ) {
+            R.string.route_departure_icon_description
+        } else {
+            R.string.route_destination_icon_description
+        }
     Row(Modifier.fillMaxWidth().heightIn(min = 52.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         Icon(painterResource(icon), stringResource(iconDescription), tint = actionCyan)
         TextButton(

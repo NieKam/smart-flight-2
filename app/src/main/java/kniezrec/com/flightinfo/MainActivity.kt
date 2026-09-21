@@ -163,10 +163,15 @@ class MainActivity : ComponentActivity() {
                                             routeNearestDraft = null
                                             routePicker = null
                                             true
-                                        } else false
+                                        } else {
+                                            false
+                                        }
                                     } ?: false
                                 },
-                                onRouteCancel = { routeNearestDraft = null; routePicker = null },
+                                onRouteCancel = {
+                                    routeNearestDraft = null
+                                    routePicker = null
+                                },
                                 onRouteRetry = {
                                     routePicker?.let {
                                         routeSearchLoading = true

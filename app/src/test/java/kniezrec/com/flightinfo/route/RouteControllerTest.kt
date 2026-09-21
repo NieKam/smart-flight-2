@@ -40,7 +40,8 @@ class RouteControllerTest {
 
     @Test fun `clearing route removes both endpoints and overlay`() {
         var state = RouteState()
-        val controller = RouteController(FakeRepository(listOf(departure, destination)), MemoryPreferences(), direct, direct, { state = it })
+        val controller =
+            RouteController(FakeRepository(listOf(departure, destination)), MemoryPreferences(), direct, direct, { state = it })
         controller.start()
         controller.choose(RouteEndpoint.DEPARTURE, departure)
         controller.choose(RouteEndpoint.DESTINATION, destination)
@@ -106,13 +107,22 @@ class RouteControllerTest {
     @Test fun `search passes normalized query and reload flag to repository`() {
         var query = ""
         var reload = false
-        val repository = object : NearbyCityRepository {
-            override fun searchByName(value: String, forceReload: Boolean): List<NearbyCityRecord> {
-                query = value
-                reload = forceReload
-                return listOf(destination)
+        val repository =
+            object : NearbyCityRepository {
+                override fun findNearest(
+                    position: NearbyCoordinate,
+                    reload: Boolean,
+                ): NearbyCityRecord? = null
+
+                override fun searchByName(
+                    value: String,
+                    forceReload: Boolean,
+                ): List<NearbyCityRecord> {
+                    query = value
+                    reload = forceReload
+                    return listOf(destination)
+                }
             }
-        }
         var answer: Result<List<NearbyCityRecord>>? = null
         val controller = RouteController(repository, MemoryPreferences(), direct, direct, {})
         controller.start()
@@ -124,9 +134,18 @@ class RouteControllerTest {
 
     @Test fun restoreReadFailuresAreSurfacedForRetry() {
         val preferences = MemoryPreferences().apply { edit().putLong("route_departure_id", departure.id).commit() }
-        val repository = object : NearbyCityRepository {
-            override fun findById(id: Long, reload: Boolean): NearbyCityRecord? = error("database unavailable")
-        }
+        val repository =
+            object : NearbyCityRepository {
+                override fun findNearest(
+                    position: NearbyCoordinate,
+                    reload: Boolean,
+                ): NearbyCityRecord? = null
+
+                override fun findById(
+                    id: Long,
+                    reload: Boolean,
+                ): NearbyCityRecord? = error("database unavailable")
+            }
         var state = RouteState()
         RouteController(repository, preferences, direct, direct, { state = it }).start()
         assertTrue(state.error != null)
@@ -136,46 +155,143 @@ class RouteControllerTest {
         val near = destination.copy(latitude = 0.0, longitude = 0.1)
         val far = destination.copy(id = 3L, latitude = 0.0, longitude = 10.0)
         var nearest: NearbyCityRecord? = null
-        val repository = object : NearbyCityRepository {
-            override fun findNearest(position: NearbyCoordinate, reload: Boolean): NearbyCityRecord? = listOf(near, far).minByOrNull { kniezrec.com.flightinfo.nearby.distanceKilometres(position, NearbyCoordinate(it.latitude, it.longitude)) }
-        }
+        val repository =
+            object : NearbyCityRepository {
+                override fun findNearest(
+                    position: NearbyCoordinate,
+                    reload: Boolean,
+                ): NearbyCityRecord? =
+                    listOf(near, far).minByOrNull {
+                        kniezrec.com.flightinfo.nearby
+                            .distanceKilometres(position, NearbyCoordinate(it.latitude, it.longitude))
+                    }
+            }
         val controller = RouteController(repository, MemoryPreferences(), direct, direct, {})
         controller.start()
         controller.nearest(NearbyCoordinate(0.0, 0.0)) { nearest = it.getOrNull() }
         assertEquals(near, nearest)
     }
 
-    private class FakeRepository(private val records: List<NearbyCityRecord>) : NearbyCityRepository {
-        override fun findNearest(position: NearbyCoordinate, reload: Boolean): NearbyCityRecord? = records.minByOrNull { it.latitude }
-        override fun findById(id: Long, reload: Boolean): NearbyCityRecord? = records.firstOrNull { it.id == id }
-        override fun searchByName(query: String, reload: Boolean): List<NearbyCityRecord> = records.filter { it.name.lowercase().contains(query) }
+    private class FakeRepository(
+        private val records: List<NearbyCityRecord>,
+    ) : NearbyCityRepository {
+        override fun findNearest(
+            position: NearbyCoordinate,
+            reload: Boolean,
+        ): NearbyCityRecord? = records.minByOrNull { it.latitude }
+
+        override fun findById(
+            id: Long,
+            reload: Boolean,
+        ): NearbyCityRecord? = records.firstOrNull { it.id == id }
+
+        override fun searchByName(
+            query: String,
+            reload: Boolean,
+        ): List<NearbyCityRecord> = records.filter { it.name.lowercase().contains(query) }
     }
 
     private class MemoryPreferences : SharedPreferences {
         private val values = mutableMapOf<String, Any>()
+
         override fun getAll(): MutableMap<String, *> = values.toMutableMap()
-        override fun getString(key: String, defValue: String?): String? = values[key] as? String ?: defValue
-        override fun getStringSet(key: String, defValues: MutableSet<String>?): MutableSet<String>? = (values[key] as? Set<String>)?.toMutableSet() ?: defValues
-        override fun getInt(key: String, defValue: Int): Int = values[key] as? Int ?: defValue
-        override fun getLong(key: String, defValue: Long): Long = values[key] as? Long ?: defValue
-        override fun getFloat(key: String, defValue: Float): Float = values[key] as? Float ?: defValue
-        override fun getBoolean(key: String, defValue: Boolean): Boolean = values[key] as? Boolean ?: defValue
+
+        override fun getString(
+            key: String,
+            defValue: String?,
+        ): String? = values[key] as? String ?: defValue
+
+        override fun getStringSet(
+            key: String,
+            defValues: MutableSet<String>?,
+        ): MutableSet<String>? = (values[key] as? Set<String>)?.toMutableSet() ?: defValues
+
+        override fun getInt(
+            key: String,
+            defValue: Int,
+        ): Int = values[key] as? Int ?: defValue
+
+        override fun getLong(
+            key: String,
+            defValue: Long,
+        ): Long = values[key] as? Long ?: defValue
+
+        override fun getFloat(
+            key: String,
+            defValue: Float,
+        ): Float = values[key] as? Float ?: defValue
+
+        override fun getBoolean(
+            key: String,
+            defValue: Boolean,
+        ): Boolean = values[key] as? Boolean ?: defValue
+
         override fun contains(key: String): Boolean = values.containsKey(key)
+
         override fun edit(): SharedPreferences.Editor = Editor()
+
         override fun registerOnSharedPreferenceChangeListener(listener: SharedPreferences.OnSharedPreferenceChangeListener) = Unit
+
         override fun unregisterOnSharedPreferenceChangeListener(listener: SharedPreferences.OnSharedPreferenceChangeListener) = Unit
+
         private inner class Editor : SharedPreferences.Editor {
-            override fun putString(key: String, value: String?): SharedPreferences.Editor = applyValue(key, value)
-            override fun putStringSet(key: String, values: MutableSet<String>?): SharedPreferences.Editor = applyValue(key, values)
-            override fun putInt(key: String, value: Int): SharedPreferences.Editor = applyValue(key, value)
-            override fun putLong(key: String, value: Long): SharedPreferences.Editor = applyValue(key, value)
-            override fun putFloat(key: String, value: Float): SharedPreferences.Editor = applyValue(key, value)
-            override fun putBoolean(key: String, value: Boolean): SharedPreferences.Editor = applyValue(key, value)
-            override fun remove(key: String): SharedPreferences.Editor { values.remove(key); return this }
-            override fun clear(): SharedPreferences.Editor { values.clear(); return this }
+            override fun putString(
+                key: String,
+                value: String?,
+            ): SharedPreferences.Editor = applyValue(key, value)
+
+            override fun putStringSet(
+                key: String,
+                values: MutableSet<String>?,
+            ): SharedPreferences.Editor = applyValue(key, values)
+
+            override fun putInt(
+                key: String,
+                value: Int,
+            ): SharedPreferences.Editor = applyValue(key, value)
+
+            override fun putLong(
+                key: String,
+                value: Long,
+            ): SharedPreferences.Editor = applyValue(key, value)
+
+            override fun putFloat(
+                key: String,
+                value: Float,
+            ): SharedPreferences.Editor = applyValue(key, value)
+
+            override fun putBoolean(
+                key: String,
+                value: Boolean,
+            ): SharedPreferences.Editor = applyValue(key, value)
+
+            override fun remove(key: String): SharedPreferences.Editor {
+                values.remove(key)
+                return this
+            }
+
+            override fun clear(): SharedPreferences.Editor {
+                values.clear()
+                return this
+            }
+
             override fun commit(): Boolean = true
+
             override fun apply() = Unit
-            private fun applyValue(key: String, value: Any?): SharedPreferences.Editor { if (value == null) values.remove(key) else values[key] = value; return this }
+
+            private fun applyValue(
+                key: String,
+                value: Any?,
+            ): SharedPreferences.Editor {
+                if (value ==
+                    null
+                ) {
+                    values.remove(key)
+                } else {
+                    values[key] = value
+                }
+                return this
+            }
         }
     }
 }

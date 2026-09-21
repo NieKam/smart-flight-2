@@ -1,7 +1,6 @@
 package kniezrec.com.flightinfo.ui.route
 
 import androidx.activity.compose.BackHandler
-
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -117,10 +116,15 @@ fun RoutePicker(
             item {
                 Box(Modifier.fillMaxWidth().heightIn(min = 180.dp)) {
                     if (mapArchive != null) {
-                        PickerMap(mapArchive, selected?.let { NearbyCoordinate.from(it.latitude, it.longitude) }, onNearest = { coordinate ->
-                            mapMessage = null
-                            onNearest(coordinate)
-                        }, onInvalidLongPress = { mapMessage = it })
+                        PickerMap(
+                            mapArchive,
+                            selected?.let { NearbyCoordinate.from(it.latitude, it.longitude) },
+                            onNearest = { coordinate ->
+                                mapMessage = null
+                                onNearest(coordinate)
+                            },
+                            onInvalidLongPress = { mapMessage = it },
+                        )
                     } else {
                         Text(stringResource(R.string.route_picker_map_unavailable))
                     }
@@ -185,14 +189,17 @@ private fun PickerMap(
         },
         update = { map ->
             draftMarker?.let { map.overlays.remove(it) }
-            draftMarker = selectedCoordinate?.let { coordinate ->
-                Marker(map).also { marker ->
-                    marker.icon = androidx.core.content.ContextCompat.getDrawable(context, R.drawable.ic_route_destination)
-                    marker.position = GeoPoint(coordinate.latitude, coordinate.longitude)
-                    marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                    map.overlays.add(marker)
+            draftMarker =
+                selectedCoordinate?.let { coordinate ->
+                    Marker(map).also { marker ->
+                        marker.icon =
+                            androidx.core.content.ContextCompat
+                                .getDrawable(context, R.drawable.ic_route_destination)
+                        marker.position = GeoPoint(coordinate.latitude, coordinate.longitude)
+                        marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                        map.overlays.add(marker)
+                    }
                 }
-            }
             map.invalidate()
         },
     )

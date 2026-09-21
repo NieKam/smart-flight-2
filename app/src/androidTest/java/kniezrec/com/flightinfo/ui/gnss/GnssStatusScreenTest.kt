@@ -3,13 +3,11 @@ package kniezrec.com.flightinfo.ui.gnss
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.LayoutDirection
-import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.test.assertDoesNotExist
 import androidx.compose.ui.test.assertExists
 import androidx.compose.ui.test.assertHasClickAction
@@ -24,6 +22,8 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kniezrec.com.flightinfo.course.CourseState
@@ -351,7 +351,20 @@ class GnssStatusScreenTest {
         val city = NearbyCityRecord(8L, "Paris", "France", 48.8, 2.3, "Europe/Paris")
         var confirmed = false
         composeRule.setContent {
-            RoutePicker(endpoint = RouteEndpoint.DESTINATION, initial = null, results = emptyList(), loading = false, error = null, mapArchive = null, onSearch = {}, onNearest = {}, nearestDraft = city, onConfirm = { confirmed = true }, onCancel = {}, onRetry = {})
+            RoutePicker(
+                endpoint = RouteEndpoint.DESTINATION,
+                initial = null,
+                results = emptyList(),
+                loading = false,
+                error = null,
+                mapArchive = null,
+                onSearch = {},
+                onNearest = {},
+                nearestDraft = city,
+                onConfirm = { confirmed = true },
+                onCancel = {},
+                onRetry = {},
+            )
         }
         composeRule.onNodeWithText("Selected: Paris (France)").assertIsDisplayed()
         composeRule.onNodeWithText("Confirm").assertIsEnabled().performClick()
@@ -393,11 +406,14 @@ class GnssStatusScreenTest {
         var cleared = false
         composeRule.setContent {
             RouteCard(
-                state = RouteState(
-                    departure = departure,
-                    destination = destination,
-                    details = kniezrec.com.flightinfo.route.RouteDetails(111.2, null, null, null),
-                ),
+                state =
+                    RouteState(
+                        departure = departure,
+                        destination = destination,
+                        details =
+                            kniezrec.com.flightinfo.route
+                                .RouteDetails(111.2, null, null, null),
+                    ),
                 onChoose = {},
                 onClear = {},
                 onClearAll = { cleared = true },
@@ -423,8 +439,10 @@ class GnssStatusScreenTest {
         var mapState by mutableStateOf<MapCardState>(MapCardState.Loading)
         var overlay by mutableStateOf<RouteOverlay?>(
             RouteOverlay(
-                kniezrec.com.flightinfo.nearby.NearbyCoordinate(0.0, 0.0),
-                kniezrec.com.flightinfo.nearby.NearbyCoordinate(1.0, 1.0),
+                kniezrec.com.flightinfo.nearby
+                    .NearbyCoordinate(0.0, 0.0),
+                kniezrec.com.flightinfo.nearby
+                    .NearbyCoordinate(1.0, 1.0),
                 "Alpha",
                 "Beta",
             ),
@@ -437,12 +455,15 @@ class GnssStatusScreenTest {
             composeRule.onNodeWithContentDescription("Route overlay from Alpha to Beta").assertExists()
             composeRule.onNodeWithTag("map-content").assertExists()
             composeRule.runOnIdle {
-                overlay = RouteOverlay(
-                    kniezrec.com.flightinfo.nearby.NearbyCoordinate(2.0, 2.0),
-                    kniezrec.com.flightinfo.nearby.NearbyCoordinate(3.0, 3.0),
-                    "Gamma",
-                    "Delta",
-                )
+                overlay =
+                    RouteOverlay(
+                        kniezrec.com.flightinfo.nearby
+                            .NearbyCoordinate(2.0, 2.0),
+                        kniezrec.com.flightinfo.nearby
+                            .NearbyCoordinate(3.0, 3.0),
+                        "Gamma",
+                        "Delta",
+                    )
             }
             composeRule.onNodeWithContentDescription("Route overlay from Gamma to Delta").assertExists()
             composeRule.onNodeWithTag("map-content").assertExists()

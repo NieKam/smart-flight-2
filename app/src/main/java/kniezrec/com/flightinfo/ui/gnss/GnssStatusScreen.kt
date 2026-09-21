@@ -2,6 +2,7 @@ package kniezrec.com.flightinfo.ui.gnss
 
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -30,7 +31,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
-import androidx.compose.foundation.background
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -104,62 +104,73 @@ fun GnssStatusScreen(
 ) {
     mapPositionVersion
     androidx.compose.foundation.layout.Box(Modifier.fillMaxSize().then(modifier)) {
-    Column(Modifier.fillMaxSize()) {
-        Box(Modifier.fillMaxWidth().heightIn(min = 56.dp), contentAlignment = Alignment.Center) {
-            Text(stringResource(R.string.app_name), color = textColor, fontSize = 20.sp, fontWeight = FontWeight.Medium)
+        Column(Modifier.fillMaxSize()) {
+            Box(Modifier.fillMaxWidth().heightIn(min = 56.dp), contentAlignment = Alignment.Center) {
+                Text(stringResource(R.string.app_name), color = textColor, fontSize = 20.sp, fontWeight = FontWeight.Medium)
+            }
+            Column(
+                Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 12.dp),
+            ) {
+                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
+                    Crossfade(
+                        state,
+                        animationSpec = tween(180),
+                        label = "GNSS state",
+                    ) { GnssStatusCard(it, onOpenLocationSettings, onRetry) }
+                }
+                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
+                    FlightParametersCard(flightParametersState, Modifier.padding(bottom = 12.dp).widthIn(max = 600.dp))
+                }
+                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
+                    CourseCard(courseState, onCourseRetry, Modifier.padding(bottom = 12.dp).widthIn(max = 600.dp))
+                }
+                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
+                    HorizonCard(horizonState, onHorizonCalibrate, onHorizonRetry, Modifier.padding(bottom = 12.dp).widthIn(max = 600.dp))
+                }
+                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
+                    NearbyCityCard(nearbyCityState, onNearbyCityRetry, Modifier.padding(bottom = 12.dp).widthIn(max = 600.dp))
+                }
+                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
+                    RouteCard(
+                        routeState,
+                        onRouteChoose,
+                        onRouteClear,
+                        onRouteClearAll,
+                        onRouteRestoreRetry,
+                        Modifier.padding(bottom = 12.dp).widthIn(max = 600.dp),
+                    )
+                }
+                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
+                    MapCard(
+                        state = mapState,
+                        rules = mapRules,
+                        onRetry = onMapRetry,
+                        onUnavailable = onMapUnavailable,
+                        routeOverlay = routeState.overlay,
+                        modifier = Modifier.padding(bottom = 12.dp).widthIn(max = 600.dp),
+                    )
+                }
+            }
         }
-        Column(
-            Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 12.dp),
-        ) {
-            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
-                Crossfade(state, animationSpec = tween(180), label = "GNSS state") { GnssStatusCard(it, onOpenLocationSettings, onRetry) }
-            }
-            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
-                FlightParametersCard(flightParametersState, Modifier.padding(bottom = 12.dp).widthIn(max = 600.dp))
-            }
-            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
-                CourseCard(courseState, onCourseRetry, Modifier.padding(bottom = 12.dp).widthIn(max = 600.dp))
-            }
-            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
-                HorizonCard(horizonState, onHorizonCalibrate, onHorizonRetry, Modifier.padding(bottom = 12.dp).widthIn(max = 600.dp))
-            }
-            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
-                NearbyCityCard(nearbyCityState, onNearbyCityRetry, Modifier.padding(bottom = 12.dp).widthIn(max = 600.dp))
-            }
-            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
-                RouteCard(routeState, onRouteChoose, onRouteClear, onRouteClearAll, onRouteRestoreRetry, Modifier.padding(bottom = 12.dp).widthIn(max = 600.dp))
-            }
-            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
-                MapCard(
-                    state = mapState,
-                    rules = mapRules,
-                    onRetry = onMapRetry,
-                    onUnavailable = onMapUnavailable,
-                    routeOverlay = routeState.overlay,
-                    modifier = Modifier.padding(bottom = 12.dp).widthIn(max = 600.dp),
+
+        if (routePicker != null) {
+            androidx.compose.foundation.layout.Box(Modifier.fillMaxSize().background(Color(0xFF211D46))) {
+                RoutePicker(
+                    endpoint = routePicker,
+                    initial = routePickerInitial,
+                    results = routeSearchResults,
+                    loading = routeSearchLoading || routeNearestLoading,
+                    error = routeSearchError,
+                    mapArchive = routePickerMapArchive,
+                    onSearch = onRouteSearch,
+                    onNearest = onRouteNearest,
+                    nearestDraft = routeNearestDraft,
+                    onConfirm = onRouteConfirm,
+                    onCancel = onRouteCancel,
+                    onRetry = onRouteRetry,
                 )
             }
         }
-    }
-
-    if (routePicker != null) {
-        androidx.compose.foundation.layout.Box(Modifier.fillMaxSize().background(Color(0xFF211D46))) {
-        RoutePicker(
-            endpoint = routePicker,
-            initial = routePickerInitial,
-            results = routeSearchResults,
-            loading = routeSearchLoading || routeNearestLoading,
-            error = routeSearchError,
-            mapArchive = routePickerMapArchive,
-            onSearch = onRouteSearch,
-            onNearest = onRouteNearest,
-            nearestDraft = routeNearestDraft,
-            onConfirm = onRouteConfirm,
-            onCancel = onRouteCancel,
-            onRetry = onRouteRetry,
-        )
-        }
-    }
     }
 }
 
