@@ -62,6 +62,26 @@ class CourseControllerTest {
         assertEquals(2, platform.registers)
     }
 
+    @Test
+    fun lateHeadingFromStoppedOrReplacedSessionCannotRestoreCourse() {
+        val platform = FakePlatform(true)
+        val states = mutableListOf<CourseState>()
+        val controller = CourseController(platform, states::add)
+        controller.start()
+        val firstSessionCallback = platform.callback()
+
+        controller.stop()
+        firstSessionCallback(42.0)
+        assertEquals(CourseState.Waiting, states.last())
+
+        controller.retry(true)
+        firstSessionCallback(99.0)
+        assertEquals(CourseState.Waiting, states.last())
+
+        platform.heading(18.0)
+        assertEquals(CourseState.Available(18, null), states.last())
+    }
+
     private class FakePlatform(val available: Boolean, val result: Boolean = true) : CourseOrientationPlatform {
         var registers = 0
         var unregisters = 0
@@ -74,5 +94,6 @@ class CourseControllerTest {
         }
         override fun unregisterOrientationListener() { unregisters++; callback = null }
         fun heading(value: Double) { callback?.invoke(value) }
+        fun callback(): (Double) -> Unit = requireNotNull(callback)
     }
 }

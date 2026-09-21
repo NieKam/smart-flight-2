@@ -12,6 +12,8 @@ internal class CourseController(
 ) {
     private var registered = false
     private var state: CourseState = CourseState.Waiting
+    private var nextSessionToken = 0L
+    private var activeSessionToken: Long? = null
 
     fun start() {
         stop()
@@ -20,17 +22,23 @@ internal class CourseController(
             return
         }
         setState(CourseState.Waiting)
+        val sessionToken = ++nextSessionToken
+        activeSessionToken = sessionToken
         registered = try {
-            platform.registerOrientationListener(::onHeading)
+            platform.registerOrientationListener { heading -> onHeading(sessionToken, heading) }
         } catch (_: SecurityException) {
             false
         } catch (_: RuntimeException) {
             false
         }
-        if (!registered) setState(CourseState.Error)
+        if (!registered) {
+            activeSessionToken = null
+            setState(CourseState.Error)
+        }
     }
 
     fun stop() {
+        activeSessionToken = null
         if (registered) platform.unregisterOrientationListener()
         registered = false
         setState(CourseState.Waiting)
@@ -45,7 +53,8 @@ internal class CourseController(
         setState(available.copy(gpsBearingDegrees = bearingDegrees?.let(::normalizeCourseDegrees)))
     }
 
-    private fun onHeading(headingDegrees: Double) {
+    private fun onHeading(sessionToken: Long, headingDegrees: Double) {
+        if (activeSessionToken != sessionToken) return
         val heading = normalizeCourseDegrees(headingDegrees) ?: return
         setState(CourseState.Available(heading, (state as? CourseState.Available)?.gpsBearingDegrees))
     }
