@@ -16,8 +16,7 @@ internal class AndroidFlightLocationPlatform(
 
     override fun areLocationServicesEnabled(): Boolean = locationManager.isLocationEnabled
 
-    override fun hasGnssHardware(): Boolean =
-        packageManager.hasSystemFeature(PackageManager.FEATURE_LOCATION_GPS)
+    override fun hasGnssHardware(): Boolean = packageManager.hasSystemFeature(PackageManager.FEATURE_LOCATION_GPS)
 
     override fun registerLocationListener(onLocation: (FlightLocationFix) -> Unit): Boolean {
         val newListener =

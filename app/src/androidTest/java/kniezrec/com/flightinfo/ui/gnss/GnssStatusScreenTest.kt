@@ -4,15 +4,15 @@ import androidx.activity.ComponentActivity
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertExists
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import kniezrec.com.flightinfo.flight.FlightParametersState
 import kniezrec.com.flightinfo.gnss.GnssSatellite
 import kniezrec.com.flightinfo.gnss.GnssStatusState
-import kniezrec.com.flightinfo.flight.FlightParametersState
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -80,5 +80,4 @@ class GnssStatusScreenTest {
 
         composeRule.onNodeWithContentDescription("Flight parameters available").assertExists()
     }
-
 }

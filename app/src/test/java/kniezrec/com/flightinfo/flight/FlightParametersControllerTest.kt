@@ -91,5 +91,4 @@ class FlightParametersControllerTest {
 
         assertEquals(listOf(FlightParametersState.Waiting), states)
     }
-
 }

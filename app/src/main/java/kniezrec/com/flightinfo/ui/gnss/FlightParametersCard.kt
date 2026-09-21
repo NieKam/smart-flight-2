@@ -24,7 +24,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
-import androidx.compose.ui.semantics.mergeDescendants
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -35,6 +34,8 @@ import kniezrec.com.flightinfo.flight.FlightParametersState
 import kniezrec.com.flightinfo.ui.permission.cardPurple
 import java.text.NumberFormat
 import java.util.Locale
+
+private val textColor = Color(0xFFD9D9ED)
 
 @Composable
 internal fun FlightParametersCard(
@@ -59,10 +60,13 @@ internal fun FlightParametersCard(
     }
 
     Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .heightIn(min = 160.dp),
-        shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .heightIn(min = 160.dp),
+        shape =
+            androidx.compose.foundation.shape
+                .RoundedCornerShape(10.dp),
         colors = CardDefaults.cardColors(containerColor = cardPurple),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
     ) {
@@ -82,7 +86,8 @@ internal fun FlightParametersCard(
 @Composable
 private fun FlightParametersAvailabilityAnnouncement() {
     val availabilityText =
-        androidx.compose.ui.res.stringResource(R.string.flight_parameters_available)
+        androidx.compose.ui.res
+            .stringResource(R.string.flight_parameters_available)
 
     Box(
         Modifier.semantics {
@@ -105,14 +110,17 @@ private fun FlightParametersWaiting() {
         FlightParametersTitle(textAlign = TextAlign.Center)
 
         Text(
-            text = androidx.compose.ui.res.stringResource(R.string.flight_parameters_waiting),
+            text =
+                androidx.compose.ui.res
+                    .stringResource(R.string.flight_parameters_waiting),
             modifier = Modifier.padding(top = 12.dp),
             color = textColor,
-            style = MaterialTheme.typography.bodyLarge.copy(
-                fontSize = 18.sp,
-                lineHeight = 25.sp,
-                textAlign = TextAlign.Center,
-            ),
+            style =
+                MaterialTheme.typography.bodyLarge.copy(
+                    fontSize = 18.sp,
+                    lineHeight = 25.sp,
+                    textAlign = TextAlign.Center,
+                ),
         )
     }
 }
@@ -158,24 +166,34 @@ private fun FlightParametersReadings(state: FlightParametersState.Readings) {
 @Composable
 private fun FlightParametersTitle(textAlign: TextAlign = TextAlign.Start) {
     Text(
-        text = androidx.compose.ui.res.stringResource(R.string.flight_parameters_title),
+        text =
+            androidx.compose.ui.res
+                .stringResource(R.string.flight_parameters_title),
         color = textColor,
-        style = MaterialTheme.typography.titleLarge.copy(
-            fontSize = 22.sp,
-            lineHeight = 28.sp,
-            fontWeight = FontWeight.Medium,
-            textAlign = textAlign,
-        ),
+        style =
+            MaterialTheme.typography.titleLarge.copy(
+                fontSize = 22.sp,
+                lineHeight = 28.sp,
+                fontWeight = FontWeight.Medium,
+                textAlign = textAlign,
+            ),
     )
 }
 
 @Composable
-private fun ParameterRow(label: Int, value: String?) {
-    val labelText = androidx.compose.ui.res.stringResource(label)
+private fun ParameterRow(
+    label: Int,
+    value: String?,
+) {
+    val labelText =
+        androidx.compose.ui.res
+            .stringResource(label)
     val displayedValue =
-        value ?: androidx.compose.ui.res.stringResource(R.string.flight_unavailable)
+        value ?: androidx.compose.ui.res
+            .stringResource(R.string.flight_unavailable)
     val spokenValue =
-        value ?: androidx.compose.ui.res.stringResource(R.string.flight_unavailable_accessibility)
+        value ?: androidx.compose.ui.res
+            .stringResource(R.string.flight_unavailable_accessibility)
 
     Row(
         Modifier
@@ -190,31 +208,40 @@ private fun ParameterRow(label: Int, value: String?) {
             labelText,
             Modifier.weight(1f),
             color = textColor,
-            style = MaterialTheme.typography.bodyLarge.copy(
-                fontSize = 18.sp,
-                lineHeight = 25.sp,
-            ),
+            style =
+                MaterialTheme.typography.bodyLarge.copy(
+                    fontSize = 18.sp,
+                    lineHeight = 25.sp,
+                ),
         )
 
         Text(
             displayedValue,
             color = textColor,
-            style = MaterialTheme.typography.bodyLarge.copy(
-                fontSize = 18.sp,
-                lineHeight = 25.sp,
-                fontWeight = FontWeight.Medium,
-                textAlign = TextAlign.End,
-            ),
+            style =
+                MaterialTheme.typography.bodyLarge.copy(
+                    fontSize = 18.sp,
+                    lineHeight = 25.sp,
+                    fontWeight = FontWeight.Medium,
+                    textAlign = TextAlign.End,
+                ),
         )
     }
 }
 
 @Composable
-private fun format(value: Double, template: Int, signed: Boolean): String {
-    val number = NumberFormat.getNumberInstance(Locale.getDefault()).apply {
-        minimumFractionDigits = 1
-        maximumFractionDigits = 1
-    }.format(kotlin.math.abs(value))
+private fun format(
+    value: Double,
+    template: Int,
+    signed: Boolean,
+): String {
+    val number =
+        NumberFormat
+            .getNumberInstance(Locale.getDefault())
+            .apply {
+                minimumFractionDigits = 1
+                maximumFractionDigits = 1
+            }.format(kotlin.math.abs(value))
 
     val signedNumber =
         if (signed) {
@@ -223,5 +250,6 @@ private fun format(value: Double, template: Int, signed: Boolean): String {
             number
         }
 
-    return androidx.compose.ui.res.stringResource(template, signedNumber)
+    return androidx.compose.ui.res
+        .stringResource(template, signedNumber)
 }

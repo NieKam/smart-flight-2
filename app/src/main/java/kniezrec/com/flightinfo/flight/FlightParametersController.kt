@@ -58,7 +58,10 @@ internal class FlightParametersController(
         )
     }
 
-    private fun updateVerticalSpeed(altitude: Double?, elapsedRealtimeNanos: Long): Double? {
+    private fun updateVerticalSpeed(
+        altitude: Double?,
+        elapsedRealtimeNanos: Long,
+    ): Double? {
         if (altitude == null || !altitude.isFinite()) return null
         val previous = previousAltitudeSample
         if (previous == null) {
