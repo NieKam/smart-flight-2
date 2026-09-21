@@ -2,7 +2,7 @@ name = "architect"
 
 description = "Analyzes the original and rewritten Smart Flight applications, defines requirements and creates an actionable implementation task for downstream agents."
 
-model = "gpt-5.6-terra"
+model = "gpt-5.6-luna"
 model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"
 
