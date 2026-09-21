@@ -47,7 +47,7 @@ class MapSessionRules {
             hasCenteredOnFirstFix = true
             firstFixCenterPending = true
         }
-        normalizeCourse(fix.bearingDegrees)?.let { markerCourse = it }
+        markerCourse = normalizeCourse(fix.bearingDegrees) ?: 0f
         return true
     }
 

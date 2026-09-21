@@ -197,6 +197,26 @@ class GnssStatusScreenTest {
         }
     }
 
+    @Test fun invalidOfflineArchiveReportsOpenFailureWithoutUsingNetworkFallback() {
+        val archive = File(composeRule.activity.cacheDir, "invalid-map-test.zip")
+        archive.writeText("not a zip archive")
+        var failed = false
+        try {
+            composeRule.setContent {
+                MapCard(
+                    MapCardState.Ready(archive),
+                    MapSessionRules(),
+                    {},
+                    onUnavailable = { failed = true },
+                )
+            }
+            composeRule.waitForIdle()
+            assertTrue(failed)
+        } finally {
+            archive.delete()
+        }
+    }
+
     private fun setCourse(courseState: CourseState) {
         composeRule.setContent {
             GnssStatusScreen(GnssStatusState.Waiting, FlightParametersState.Waiting, {}, {}, courseState, {})

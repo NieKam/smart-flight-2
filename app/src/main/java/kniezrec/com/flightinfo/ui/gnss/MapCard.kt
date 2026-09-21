@@ -238,7 +238,10 @@ private fun OfflineMap(
                 }
             } catch (_: Exception) {
                 onOpenFailure()
-                MapView(context).also { instance.map = it }
+                MapView(context).apply {
+                    setUseDataConnection(false)
+                    instance.map = this
+                }
             }
         },
         update = { map ->

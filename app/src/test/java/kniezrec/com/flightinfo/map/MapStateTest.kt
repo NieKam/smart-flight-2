@@ -36,12 +36,16 @@ class MapStateTest {
         assertEquals(MapViewport(MapCoordinate(5.0, 6.0), 6.0), rules.recenter())
     }
 
-    @Test fun invalidCourseRetainsNeutralOrientationAndValidCourseNormalizes() {
+    @Test fun invalidCourseResetsToNeutralOrientationAndValidCourseNormalizes() {
         val rules = MapSessionRules()
         rules.accept(fix(1.0, 2.0, -90.0))
         assertEquals(270f, rules.markerCourse)
+        rules.accept(fix(1.0, 2.0))
+        assertEquals(0f, rules.markerCourse)
         rules.accept(fix(1.0, 2.0, Double.NaN))
-        assertEquals(270f, rules.markerCourse)
+        assertEquals(0f, rules.markerCourse)
+        rules.accept(fix(1.0, 2.0, Double.POSITIVE_INFINITY))
+        assertEquals(0f, rules.markerCourse)
     }
 
     @Test fun resetInvalidatesPositionAndFirstFix() {
