@@ -1,9 +1,0 @@
-{
-  "task_id": "TASK-006",
-  "stage": "WAITING_FOR_MERGE",
-  "branch": "feat/TASK-006",
-  "review_iteration": 3,
-  "review_feedback": null,
-  "review_attempt": 3,
-  "review_result": "PASS"
-}
