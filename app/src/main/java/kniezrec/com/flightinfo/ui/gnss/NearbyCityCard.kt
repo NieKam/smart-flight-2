@@ -32,6 +32,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kniezrec.com.flightinfo.R
 import kniezrec.com.flightinfo.nearby.NearbyCityState
+import kniezrec.com.flightinfo.displayunits.DistanceUnit
+import kniezrec.com.flightinfo.displayunits.convertDistance
+import kniezrec.com.flightinfo.displayunits.formatUnitNumber
 import kniezrec.com.flightinfo.ui.permission.cardPurple
 import java.text.NumberFormat
 import java.util.Locale
@@ -44,6 +47,7 @@ private val nearbyTextColor =
 internal fun NearbyCityCard(
     state: NearbyCityState,
     onRetry: () -> Unit,
+    distanceUnit: DistanceUnit = DistanceUnit.KILOMETRES,
     modifier: Modifier = Modifier,
 ) = Card(
     modifier.fillMaxWidth().heightIn(min = 160.dp),
@@ -57,7 +61,7 @@ internal fun NearbyCityCard(
         NearbyCityState.WaitingForPosition -> Static(R.string.nearby_city_title, R.string.nearby_city_waiting)
         NearbyCityState.LookingUp -> Static(R.string.nearby_city_title, R.string.nearby_city_looking_up)
         NearbyCityState.Unavailable -> Static(R.string.nearby_city_unavailable, R.string.nearby_city_unavailable_body, onRetry)
-        is NearbyCityState.Available -> Available(state)
+        is NearbyCityState.Available -> Available(state, distanceUnit)
     }
 }
 
@@ -81,23 +85,17 @@ internal fun NearbyCityCard(
     retry?.let { RetryButton(it) }
 }
 
-@Composable private fun Available(state: NearbyCityState.Available) =
+@Composable private fun Available(state: NearbyCityState.Available, distanceUnit: DistanceUnit) =
     Column(Modifier.fillMaxWidth().padding(24.dp, 20.dp)) {
         Title(R.string.nearby_city_title)
         Spacer(Modifier.height(16.dp))
-        val number =
-            NumberFormat
-                .getNumberInstance(Locale.getDefault())
-                .apply {
-                    minimumFractionDigits = 1
-                    maximumFractionDigits = 1
-                }.format(state.distanceKilometres)
+        val number = formatUnitNumber(convertDistance(state.distanceKilometres, distanceUnit)) ?: "—"
         Row(R.string.nearby_city_closest, state.cityName)
         Row(R.string.nearby_city_country, state.country)
         Row(
             R.string.nearby_city_distance,
-            stringResource(R.string.nearby_city_distance_value, number),
-            stringResource(R.string.nearby_city_distance_spoken, number),
+            stringResource(R.string.nearby_city_distance_value, number + " " + stringResource(if (distanceUnit == DistanceUnit.MILES) R.string.unit_mi else R.string.unit_km)),
+            stringResource(R.string.nearby_city_distance_spoken, number + " " + stringResource(if (distanceUnit == DistanceUnit.MILES) R.string.unit_mi else R.string.unit_km)),
         )
         val offset = utcOffsetPresentation(state.utcOffsetSeconds)
         Row(

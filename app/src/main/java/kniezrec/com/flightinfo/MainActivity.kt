@@ -11,6 +11,7 @@ import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.compose.BackHandler
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.WindowInsets
@@ -31,6 +32,8 @@ import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import kniezrec.com.flightinfo.course.CourseController
+import kniezrec.com.flightinfo.displayunits.UnitPreferences
+import kniezrec.com.flightinfo.displayunits.UnitPreferencesStore
 import kniezrec.com.flightinfo.course.CourseState
 import kniezrec.com.flightinfo.course.ForegroundCourseObservationCoordinator
 import kniezrec.com.flightinfo.flight.AndroidFlightLocationPlatform
@@ -65,6 +68,7 @@ import kniezrec.com.flightinfo.ui.gnss.GnssStatusScreen
 import kniezrec.com.flightinfo.ui.gnss.MapCardState
 import kniezrec.com.flightinfo.ui.permission.PermissionOnboardingScreen
 import kniezrec.com.flightinfo.ui.permission.smartFlightPageColor
+import kniezrec.com.flightinfo.ui.settings.UnitSettingsScreen
 import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
 import kotlinx.coroutines.launch
 import java.util.concurrent.Executors
@@ -85,6 +89,8 @@ class MainActivity : ComponentActivity() {
     private var routeSearchLoading by mutableStateOf(false)
     private var routeSearchError by mutableStateOf<String?>(null)
     private var routeNearestDraft by mutableStateOf<NearbyCityRecord?>(null)
+    private var showUnitSettings by mutableStateOf(false)
+    private var unitPreferences by mutableStateOf(UnitPreferences())
     private var lastRouteSearchQuery = ""
     private val mapRules = MapSessionRules()
     private var mapLoadToken = 0L
@@ -103,8 +109,10 @@ class MainActivity : ComponentActivity() {
             isAppearanceLightNavigationBars = false
         }
         refreshPermissionState()
+        unitPreferences = unitPreferencesStore.read()
         setContent {
             SmartFlightTheme {
+                BackHandler(enabled = showUnitSettings) { showUnitSettings = false }
                 val snackbarHostState = remember { SnackbarHostState() }
                 val scope = rememberCoroutineScope()
                 Surface(modifier = Modifier.fillMaxSize(), color = smartFlightPageColor) {
@@ -115,7 +123,17 @@ class MainActivity : ComponentActivity() {
                         snackbarHost = { SnackbarHost(snackbarHostState) },
                     ) { innerPadding ->
                         if (permissionState == LocationPermissionState.Granted) {
-                            GnssStatusScreen(
+                            if (showUnitSettings) {
+                                UnitSettingsScreen(
+                                    preferences = unitPreferences,
+                                    onPreferenceChange = { value ->
+                                        unitPreferencesStore.write(value)
+                                        unitPreferences = value
+                                    },
+                                    onBack = { showUnitSettings = false },
+                                    modifier = Modifier.padding(innerPadding).safeDrawingPadding(),
+                                )
+                            } else GnssStatusScreen(
                                 state = gnssState,
                                 flightParametersState = flightParametersState,
                                 courseState = courseState,
@@ -216,6 +234,8 @@ class MainActivity : ComponentActivity() {
                                 },
                                 routeNearestLoading = routeSearchLoading,
                                 routePickerMapArchive = (mapState as? MapCardState.Ready)?.archive,
+                                onOpenSettings = { showUnitSettings = true },
+                                unitPreferences = unitPreferences,
                                 onOpenLocationSettings = {
                                     if (!openLocationSettings()) {
                                         scope.launch {
@@ -255,6 +275,7 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         isForeground = true
         refreshPermissionState()
+        unitPreferences = unitPreferencesStore.read()
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
@@ -343,6 +364,10 @@ class MainActivity : ComponentActivity() {
                         }
                 },
         )
+    }
+
+    private val unitPreferencesStore by lazy {
+        UnitPreferencesStore(getSharedPreferences("display_units", MODE_PRIVATE))
     }
 
     private val permissionPreferences by lazy {

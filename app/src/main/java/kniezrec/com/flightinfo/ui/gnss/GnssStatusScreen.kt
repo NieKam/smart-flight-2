@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kniezrec.com.flightinfo.R
 import kniezrec.com.flightinfo.course.CourseState
+import kniezrec.com.flightinfo.displayunits.UnitPreferences
 import kniezrec.com.flightinfo.flight.FlightParametersState
 import kniezrec.com.flightinfo.gnss.GnssSatellite
 import kniezrec.com.flightinfo.gnss.GnssStatusState
@@ -70,6 +71,8 @@ fun GnssStatusScreen(
     flightParametersState: FlightParametersState,
     onOpenLocationSettings: () -> Unit,
     onRetry: () -> Unit,
+    onOpenSettings: () -> Unit = {},
+    unitPreferences: UnitPreferences = UnitPreferences(),
     courseState: CourseState = CourseState.Waiting,
     onCourseRetry: () -> Unit = {},
     horizonState: HorizonState = HorizonState.Waiting,
@@ -107,6 +110,7 @@ fun GnssStatusScreen(
         Column(Modifier.fillMaxSize()) {
             Box(Modifier.fillMaxWidth().heightIn(min = 56.dp), contentAlignment = Alignment.Center) {
                 Text(stringResource(R.string.app_name), color = textColor, fontSize = 20.sp, fontWeight = FontWeight.Medium)
+                androidx.compose.material3.TextButton(onClick = onOpenSettings, modifier = Modifier.align(Alignment.CenterEnd).heightIn(min = 48.dp)) { Text(stringResource(R.string.settings_title), color = actionCyan) }
             }
             Column(
                 Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 12.dp),
@@ -119,7 +123,7 @@ fun GnssStatusScreen(
                     ) { GnssStatusCard(it, onOpenLocationSettings, onRetry) }
                 }
                 Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
-                    FlightParametersCard(flightParametersState, Modifier.padding(bottom = 12.dp).widthIn(max = 600.dp))
+                    FlightParametersCard(flightParametersState, unitPreferences, Modifier.padding(bottom = 12.dp).widthIn(max = 600.dp))
                 }
                 Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
                     CourseCard(courseState, onCourseRetry, Modifier.padding(bottom = 12.dp).widthIn(max = 600.dp))
@@ -128,7 +132,7 @@ fun GnssStatusScreen(
                     HorizonCard(horizonState, onHorizonCalibrate, onHorizonRetry, Modifier.padding(bottom = 12.dp).widthIn(max = 600.dp))
                 }
                 Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
-                    NearbyCityCard(nearbyCityState, onNearbyCityRetry, Modifier.padding(bottom = 12.dp).widthIn(max = 600.dp))
+                    NearbyCityCard(nearbyCityState, onNearbyCityRetry, unitPreferences.distance, Modifier.padding(bottom = 12.dp).widthIn(max = 600.dp))
                 }
                 Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
                     RouteCard(
@@ -137,6 +141,7 @@ fun GnssStatusScreen(
                         onRouteClear,
                         onRouteClearAll,
                         onRouteRestoreRetry,
+                        unitPreferences.distance,
                         Modifier.padding(bottom = 12.dp).widthIn(max = 600.dp),
                     )
                 }

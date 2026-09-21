@@ -20,6 +20,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import kniezrec.com.flightinfo.R
 import kniezrec.com.flightinfo.route.RouteEndpoint
+import kniezrec.com.flightinfo.displayunits.DistanceUnit
+import kniezrec.com.flightinfo.displayunits.convertDistance
+import kniezrec.com.flightinfo.displayunits.formatUnitNumber
 import kniezrec.com.flightinfo.route.RouteState
 import kniezrec.com.flightinfo.route.formatKilometres
 import kniezrec.com.flightinfo.ui.permission.actionCyan
@@ -32,6 +35,7 @@ fun RouteCard(
     onClear: (RouteEndpoint) -> Unit,
     onClearAll: () -> Unit,
     onRestoreRetry: () -> Unit = {},
+    distanceUnit: DistanceUnit = DistanceUnit.KILOMETRES,
     modifier: Modifier = Modifier,
 ) {
     Card(modifier.fillMaxWidth().heightIn(min = 120.dp), colors = CardDefaults.cardColors(containerColor = cardPurple)) {
@@ -45,10 +49,10 @@ fun RouteCard(
             EndpointRow(RouteEndpoint.DEPARTURE, state.departure?.name, onChoose, onClear)
             EndpointRow(RouteEndpoint.DESTINATION, state.destination?.name, onChoose, onClear)
             state.details?.let { details ->
-                Detail(R.string.route_distance, formatKilometres(details.fixedDistanceKm))
+                Detail(R.string.route_distance, formatDistance(details.fixedDistanceKm, distanceUnit))
                 Detail(
                     R.string.route_remaining,
-                    details.remainingDistanceKm?.let(::formatKilometres) ?: stringResource(R.string.route_waiting_position),
+                    details.remainingDistanceKm?.let { formatDistance(it, distanceUnit) } ?: stringResource(R.string.route_waiting_position),
                 )
                 Detail(
                     R.string.route_arrival,
@@ -144,3 +148,5 @@ fun RouteCard(
         )
     }
 }
+
+private fun formatDistance(value: Double, unit: DistanceUnit): String = (formatUnitNumber(convertDistance(value, unit)) ?: "—") + " " + if (unit == DistanceUnit.MILES) "mi" else "km"

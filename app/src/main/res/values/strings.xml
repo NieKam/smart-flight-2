@@ -26,11 +26,11 @@
     <string name="flight_pressure">Pressure</string>
     <string name="flight_unavailable">—</string>
     <string name="flight_unavailable_accessibility">unavailable</string>
-    <string name="flight_speed_value">%1$s km/h</string>
-    <string name="flight_vertical_speed_value">%1$s m/s</string>
-    <string name="flight_altitude_value">%1$s m</string>
-    <string name="flight_pressure_value">%1$s mbar</string>
-    <string name="flight_pressure_accessibility_value">%1$s millibars</string>
+    <string name="flight_speed_value">%1$s %2$s</string>
+    <string name="flight_vertical_speed_value">%1$s %2$s</string>
+    <string name="flight_altitude_value">%1$s %2$s</string>
+    <string name="flight_pressure_value">%1$s %2$s</string>
+    <string name="flight_pressure_accessibility_value">%1$s %2$s</string>
 
     <string name="course_title">Course</string>
     <string name="course_waiting">Waiting for compass heading…</string>
@@ -94,8 +94,8 @@
     <string name="nearby_city_country">Country</string>
     <string name="nearby_city_distance">Distance to the city</string>
     <string name="nearby_city_time">Time</string>
-    <string name="nearby_city_distance_value">%1$s km</string>
-    <string name="nearby_city_distance_spoken">%1$s kilometres</string>
+    <string name="nearby_city_distance_value">%1$s</string>
+    <string name="nearby_city_distance_spoken">%1$s</string>
     <string name="nearby_city_time_value">%1$s (%2$s)</string>
     <string name="nearby_city_time_spoken">%1$s, %2$s</string>
     <string name="nearby_city_utc_offset_plus">+</string>
@@ -132,4 +132,8 @@
     <string name="route_destination_marker">Destination: %1$s</string>
     <string name="route_departure_marker_description">Departure endpoint marker</string>
     <string name="route_destination_marker_description">Destination endpoint marker</string>
+    <string name="settings_title">Settings</string><string name="navigate_up">Back</string><string name="units_section">Units</string>
+    <string name="unit_speed">Speed</string><string name="unit_altitude">Altitude</string><string name="unit_distance">Distance</string><string name="unit_vertical_speed">Vertical speed</string><string name="unit_pressure">Pressure</string>
+    <string name="unit_kmh">km/h</string><string name="unit_mph">mph</string><string name="unit_kt">kt</string><string name="unit_m">m</string><string name="unit_ft">ft</string><string name="unit_km">km</string><string name="unit_mi">mi</string><string name="unit_ms">m/s</string><string name="unit_mmin">m/min</string><string name="unit_ftmin">ft/min</string><string name="unit_mbar">mbar</string><string name="unit_inhg">inHg</string>
+    <string name="option_kmh">Kilometres per hour (km/h)</string><string name="option_mph">Miles per hour (mph)</string><string name="option_kt">Knots (kt)</string><string name="option_m">Metres (m)</string><string name="option_ft">Feet (ft)</string><string name="option_km">Kilometres (km)</string><string name="option_mi">Miles (mi)</string><string name="option_ms">Metres per second (m/s)</string><string name="option_mmin">Metres per minute (m/min)</string><string name="option_ftmin">Feet per minute (ft/min)</string><string name="option_mbar">Millibar (mbar)</string><string name="option_inhg">Inch of mercury (inHg)</string>
 </resources>
