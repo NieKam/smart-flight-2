@@ -113,6 +113,7 @@ class MainActivity : ComponentActivity() {
                                 mapRules = mapRules,
                                 mapPositionVersion = mapPositionVersion,
                                 onMapRetry = { startMapLoad() },
+                                onMapUnavailable = { mapState = MapCardState.Unavailable },
                                 onOpenLocationSettings = {
                                     if (!openLocationSettings()) {
                                         scope.launch {

@@ -2,7 +2,6 @@ package kniezrec.com.flightinfo.map
 
 import android.content.Context
 import java.io.File
-import java.io.FileOutputStream
 import java.util.concurrent.Executors
 import java.util.zip.ZipFile
 
@@ -23,15 +22,14 @@ internal class MapArchiveRepository(
                                 ZipFile(archive).use { require(it.entries().hasMoreElements()) }
                             }.isSuccess
                     if (!existingIsUsable) {
-                        archive.delete()
-                        temporary.delete()
-                        context.assets.open("osmdroid.zip").use { input ->
-                            FileOutputStream(temporary).use { output -> input.copyTo(output) }
-                        }
-                        if (!temporary.renameTo(archive)) error("Could not commit offline map archive")
+                        MapArchiveCopier
+                            .copy(
+                                openSource = { context.assets.open("osmdroid.zip") },
+                                destination = archive,
+                                temporary = temporary,
+                            ).getOrThrow()
                     }
-                    require(archive.isFile && archive.length() > 0L) { "Offline map archive is empty" }
-                    ZipFile(archive).use { require(it.entries().hasMoreElements()) { "Offline map archive is corrupt" } }
+                    MapArchiveCopier.validate(archive)
                     archive
                 }
             if (result.isFailure) temporary.delete()

@@ -73,6 +73,7 @@ fun GnssStatusScreen(
     mapRules: MapSessionRules = MapSessionRules(),
     mapPositionVersion: Int = 0,
     onMapRetry: () -> Unit = {},
+    onMapUnavailable: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     mapPositionVersion
@@ -99,7 +100,13 @@ fun GnssStatusScreen(
                 NearbyCityCard(nearbyCityState, onNearbyCityRetry, Modifier.padding(bottom = 12.dp).widthIn(max = 600.dp))
             }
             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
-                MapCard(mapState, mapRules, onMapRetry, Modifier.padding(bottom = 12.dp).widthIn(max = 600.dp))
+                MapCard(
+                    state = mapState,
+                    rules = mapRules,
+                    onRetry = onMapRetry,
+                    onUnavailable = onMapUnavailable,
+                    modifier = Modifier.padding(bottom = 12.dp).widthIn(max = 600.dp),
+                )
             }
         }
     }

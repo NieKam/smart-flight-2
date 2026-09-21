@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -28,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -69,6 +71,7 @@ fun MapCard(
     state: MapCardState,
     rules: MapSessionRules,
     onRetry: () -> Unit,
+    onUnavailable: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -84,18 +87,20 @@ fun MapCard(
             MapCardState.Inactive -> MapMessage(R.string.map_loading, R.string.map_inactive_body)
             is MapCardState.Ready -> {
                 BoxWithConstraints(
-                    Modifier.fillMaxWidth().heightIn(min = 240.dp, max = if (expanded) 520.dp else 360.dp),
+                    Modifier.fillMaxWidth().height(mapHeight(maxWidth, maxHeight, expanded)).testTag("map-content"),
                 ) {
+                    val instance = remember(state.archive) { MapInstance() }
                     OfflineMap(
                         archive = state.archive,
                         rules = rules,
-                        expanded = expanded,
+                        instance = instance,
+                        onOpenFailure = onUnavailable,
                         modifier = Modifier.fillMaxSize(),
                     )
                     MapButton(
                         description = stringResource(R.string.map_recenter),
                         modifier = Modifier.align(Alignment.TopEnd).padding(12.dp),
-                    ) { recenterMap() }
+                    ) { instance.recenter(rules) }
                     MapButton(
                         description = stringResource(if (expanded) R.string.map_collapse else R.string.map_expand),
                         modifier = Modifier.align(Alignment.BottomEnd).padding(12.dp),
@@ -104,6 +109,22 @@ fun MapCard(
             }
         }
     }
+}
+
+private fun mapHeight(
+    width: androidx.compose.ui.unit.Dp,
+    availableHeight: androidx.compose.ui.unit.Dp,
+    expanded: Boolean,
+): androidx.compose.ui.unit.Dp {
+    val ratio = if (expanded) 4f / 3f else 16f / 9f
+    val preferred = (width.value * ratio).coerceIn(240f, if (expanded) 520f else 360f)
+    val bounded =
+        if (availableHeight != androidx.compose.ui.unit.Dp.Infinity) {
+            availableHeight.value.coerceAtLeast(240f)
+        } else {
+            Float.POSITIVE_INFINITY
+        }
+    return minOf(preferred, bounded).dp
 }
 
 @Composable
@@ -155,31 +176,37 @@ private fun MapButton(
     }
 }
 
-private var activeMap: MapView? = null
-private var activeMarker: Marker? = null
+private class MapInstance {
+    var map: MapView? = null
+    var marker: Marker? = null
 
-private fun recenterMap() {
-    val map = activeMap ?: return
-    val marker = activeMarker
-    val point = marker?.position ?: GeoPoint(MapSessionRules.DEFAULT_CENTER.latitude, MapSessionRules.DEFAULT_CENTER.longitude)
-    map.controller.setCenter(point)
-    map.controller.setZoom(if (marker == null) MapSessionRules.DEFAULT_ZOOM else MapSessionRules.FOLLOW_ZOOM)
+    fun recenter(rules: MapSessionRules) {
+        val map = map ?: return
+        val viewport = rules.recenter()
+        map.controller.setCenter(GeoPoint(viewport.center.latitude, viewport.center.longitude))
+        map.controller.setZoom(viewport.zoom)
+    }
+
+    fun dispose() {
+        map?.overlays?.clear()
+        map?.onDetach()
+        marker = null
+        map = null
+    }
 }
 
 @Composable
 private fun OfflineMap(
     archive: File,
     rules: MapSessionRules,
-    expanded: Boolean,
+    instance: MapInstance,
+    onOpenFailure: () -> Unit,
     modifier: Modifier,
 ) {
     val context = LocalContext.current
-    DisposableEffect(Unit) {
+    DisposableEffect(instance) {
         onDispose {
-            activeMap?.overlays?.clear()
-            activeMap?.onDetach()
-            activeMarker = null
-            activeMap = null
+            instance.dispose()
         }
     }
     AndroidView(
@@ -196,34 +223,38 @@ private fun OfflineMap(
                     }
             },
         factory = {
-            Configuration.getInstance().load(context, context.getSharedPreferences("osmdroid", 0))
-            val provider = OfflineTileProvider(arrayOf(ZipFileArchive(archive)))
-            MapView(context, provider).apply {
-                setTileSource(mapSource)
-                setUseDataConnection(false)
-                setMultiTouchControls(true)
-                minZoomLevel = 1.0
-                maxZoomLevel = 6.0
-                controller.setZoom(MapSessionRules.DEFAULT_ZOOM)
-                controller.setCenter(GeoPoint(MapSessionRules.DEFAULT_CENTER.latitude, MapSessionRules.DEFAULT_CENTER.longitude))
-                activeMap = this
+            try {
+                Configuration.getInstance().load(context, context.getSharedPreferences("osmdroid", 0))
+                val provider = OfflineTileProvider(arrayOf(ZipFileArchive(archive)))
+                MapView(context, provider).apply {
+                    setTileSource(mapSource)
+                    setUseDataConnection(false)
+                    setMultiTouchControls(true)
+                    minZoomLevel = 1.0
+                    maxZoomLevel = 6.0
+                    controller.setZoom(MapSessionRules.DEFAULT_ZOOM)
+                    controller.setCenter(GeoPoint(MapSessionRules.DEFAULT_CENTER.latitude, MapSessionRules.DEFAULT_CENTER.longitude))
+                    instance.map = this
+                }
+            } catch (_: Exception) {
+                onOpenFailure()
+                MapView(context).also { instance.map = it }
             }
         },
         update = { map ->
-            activeMap = map
             val firstFix = rules.consumeFirstFixCenter()
             if (firstFix != null) map.controller.setCenter(GeoPoint(firstFix.latitude, firstFix.longitude))
             val position = rules.latestPosition
             if (position != null) {
-                if (activeMarker == null) {
-                    activeMarker =
+                if (instance.marker == null) {
+                    instance.marker =
                         Marker(map).also { marker ->
                             marker.icon = ContextCompat.getDrawable(context, R.drawable.ic_plane_map)
                             marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
                             map.overlays.add(marker)
                         }
                 }
-                activeMarker?.apply {
+                instance.marker?.apply {
                     this.position = GeoPoint(position.latitude, position.longitude)
                     rotation = rules.markerCourse
                 }
