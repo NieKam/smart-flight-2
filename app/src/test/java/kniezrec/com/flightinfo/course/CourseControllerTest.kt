@@ -5,7 +5,27 @@ import org.junit.Test
 
 class CourseControllerTest {
     @Test fun everyCardinalBoundaryMatchesSpecification() {
-        val expected = mapOf(0 to CompassCardinal.North, 22 to CompassCardinal.North, 23 to CompassCardinal.NorthEast, 67 to CompassCardinal.NorthEast, 68 to CompassCardinal.East, 112 to CompassCardinal.East, 113 to CompassCardinal.SouthEast, 157 to CompassCardinal.SouthEast, 158 to CompassCardinal.South, 202 to CompassCardinal.South, 203 to CompassCardinal.SouthWest, 247 to CompassCardinal.SouthWest, 248 to CompassCardinal.West, 292 to CompassCardinal.West, 293 to CompassCardinal.NorthWest, 337 to CompassCardinal.NorthWest, 338 to CompassCardinal.North, 359 to CompassCardinal.North)
+        val expected =
+            mapOf(
+                0 to CompassCardinal.North,
+                22 to CompassCardinal.North,
+                23 to CompassCardinal.NorthEast,
+                67 to CompassCardinal.NorthEast,
+                68 to CompassCardinal.East,
+                112 to CompassCardinal.East,
+                113 to CompassCardinal.SouthEast,
+                157 to CompassCardinal.SouthEast,
+                158 to CompassCardinal.South,
+                202 to CompassCardinal.South,
+                203 to CompassCardinal.SouthWest,
+                247 to CompassCardinal.SouthWest,
+                248 to CompassCardinal.West,
+                292 to CompassCardinal.West,
+                293 to CompassCardinal.NorthWest,
+                337 to CompassCardinal.NorthWest,
+                338 to CompassCardinal.North,
+                359 to CompassCardinal.North,
+            )
         expected.forEach { (heading, cardinal) -> assertEquals(cardinal, compassCardinal(heading)) }
     }
 
@@ -108,18 +128,31 @@ class CourseControllerTest {
         assertEquals(CourseState.Available(18, null), states.last())
     }
 
-    private class FakePlatform(val available: Boolean, val result: Boolean = true) : CourseOrientationPlatform {
+    private class FakePlatform(
+        val available: Boolean,
+        val result: Boolean = true,
+    ) : CourseOrientationPlatform {
         var registers = 0
         var unregisters = 0
         private var callback: ((Double) -> Unit)? = null
+
         override fun isOrientationAvailable() = available
+
         override fun registerOrientationListener(onHeading: (Double) -> Unit): Boolean {
             registers++
             callback = onHeading
             return result
         }
-        override fun unregisterOrientationListener() { unregisters++; callback = null }
-        fun heading(value: Double) { callback?.invoke(value) }
+
+        override fun unregisterOrientationListener() {
+            unregisters++
+            callback = null
+        }
+
+        fun heading(value: Double) {
+            callback?.invoke(value)
+        }
+
         fun callback(): (Double) -> Unit = requireNotNull(callback)
     }
 }

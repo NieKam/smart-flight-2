@@ -1,13 +1,13 @@
 package kniezrec.com.flightinfo.ui.gnss
 
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.foundation.layout.width
+import androidx.compose.ui.test.assertDoesNotExist
 import androidx.compose.ui.test.assertExists
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.assertDoesNotExist
 import androidx.compose.ui.test.hasStateDescription
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNode
@@ -16,8 +16,8 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import kniezrec.com.flightinfo.flight.FlightParametersState
 import kniezrec.com.flightinfo.course.CourseState
+import kniezrec.com.flightinfo.flight.FlightParametersState
 import kniezrec.com.flightinfo.gnss.GnssSatellite
 import kniezrec.com.flightinfo.gnss.GnssStatusState
 import org.junit.Rule
@@ -111,7 +111,14 @@ class GnssStatusScreenTest {
     }
 
     @Test fun courseUsesStackedContentAtNarrowWidths() {
-        composeRule.setContent { CourseCard(CourseState.Available(23, 287), {}, androidx.compose.ui.Modifier.width(280.dp)) }
+        composeRule.setContent {
+            CourseCard(
+                CourseState.Available(23, 287),
+                {},
+                androidx.compose.ui.Modifier
+                    .width(280.dp),
+            )
+        }
         composeRule.onNodeWithTag("course-heading").assertIsDisplayed()
         composeRule.onNodeWithTag("course-direction-visual").assertIsDisplayed()
         composeRule.onNodeWithText("GPS bearing").assertIsDisplayed()

@@ -2,7 +2,9 @@ package kniezrec.com.flightinfo.course
 
 internal interface CourseOrientationPlatform {
     fun isOrientationAvailable(): Boolean
+
     fun registerOrientationListener(onHeading: (Double) -> Unit): Boolean
+
     fun unregisterOrientationListener()
 }
 
@@ -25,13 +27,14 @@ internal class CourseController(
         setState(CourseState.Waiting)
         val sessionToken = ++nextSessionToken
         activeSessionToken = sessionToken
-        registered = try {
-            platform.registerOrientationListener { heading -> onHeading(sessionToken, heading) }
-        } catch (_: SecurityException) {
-            false
-        } catch (_: RuntimeException) {
-            false
-        }
+        registered =
+            try {
+                platform.registerOrientationListener { heading -> onHeading(sessionToken, heading) }
+            } catch (_: SecurityException) {
+                false
+            } catch (_: RuntimeException) {
+                false
+            }
         if (!registered) {
             activeSessionToken = null
             gpsBearingDegrees = null
@@ -58,7 +61,10 @@ internal class CourseController(
         setState(available.copy(gpsBearingDegrees = gpsBearingDegrees))
     }
 
-    private fun onHeading(sessionToken: Long, headingDegrees: Double) {
+    private fun onHeading(
+        sessionToken: Long,
+        headingDegrees: Double,
+    ) {
         if (activeSessionToken != sessionToken) return
         val heading = normalizeCourseDegrees(headingDegrees) ?: return
         setState(CourseState.Available(heading, gpsBearingDegrees))

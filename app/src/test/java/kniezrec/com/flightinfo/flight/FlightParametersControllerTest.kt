@@ -51,8 +51,9 @@ class FlightParametersControllerTest {
         assertEquals(1, failures)
         assertEquals(FlightParametersState.Waiting, states.last())
     }
+
     @Test
-     fun `late location callback cannot update a restarted foreground session`() {
+    fun `late location callback cannot update a restarted foreground session`() {
         val platform = FakePlatform()
         val states = mutableListOf<FlightParametersState>()
         val forwardedFixes = mutableListOf<FlightLocationFix>()

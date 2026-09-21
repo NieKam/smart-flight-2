@@ -39,6 +39,7 @@ class ForegroundCourseObservationCoordinatorTest {
         var registers = 0
 
         var unregisters = 0
+
         override fun isOrientationAvailable() = true
 
         override fun registerOrientationListener(onHeading: (Double) -> Unit): Boolean {

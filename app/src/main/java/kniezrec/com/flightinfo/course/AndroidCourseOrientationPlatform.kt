@@ -21,26 +21,34 @@ internal class AndroidCourseOrientationPlatform(
 
     override fun registerOrientationListener(onHeading: (Double) -> Unit): Boolean {
         val sensor = rotationVector ?: return false
-        val newListener = object : SensorEventListener {
-            override fun onSensorChanged(event: SensorEvent) {
-                val matrix = FloatArray(9)
-                SensorManager.getRotationMatrixFromVector(matrix, event.values)
-                val adjusted = FloatArray(9)
-                val axes = when (display?.rotation ?: Surface.ROTATION_0) {
-                    Surface.ROTATION_90 -> SensorManager.AXIS_Y to SensorManager.AXIS_MINUS_X
-                    Surface.ROTATION_180 -> SensorManager.AXIS_MINUS_X to SensorManager.AXIS_MINUS_Y
-                    Surface.ROTATION_270 -> SensorManager.AXIS_MINUS_Y to SensorManager.AXIS_X
-                    else -> SensorManager.AXIS_X to SensorManager.AXIS_Y
+        val newListener =
+            object : SensorEventListener {
+                override fun onSensorChanged(event: SensorEvent) {
+                    val matrix = FloatArray(9)
+                    SensorManager.getRotationMatrixFromVector(matrix, event.values)
+                    val adjusted = FloatArray(9)
+                    val axes =
+                        when (display?.rotation ?: Surface.ROTATION_0) {
+                            Surface.ROTATION_90 -> SensorManager.AXIS_Y to SensorManager.AXIS_MINUS_X
+                            Surface.ROTATION_180 -> SensorManager.AXIS_MINUS_X to SensorManager.AXIS_MINUS_Y
+                            Surface.ROTATION_270 -> SensorManager.AXIS_MINUS_Y to SensorManager.AXIS_X
+                            else -> SensorManager.AXIS_X to SensorManager.AXIS_Y
+                        }
+                    SensorManager.remapCoordinateSystem(matrix, axes.first, axes.second, adjusted)
+                    val orientation = FloatArray(3)
+                    SensorManager.getOrientation(adjusted, orientation)
+                    val heading =
+                        Math
+                            .toDegrees(orientation[0].toDouble())
+                            .let { if (it < 0) it + 360 else it }
+                    callbackExecutor.execute { onHeading(heading) }
                 }
-                SensorManager.remapCoordinateSystem(matrix, axes.first, axes.second, adjusted)
-                val orientation = FloatArray(3)
-                SensorManager.getOrientation(adjusted, orientation)
-                val heading = Math.toDegrees(orientation[0].toDouble())
-                    .let { if (it < 0) it + 360 else it }
-                callbackExecutor.execute { onHeading(heading) }
+
+                override fun onAccuracyChanged(
+                    sensor: Sensor?,
+                    accuracy: Int,
+                ) = Unit
             }
-            override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
-        }
         listener = newListener
         return sensorManager.registerListener(newListener, sensor, SensorManager.SENSOR_DELAY_UI)
     }
