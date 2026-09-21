@@ -37,6 +37,7 @@ import kniezrec.com.flightinfo.R
 import kniezrec.com.flightinfo.nearby.NearbyCityRecord
 import kniezrec.com.flightinfo.nearby.NearbyCoordinate
 import kniezrec.com.flightinfo.route.RouteEndpoint
+import kniezrec.com.flightinfo.route.validCity
 import org.osmdroid.config.Configuration
 import org.osmdroid.events.MapEventsReceiver
 import org.osmdroid.tileprovider.modules.OfflineTileProvider
@@ -61,15 +62,17 @@ fun RoutePicker(
     onSearch: (String) -> Unit,
     onNearest: (NearbyCoordinate) -> Unit,
     nearestDraft: NearbyCityRecord? = null,
-    onConfirm: (NearbyCityRecord) -> Unit,
+    onConfirm: (NearbyCityRecord) -> Boolean,
     onCancel: () -> Unit,
     onRetry: () -> Unit,
 ) {
     var query by remember { mutableStateOf("") }
     var selected by remember { mutableStateOf(initial) }
     var mapMessage by remember { mutableStateOf<String?>(null) }
+    var selectionError by remember { mutableStateOf(false) }
     LaunchedEffect(initial) { selected = initial }
     LaunchedEffect(nearestDraft) { if (nearestDraft != null) selected = nearestDraft }
+    LaunchedEffect(selected) { selectionError = selected != null && !validCity(selected!!) }
     BackHandler(onBack = onCancel)
     Column(Modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(
@@ -125,11 +128,12 @@ fun RoutePicker(
         }
         mapMessage?.let { Text(it) }
         selected?.let { city -> Text(stringResource(R.string.route_selected_city, city.name, city.country)) }
+        if (selectionError) Text(stringResource(R.string.route_invalid_city))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
             TextButton(onClick = onCancel, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.route_cancel)) }
             Button(
-                onClick = { selected?.let(onConfirm) },
-                enabled = selected != null && !loading,
+                onClick = { selected?.let { city -> if (validCity(city) && !onConfirm(city)) selectionError = true } },
+                enabled = selected != null && validCity(selected!!) && !loading,
                 modifier = Modifier.heightIn(min = 48.dp),
             ) {
                 Text(stringResource(R.string.route_confirm))

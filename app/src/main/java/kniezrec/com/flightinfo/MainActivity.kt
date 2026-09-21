@@ -57,6 +57,7 @@ import kniezrec.com.flightinfo.permission.locationPermissionRequest
 import kniezrec.com.flightinfo.route.RouteController
 import kniezrec.com.flightinfo.route.RouteEndpoint
 import kniezrec.com.flightinfo.route.RouteState
+import kniezrec.com.flightinfo.route.validCity
 import kniezrec.com.flightinfo.ui.gnss.GnssStatusScreen
 import kniezrec.com.flightinfo.ui.gnss.MapCardState
 import kniezrec.com.flightinfo.ui.permission.PermissionOnboardingScreen
@@ -157,9 +158,13 @@ class MainActivity : ComponentActivity() {
                                     }
                                 },
                                 onRouteConfirm = { city ->
-                                    routePicker?.let { routeController.choose(it, city) }
-                                    routeNearestDraft = null
-                                    routePicker = null
+                                    routePicker?.let { endpoint ->
+                                        if (routeController.choose(endpoint, city)) {
+                                            routeNearestDraft = null
+                                            routePicker = null
+                                            true
+                                        } else false
+                                    } ?: false
                                 },
                                 onRouteCancel = { routeNearestDraft = null; routePicker = null },
                                 onRouteRetry = {
@@ -183,9 +188,18 @@ class MainActivity : ComponentActivity() {
                                         routeSearchLoading = false
                                         result.fold(
                                             { city ->
-                                                routeNearestDraft = city
-                                                routeResults = city?.let(::listOf) ?: emptyList()
-                                                if (city == null) routeSearchError = getString(R.string.route_no_city_at_location)
+                                                if (city == null) {
+                                                    routeNearestDraft = null
+                                                    routeResults = emptyList()
+                                                    routeSearchError = getString(R.string.route_no_city_at_location)
+                                                } else if (!validCity(city)) {
+                                                    routeNearestDraft = null
+                                                    routeResults = emptyList()
+                                                    routeSearchError = getString(R.string.route_invalid_city)
+                                                } else {
+                                                    routeNearestDraft = city
+                                                    routeResults = listOf(city)
+                                                }
                                             },
                                             { routeSearchError = getString(R.string.route_error) },
                                         )

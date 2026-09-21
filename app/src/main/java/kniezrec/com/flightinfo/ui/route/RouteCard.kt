@@ -8,10 +8,12 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -91,7 +93,10 @@ fun RouteCard(
     val choose = if (endpoint == RouteEndpoint.DEPARTURE) R.string.route_choose_departure else R.string.route_choose_destination
     val roleText = stringResource(role)
     val chooseText = stringResource(choose)
-    Row(Modifier.fillMaxWidth().heightIn(min = 52.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+    val icon = if (endpoint == RouteEndpoint.DEPARTURE) R.drawable.ic_route_departure else R.drawable.ic_route_destination
+    val iconDescription = if (endpoint == RouteEndpoint.DEPARTURE) R.string.route_departure_icon_description else R.string.route_destination_icon_description
+    Row(Modifier.fillMaxWidth().heightIn(min = 52.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        Icon(painterResource(icon), stringResource(iconDescription), tint = actionCyan)
         TextButton(
             onClick = { onChoose(endpoint) },
             modifier =
@@ -103,6 +108,9 @@ fun RouteCard(
         if (city !=
             null
         ) {
+            TextButton(onClick = { onChoose(endpoint) }, modifier = Modifier.heightIn(min = 48.dp)) {
+                Text(stringResource(R.string.route_edit), color = actionCyan)
+            }
             TextButton(onClick = {
                 onClear(endpoint)
             }, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.route_clear), color = actionCyan) }

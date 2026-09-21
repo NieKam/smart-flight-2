@@ -55,8 +55,8 @@ class RouteController(
     fun choose(
         endpoint: RouteEndpoint,
         city: NearbyCityRecord,
-    ) {
-        if (!validCity(city)) return
+    ): Boolean {
+        if (!validCity(city)) return false
         if (endpoint ==
             RouteEndpoint.DEPARTURE
         ) {
@@ -66,6 +66,7 @@ class RouteController(
         }
         persist()
         publish()
+        return true
     }
 
     fun clear(endpoint: RouteEndpoint) {

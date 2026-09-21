@@ -30,6 +30,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.background
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -91,7 +92,7 @@ fun GnssStatusScreen(
     routeSearchLoading: Boolean = false,
     routeSearchError: String? = null,
     onRouteSearch: (String) -> Unit = {},
-    onRouteConfirm: (NearbyCityRecord) -> Unit = {},
+    onRouteConfirm: (NearbyCityRecord) -> Boolean = { false },
     onRouteCancel: () -> Unit = {},
     onRouteRetry: () -> Unit = {},
     onRouteRestoreRetry: () -> Unit = {},
@@ -102,24 +103,8 @@ fun GnssStatusScreen(
     modifier: Modifier = Modifier,
 ) {
     mapPositionVersion
-    if (routePicker != null) {
-        RoutePicker(
-            endpoint = routePicker,
-            initial = routePickerInitial,
-            results = routeSearchResults,
-            loading = routeSearchLoading || routeNearestLoading,
-            error = routeSearchError,
-            mapArchive = routePickerMapArchive,
-            onSearch = onRouteSearch,
-            onNearest = onRouteNearest,
-            nearestDraft = routeNearestDraft,
-            onConfirm = onRouteConfirm,
-            onCancel = onRouteCancel,
-            onRetry = onRouteRetry,
-        )
-        return
-    }
-    Column(modifier = modifier.fillMaxSize()) {
+    androidx.compose.foundation.layout.Box(Modifier.fillMaxSize().then(modifier)) {
+    Column(Modifier.fillMaxSize()) {
         Box(Modifier.fillMaxWidth().heightIn(min = 56.dp), contentAlignment = Alignment.Center) {
             Text(stringResource(R.string.app_name), color = textColor, fontSize = 20.sp, fontWeight = FontWeight.Medium)
         }
@@ -155,6 +140,26 @@ fun GnssStatusScreen(
                 )
             }
         }
+    }
+
+    if (routePicker != null) {
+        androidx.compose.foundation.layout.Box(Modifier.fillMaxSize().background(Color(0xFF211D46))) {
+        RoutePicker(
+            endpoint = routePicker,
+            initial = routePickerInitial,
+            results = routeSearchResults,
+            loading = routeSearchLoading || routeNearestLoading,
+            error = routeSearchError,
+            mapArchive = routePickerMapArchive,
+            onSearch = onRouteSearch,
+            onNearest = onRouteNearest,
+            nearestDraft = routeNearestDraft,
+            onConfirm = onRouteConfirm,
+            onCancel = onRouteCancel,
+            onRetry = onRouteRetry,
+        )
+        }
+    }
     }
 }
 

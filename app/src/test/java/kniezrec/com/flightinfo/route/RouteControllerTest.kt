@@ -50,6 +50,19 @@ class RouteControllerTest {
         assertNull(state.overlay)
     }
 
+    @Test fun invalid_endpoint_records_are_rejected_without_changing_route() {
+        var state = RouteState()
+        val controller = RouteController(FakeRepository(emptyList()), MemoryPreferences(), direct, direct, { state = it })
+        controller.start()
+        val invalidCoordinates = departure.copy(latitude = 200.0)
+        val invalidTimeZone = destination.copy(timeZoneId = "not/a-time-zone")
+
+        assertEquals(false, controller.choose(RouteEndpoint.DEPARTURE, invalidCoordinates))
+        assertEquals(false, controller.choose(RouteEndpoint.DESTINATION, invalidTimeZone))
+        assertNull(state.departure)
+        assertNull(state.destination)
+    }
+
     @Test fun `stopping session clears live details and rejects later fixes`() {
         val states = mutableListOf<RouteState>()
         val controller = RouteController(FakeRepository(listOf(departure, destination)), MemoryPreferences(), direct, direct, states::add)
