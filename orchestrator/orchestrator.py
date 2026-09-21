@@ -1015,12 +1015,21 @@ def handle_ready_for_feature_push(workflow):
 
     update_workflow(
         task_id=task_id,
-        stage="COMPLETED",
+        stage="WAITING_FOR_MERGE",
         branch=branch,
         review_iteration=workflow["review_iteration"],
         review_result="PASS",
         review_feedback=None,
     )
+
+    print()
+    print("=" * 80)
+    print(f"{task_id} WAITING FOR MERGE")
+    print("=" * 80)
+    print()
+    print(f"Feature branch pushed: {branch}")
+    print("Create and merge the GitHub PR.")
+    print("The orchestrator will not start another task.")
 
 
 def run_workflow():
@@ -1053,6 +1062,12 @@ def run_workflow():
 
         elif stage == "READY_FOR_FEATURE_PUSH":
             handle_ready_for_feature_push(workflow)
+        
+        elif stage == "WAITING_FOR_MERGE":
+            print()
+            print("Workflow is waiting for the GitHub PR to be merged.")
+            print("Stopping orchestrator.")
+            return
 
         elif stage == "ESCALATED":
             print()
