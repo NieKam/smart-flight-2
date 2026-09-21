@@ -9,10 +9,26 @@ import java.io.FileOutputStream
 internal class AndroidNearbyCityRepository(
     private val context: Context,
 ) : NearbyCityRepository {
+    override fun searchByName(
+        query: String,
+        reload: Boolean,
+    ): List<NearbyCityRecord> {
+        val normalized = query.trim()
+        if (normalized.isEmpty()) return emptyList()
+        return readAll(reload).filter { it.name.trim().contains(normalized, ignoreCase = true) }
+    }
+
+    override fun findById(
+        id: Long,
+        reload: Boolean,
+    ): NearbyCityRecord? = readAll(reload).firstOrNull { it.id == id }
+
     override fun findNearest(
         position: NearbyCoordinate,
         reload: Boolean,
-    ): NearbyCityRecord? {
+    ): NearbyCityRecord? = readAll(reload).minByOrNull { distanceKilometres(position, NearbyCoordinate(it.latitude, it.longitude)) }
+
+    private fun readAll(reload: Boolean): List<NearbyCityRecord> {
         val databaseFile = copyAsset(reload)
         SQLiteDatabase.openDatabase(databaseFile.path, null, SQLiteDatabase.OPEN_READONLY).use { database ->
             database
@@ -20,10 +36,9 @@ internal class AndroidNearbyCityRepository(
                     "SELECT _id, city, latitude, longitude, timezone, country FROM cities_info ORDER BY _id",
                     null,
                 ).use { cursor ->
-                    var nearest: NearbyCityRecord? = null
-                    var shortest = Double.POSITIVE_INFINITY
+                    val records = mutableListOf<NearbyCityRecord>()
                     while (cursor.moveToNext()) {
-                        val record =
+                        records +=
                             NearbyCityRecord(
                                 cursor.getLong(0),
                                 cursor.getString(1),
@@ -32,14 +47,8 @@ internal class AndroidNearbyCityRepository(
                                 cursor.getDouble(3),
                                 cursor.getString(4),
                             )
-                        val coordinate = NearbyCoordinate.from(record.latitude, record.longitude) ?: continue
-                        val distance = distanceKilometres(position, coordinate)
-                        if (distance < shortest) {
-                            nearest = record
-                            shortest = distance
-                        }
                     }
-                    return nearest
+                    return records
                 }
         }
     }

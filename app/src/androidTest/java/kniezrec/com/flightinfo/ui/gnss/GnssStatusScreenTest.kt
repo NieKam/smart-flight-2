@@ -2,13 +2,17 @@ package kniezrec.com.flightinfo.ui.gnss
 
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.width
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.test.assertDoesNotExist
 import androidx.compose.ui.test.assertExists
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.hasStateDescription
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNode
@@ -16,6 +20,10 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performImeAction
+import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kniezrec.com.flightinfo.course.CourseState
@@ -23,6 +31,12 @@ import kniezrec.com.flightinfo.flight.FlightParametersState
 import kniezrec.com.flightinfo.gnss.GnssSatellite
 import kniezrec.com.flightinfo.gnss.GnssStatusState
 import kniezrec.com.flightinfo.map.MapSessionRules
+import kniezrec.com.flightinfo.nearby.NearbyCityRecord
+import kniezrec.com.flightinfo.route.RouteEndpoint
+import kniezrec.com.flightinfo.route.RouteOverlay
+import kniezrec.com.flightinfo.route.RouteState
+import kniezrec.com.flightinfo.ui.route.RouteCard
+import kniezrec.com.flightinfo.ui.route.RoutePicker
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -212,6 +226,250 @@ class GnssStatusScreenTest {
             }
             composeRule.waitForIdle()
             assertTrue(failed)
+        } finally {
+            archive.delete()
+        }
+    }
+
+    @Test fun routePickerSupportsDraftSelectionAndExplicitCancel() {
+        val city = NearbyCityRecord(7L, "Berlin", "Germany", 52.5, 13.4, "Europe/Berlin")
+        var confirmed = false
+        var cancelled = false
+        composeRule.setContent {
+            RoutePicker(
+                endpoint = RouteEndpoint.DEPARTURE,
+                initial = null,
+                results = listOf(city),
+                loading = false,
+                error = null,
+                mapArchive = null,
+                onSearch = {},
+                onNearest = {},
+                onConfirm = { confirmed = true },
+                onCancel = { cancelled = true },
+                onRetry = {},
+            )
+        }
+        composeRule.onNodeWithText("Berlin (Germany)").assertIsDisplayed().performClick()
+        composeRule.onNodeWithText("Confirm").assertIsEnabled().performClick()
+        composeRule.runOnIdle { assertTrue(confirmed) }
+        composeRule.onNodeWithText("Cancel").performClick()
+        composeRule.runOnIdle { assertTrue(cancelled) }
+    }
+
+    @Test fun routePickerSystemBackCancelsDraftWithoutConfirming() {
+        val existing = NearbyCityRecord(6L, "Existing", "US", 40.0, -74.0, "UTC")
+        var cancelled = false
+        var confirmed = false
+        composeRule.setContent {
+            RoutePicker(
+                endpoint = RouteEndpoint.DEPARTURE,
+                initial = existing,
+                results = emptyList(),
+                loading = false,
+                error = null,
+                mapArchive = null,
+                onSearch = {},
+                onNearest = {},
+                onConfirm = { confirmed = true },
+                onCancel = { cancelled = true },
+                onRetry = {},
+            )
+        }
+        composeRule.onNodeWithText("Selected: Existing (US)").assertIsDisplayed()
+        composeRule.runOnIdle { composeRule.activity.onBackPressedDispatcher.onBackPressed() }
+        composeRule.runOnIdle {
+            assertTrue(cancelled)
+            assertTrue(!confirmed)
+        }
+    }
+
+    @Test fun routePickerImeSearchUsesTrimmedQuery() {
+        var searched: String? = null
+        composeRule.setContent {
+            RoutePicker(
+                endpoint = RouteEndpoint.DESTINATION,
+                initial = null,
+                results = emptyList(),
+                loading = false,
+                error = null,
+                mapArchive = null,
+                onSearch = { searched = it },
+                onNearest = {},
+                onConfirm = {},
+                onCancel = {},
+                onRetry = {},
+            )
+        }
+        composeRule.onNodeWithText("City name").performTextInput("  Berlin  ")
+        composeRule.onNodeWithText("City name").performImeAction()
+        composeRule.runOnIdle { assertTrue(searched == "  Berlin  ") }
+    }
+
+    @Test fun routeCardWrapsLongNamesInRtlAtLargeFontScale() {
+        val departure = NearbyCityRecord(11L, "Departure city with a deliberately long name", "US", 0.0, 0.0, "UTC")
+        val destination = NearbyCityRecord(12L, "Destination city with a deliberately long name", "DE", 0.0, 1.0, "Europe/Berlin")
+        composeRule.setContent {
+            CompositionLocalProvider(
+                LocalLayoutDirection provides LayoutDirection.Rtl,
+                LocalDensity provides Density(composeRule.density.density, 2f),
+            ) {
+                RouteCard(
+                    state = RouteState(departure = departure, destination = destination),
+                    onChoose = {},
+                    onClear = {},
+                    onClearAll = {},
+                )
+            }
+        }
+        composeRule.onNodeWithText("Departure: Departure city with a deliberately long name").assertIsDisplayed()
+        composeRule.onNodeWithText("Destination: Destination city with a deliberately long name").assertIsDisplayed()
+    }
+
+    @Test fun routePickerNearestInvalidCoordinateIsReportedWithoutSelectingCity() {
+        var nearestCalls = 0
+        composeRule.setContent {
+            RoutePicker(
+                endpoint = RouteEndpoint.DEPARTURE,
+                initial = null,
+                results = emptyList(),
+                loading = false,
+                error = null,
+                mapArchive = null,
+                onSearch = {},
+                onNearest = { nearestCalls++ },
+                onConfirm = {},
+                onCancel = {},
+                onRetry = {},
+            )
+        }
+        composeRule.onNodeWithText("Confirm").assertIsNotEnabled()
+        composeRule.runOnIdle { assertTrue(nearestCalls == 0) }
+    }
+
+    @Test fun routePickerNearestCityIsImmediatelyConfirmableDraft() {
+        val city = NearbyCityRecord(8L, "Paris", "France", 48.8, 2.3, "Europe/Paris")
+        var confirmed = false
+        composeRule.setContent {
+            RoutePicker(
+                endpoint = RouteEndpoint.DESTINATION,
+                initial = null,
+                results = emptyList(),
+                loading = false,
+                error = null,
+                mapArchive = null,
+                onSearch = {},
+                onNearest = {},
+                nearestDraft = city,
+                onConfirm = { confirmed = true },
+                onCancel = {},
+                onRetry = {},
+            )
+        }
+        composeRule.onNodeWithText("Selected: Paris (France)").assertIsDisplayed()
+        composeRule.onNodeWithText("Confirm").assertIsEnabled().performClick()
+        composeRule.runOnIdle { assertTrue(confirmed) }
+    }
+
+    @Test fun routePickerKeepsMultipleResultsUnselectedUntilExplicitChoiceAndSupportsRetry() {
+        val first = NearbyCityRecord(9L, "Springfield", "US", 39.8, -89.6, "UTC")
+        val second = first.copy(id = 10L, country = "CA")
+        var selected: NearbyCityRecord? = null
+        var retried = false
+        composeRule.setContent {
+            RoutePicker(
+                endpoint = RouteEndpoint.DEPARTURE,
+                initial = null,
+                results = listOf(first, second),
+                loading = false,
+                error = "database unavailable",
+                mapArchive = null,
+                onSearch = {},
+                onNearest = {},
+                onConfirm = { selected = it },
+                onCancel = {},
+                onRetry = { retried = true },
+            )
+        }
+        composeRule.onNodeWithText("Selected: Springfield (US)").assertDoesNotExist()
+        composeRule.onNodeWithText("Springfield (US)").performClick()
+        composeRule.onNodeWithText("Selected: Springfield (US)").assertIsDisplayed()
+        composeRule.onNodeWithText("Retry").performClick()
+        composeRule.runOnIdle { assertTrue(retried) }
+        composeRule.onNodeWithText("Confirm").performClick()
+        composeRule.runOnIdle { assertTrue(selected == first) }
+    }
+
+    @Test fun routeCardExposesEndpointAndDetailSemanticsWithLargeTextContent() {
+        val departure = NearbyCityRecord(11L, "A very long departure city name", "US", 0.0, 0.0, "UTC")
+        val destination = NearbyCityRecord(12L, "A very long destination city name", "DE", 0.0, 1.0, "Europe/Berlin")
+        var cleared = false
+        composeRule.setContent {
+            RouteCard(
+                state =
+                    RouteState(
+                        departure = departure,
+                        destination = destination,
+                        details =
+                            kniezrec.com.flightinfo.route
+                                .RouteDetails(111.2, null, null, null),
+                    ),
+                onChoose = {},
+                onClear = {},
+                onClearAll = { cleared = true },
+            )
+        }
+        composeRule.onNodeWithContentDescription("Departure, A very long departure city name").assertHasClickAction()
+        val departureAction = composeRule.onNodeWithContentDescription("Departure, A very long departure city name").assertHasClickAction()
+        assertTrue(departureAction.fetchSemanticsNode().boundsInRoot.height >= 48f * composeRule.density.density)
+        composeRule.onNodeWithContentDescription("Destination, A very long destination city name").assertHasClickAction()
+        composeRule.onNodeWithText("Distance between cities").assertIsDisplayed()
+        composeRule.onNodeWithText("Waiting for current position").assertIsDisplayed()
+        composeRule.onNodeWithText("Clear route").performClick()
+        composeRule.runOnIdle { assertTrue(cleared) }
+    }
+
+    @Test fun mapOverlayUpdatesAndClearsWithoutReplacingMapContent() {
+        val archive = File(composeRule.activity.cacheDir, "route-overlay-test.zip")
+        ZipOutputStream(FileOutputStream(archive)).use { zip ->
+            zip.putNextEntry(ZipEntry("tile.jpg"))
+            zip.write(byteArrayOf(0))
+            zip.closeEntry()
+        }
+        var mapState by mutableStateOf<MapCardState>(MapCardState.Loading)
+        var overlay by mutableStateOf<RouteOverlay?>(
+            RouteOverlay(
+                kniezrec.com.flightinfo.nearby
+                    .NearbyCoordinate(0.0, 0.0),
+                kniezrec.com.flightinfo.nearby
+                    .NearbyCoordinate(1.0, 1.0),
+                "Alpha",
+                "Beta",
+            ),
+        )
+        try {
+            composeRule.setContent {
+                MapCard(mapState, MapSessionRules(), {}, routeOverlay = overlay)
+            }
+            composeRule.runOnIdle { mapState = MapCardState.Ready(archive) }
+            composeRule.onNodeWithContentDescription("Route overlay from Alpha to Beta").assertExists()
+            composeRule.onNodeWithTag("map-content").assertExists()
+            composeRule.runOnIdle {
+                overlay =
+                    RouteOverlay(
+                        kniezrec.com.flightinfo.nearby
+                            .NearbyCoordinate(2.0, 2.0),
+                        kniezrec.com.flightinfo.nearby
+                            .NearbyCoordinate(3.0, 3.0),
+                        "Gamma",
+                        "Delta",
+                    )
+            }
+            composeRule.onNodeWithContentDescription("Route overlay from Gamma to Delta").assertExists()
+            composeRule.onNodeWithTag("map-content").assertExists()
+            composeRule.runOnIdle { overlay = null }
+            composeRule.onNodeWithContentDescription("Offline map showing the aircraft position").assertExists()
+            composeRule.onNodeWithTag("map-content").assertExists()
         } finally {
             archive.delete()
         }
