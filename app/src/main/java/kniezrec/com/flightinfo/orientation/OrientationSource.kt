@@ -14,6 +14,59 @@ internal data class OrientationSample(
     val rollDegrees: Double,
 )
 
+/** Pure display-coordinate conversion kept separate from the Android sensor callback. */
+internal enum class DisplayRotation {
+    Portrait,
+    Landscape,
+    ReversePortrait,
+    ReverseLandscape,
+    ;
+
+    companion object {
+        fun fromSurfaceRotation(rotation: Int): DisplayRotation =
+            when (rotation) {
+                Surface.ROTATION_90 -> Landscape
+                Surface.ROTATION_180 -> ReversePortrait
+                Surface.ROTATION_270 -> ReverseLandscape
+                else -> Portrait
+            }
+    }
+}
+
+internal object DisplayRelativeOrientation {
+    fun calculate(rotationMatrix: FloatArray, rotation: DisplayRotation): OrientationSample? {
+        if (rotationMatrix.size < 9 || rotationMatrix.take(9).any { !it.isFinite() }) return null
+        val (xAxis, yAxis) =
+            when (rotation) {
+                DisplayRotation.Portrait -> 1 to 2
+                DisplayRotation.Landscape -> 2 to -1
+                DisplayRotation.ReversePortrait -> -1 to -2
+                DisplayRotation.ReverseLandscape -> -2 to 1
+            }
+        val remapped = FloatArray(9)
+        for (row in 0..2) {
+            remapped[row * 3] = rotationMatrix.axisValue(row, xAxis)
+            remapped[row * 3 + 1] = rotationMatrix.axisValue(row, yAxis)
+            remapped[row * 3 + 2] = rotationMatrix[row * 3 + 2]
+        }
+        val heading = Math.toDegrees(kotlin.math.atan2(remapped[1].toDouble(), remapped[4].toDouble()))
+        val pitch = Math.toDegrees(kotlin.math.asin(-remapped[7].toDouble()))
+        val roll = Math.toDegrees(kotlin.math.atan2(-remapped[6].toDouble(), remapped[8].toDouble()))
+        if (!heading.isFinite() || !pitch.isFinite() || !roll.isFinite()) return null
+        return OrientationSample(
+            headingDegrees = if (heading < 0) heading + 360 else heading,
+            pitchDegrees = pitch,
+            rollDegrees = roll,
+        )
+    }
+
+    private fun FloatArray.axisValue(row: Int, axis: Int): Float {
+        val column = kotlin.math.abs(axis) - 1
+        val value = this[row * 3 + column]
+        return if (axis < 0) -value else value
+    }
+}
+
 /** A shared, display-relative orientation source. It owns at most one sensor listener. */
 internal interface OrientationSource {
     fun isAvailable(): Boolean
@@ -101,24 +154,11 @@ internal class AndroidOrientationSource(
                 override fun onSensorChanged(event: SensorEvent) {
                     val matrix = FloatArray(9)
                     SensorManager.getRotationMatrixFromVector(matrix, event.values)
-                    val adjusted = FloatArray(9)
-                    val axes =
-                        when (display?.rotation ?: Surface.ROTATION_0) {
-                            Surface.ROTATION_90 -> SensorManager.AXIS_Y to SensorManager.AXIS_MINUS_X
-                            Surface.ROTATION_180 -> SensorManager.AXIS_MINUS_X to SensorManager.AXIS_MINUS_Y
-                            Surface.ROTATION_270 -> SensorManager.AXIS_MINUS_Y to SensorManager.AXIS_X
-                            else -> SensorManager.AXIS_X to SensorManager.AXIS_Y
-                        }
-                    if (!SensorManager.remapCoordinateSystem(matrix, axes.first, axes.second, adjusted)) return
-                    val orientation = FloatArray(3)
-                    SensorManager.getOrientation(adjusted, orientation)
                     val sample =
-                        OrientationSample(
-                            headingDegrees = Math.toDegrees(orientation[0].toDouble()).let { if (it < 0) it + 360 else it },
-                            pitchDegrees = Math.toDegrees(orientation[1].toDouble()),
-                            rollDegrees = Math.toDegrees(orientation[2].toDouble()),
-                        )
-                    if (!sample.headingDegrees.isFinite() || !sample.pitchDegrees.isFinite() || !sample.rollDegrees.isFinite()) return
+                        DisplayRelativeOrientation.calculate(
+                            rotationMatrix = matrix,
+                            rotation = DisplayRotation.fromSurfaceRotation(display?.rotation ?: Surface.ROTATION_0),
+                        ) ?: return
                     val captured = eventDispatcher.capture(generation, listeners, sample) ?: return
                     callbackExecutor.execute {
                         if (eventDispatcher.isCurrent(captured)) {

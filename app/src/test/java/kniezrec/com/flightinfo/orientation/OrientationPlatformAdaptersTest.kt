@@ -2,8 +2,37 @@ package kniezrec.com.flightinfo.orientation
 
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import kotlin.math.cos
+import kotlin.math.sin
 
 class OrientationPlatformAdaptersTest {
+    @Test fun displayRotationMapsPitchRollAndHeadingForAllFourOrientations() {
+        val pitchMatrix = matrixForPitch(12.0)
+        val rollMatrix = matrixForRoll(21.0)
+        val rotations =
+            listOf(
+                DisplayRotation.Portrait to ExpectedOrientation(0.0, 12.0, 0.0, 0.0, 0.0, 21.0),
+                DisplayRotation.Landscape to ExpectedOrientation(270.0, 0.0, 12.0, 270.0, -21.0, 0.0),
+                DisplayRotation.ReversePortrait to ExpectedOrientation(180.0, -12.0, 0.0, 180.0, 0.0, -21.0),
+                DisplayRotation.ReverseLandscape to ExpectedOrientation(90.0, 0.0, -12.0, 90.0, 21.0, 0.0),
+            )
+
+        rotations.forEach { (rotation, expected) ->
+            assertOrientation(
+                actual = DisplayRelativeOrientation.calculate(pitchMatrix, rotation)!!,
+                heading = expected.pitchHeading,
+                pitch = expected.pitch,
+                roll = expected.pitchRoll,
+            )
+            assertOrientation(
+                actual = DisplayRelativeOrientation.calculate(rollMatrix, rotation)!!,
+                heading = expected.rollHeading,
+                pitch = expected.rollPitch,
+                roll = expected.roll,
+            )
+        }
+    }
+
     @Test fun courseAndHorizonShareOneUnderlyingSourceSubscription() {
         val source = FakeSource()
         var heading: Double? = null
@@ -68,5 +97,34 @@ class OrientationPlatformAdaptersTest {
         }
 
         fun emit(sample: OrientationSample) = listeners.forEach { it(sample) }
+    }
+
+    private data class ExpectedOrientation(
+        val pitchHeading: Double,
+        val pitch: Double,
+        val pitchRoll: Double,
+        val rollHeading: Double,
+        val rollPitch: Double,
+        val roll: Double,
+    )
+
+    private fun matrixForPitch(degrees: Double): FloatArray {
+        val radians = Math.toRadians(degrees)
+        val cosine = cos(radians).toFloat()
+        val sine = sin(radians).toFloat()
+        return floatArrayOf(1f, 0f, 0f, 0f, cosine, sine, 0f, -sine, cosine)
+    }
+
+    private fun matrixForRoll(degrees: Double): FloatArray {
+        val radians = Math.toRadians(degrees)
+        val cosine = cos(radians).toFloat()
+        val sine = sin(radians).toFloat()
+        return floatArrayOf(cosine, 0f, sine, 0f, 1f, 0f, -sine, 0f, cosine)
+    }
+
+    private fun assertOrientation(actual: OrientationSample, heading: Double, pitch: Double, roll: Double) {
+        assertEquals(heading, actual.headingDegrees, 0.001)
+        assertEquals(pitch, actual.pitchDegrees, 0.001)
+        assertEquals(roll, actual.rollDegrees, 0.001)
     }
 }
