@@ -130,7 +130,7 @@ class MainActivity : ComponentActivity() {
         isForeground = false
         gnssStatusController.stop()
         flightParametersController.stop()
-        courseController.stop()
+            courseController.stop()
         super.onPause()
     }
 
@@ -141,7 +141,7 @@ class MainActivity : ComponentActivity() {
         } else {
             gnssStatusController.stop()
             flightParametersController.stop()
-        courseController.stop()
+            courseController.stop()
         }
         if (announceChange) announcementVersion++
     }
@@ -209,7 +209,7 @@ class MainActivity : ComponentActivity() {
         FlightParametersController(
             platform = AndroidFlightLocationPlatform(getSystemService(LocationManager::class.java), packageManager, mainExecutor),
             onStateChanged = { flightParametersState = it },
-            onRegistrationFailed = { gnssStatusController.showError() },
+            onRegistrationFailed = { gnssStatusController.showError(); courseController.stop() },
             onLocationFix = { courseController.onGpsBearing(it.bearingDegrees) },
         )
     }
