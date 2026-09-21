@@ -175,8 +175,7 @@ private data class UtcOffsetText(
     val name = stringResource(label)
     androidx.compose.foundation.layout.Row(
         Modifier.fillMaxWidth().heightIn(min = 48.dp).semantics(mergeDescendants = true) {
-            contentDescription =
-                "$name, $spoken"
+            contentDescription = stringResource(R.string.card_row_description, name, spoken)
         },
         verticalAlignment = Alignment.CenterVertically,
     ) {

@@ -2,6 +2,7 @@ package kniezrec.com.flightinfo.ui.settings
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -67,18 +68,22 @@ fun UnitSettingsScreen(
             )
         },
     ) { padding ->
-        Column(
-            Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(padding).padding(horizontal = 12.dp, vertical = 24.dp)
-                .widthIn(max = 600.dp),
-            verticalArrangement = Arrangement.spacedBy(0.dp),
+        Box(
+            Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(padding).padding(horizontal = 12.dp, vertical = 24.dp),
+            contentAlignment = androidx.compose.ui.Alignment.TopCenter,
         ) {
-            Text(stringResource(R.string.units_section), style = MaterialTheme.typography.titleLarge)
-            Column(Modifier.padding(top = 8.dp)) {
-                SettingRow(stringResource(R.string.unit_speed), unitText(preferences.speed)) { selector = Selector.Speed() }
-                SettingRow(stringResource(R.string.unit_altitude), unitText(preferences.altitude)) { selector = Selector.Altitude() }
-                SettingRow(stringResource(R.string.unit_distance), unitText(preferences.distance)) { selector = Selector.Distance() }
-                SettingRow(stringResource(R.string.unit_vertical_speed), unitText(preferences.verticalSpeed)) { selector = Selector.VerticalSpeed() }
-                SettingRow(stringResource(R.string.unit_pressure), unitText(preferences.pressure)) { selector = Selector.Pressure() }
+            Column(
+                Modifier.fillMaxWidth().widthIn(max = 600.dp),
+                verticalArrangement = Arrangement.spacedBy(0.dp),
+            ) {
+                Text(stringResource(R.string.units_section), style = MaterialTheme.typography.titleLarge)
+                Column(Modifier.padding(top = 8.dp)) {
+                    SettingRow(stringResource(R.string.unit_speed), unitText(preferences.speed)) { selector = Selector.Speed() }
+                    SettingRow(stringResource(R.string.unit_altitude), unitText(preferences.altitude)) { selector = Selector.Altitude() }
+                    SettingRow(stringResource(R.string.unit_distance), unitText(preferences.distance)) { selector = Selector.Distance() }
+                    SettingRow(stringResource(R.string.unit_vertical_speed), unitText(preferences.verticalSpeed)) { selector = Selector.VerticalSpeed() }
+                    SettingRow(stringResource(R.string.unit_pressure), unitText(preferences.pressure)) { selector = Selector.Pressure() }
+                }
             }
         }
     }
