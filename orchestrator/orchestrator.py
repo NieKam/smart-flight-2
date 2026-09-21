@@ -28,6 +28,7 @@ def resume_workflow():
         "READY_FOR_REVIEW",
         "REVIEWING",
         "READY_FOR_FEATURE_PUSH",
+        "WAITING_FOR_MERGE"
     }
 
     if stage not in resumable_stages:
@@ -87,6 +88,38 @@ def resume_workflow():
             review_result=None,
             review_feedback=feedback,
         )
+    elif stage == "WAITING_FOR_MERGE":
+        print()
+        print("=" * 80)
+        print("WORKFLOW WAITING FOR MERGE")
+        print("=" * 80)
+        print()
+        print(f"Task: {task_id}")
+        print(f"Branch: {workflow['branch']}")
+        print()
+
+        answer = input(
+            "Has the GitHub PR been merged? [y/N]: "
+        ).strip().lower()
+
+        if answer != "y":
+            print()
+            print("Workflow remains WAITING_FOR_MERGE.")
+            return
+
+        print()
+        print("PR confirmed as merged.")
+        print("Marking workflow as COMPLETED.")
+
+        update_workflow(
+            stage="COMPLETED",
+            review_result="PASS",
+            review_feedback=None,
+        )
+
+        print()
+        print("Workflow completed.")
+        print("Starting next task...")
     else:
         print(f"Resuming from stage: {stage}")
 
