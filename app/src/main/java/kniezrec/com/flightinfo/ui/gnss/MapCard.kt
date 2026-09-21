@@ -2,6 +2,7 @@ package kniezrec.com.flightinfo.ui.gnss
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -21,7 +22,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.onDispose
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -45,7 +45,7 @@ import kniezrec.com.flightinfo.ui.permission.actionCyan
 import kniezrec.com.flightinfo.ui.permission.cardPurple
 import org.osmdroid.config.Configuration
 import org.osmdroid.tileprovider.modules.OfflineTileProvider
-import org.osmdroid.tileprovider.modules.ZipFileArchive
+import org.osmdroid.tileprovider.util.SimpleRegisterReceiver
 import org.osmdroid.tileprovider.tilesource.XYTileSource
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
@@ -86,25 +86,26 @@ fun MapCard(
             MapCardState.Unavailable -> MapMessage(R.string.map_unavailable, R.string.map_unavailable_body, onRetry)
             MapCardState.Inactive -> MapMessage(R.string.map_loading, R.string.map_inactive_body)
             is MapCardState.Ready -> {
-                BoxWithConstraints(
-                    Modifier.fillMaxWidth().height(mapHeight(maxWidth, maxHeight, expanded)).testTag("map-content"),
-                ) {
-                    val instance = remember(state.archive) { MapInstance() }
-                    OfflineMap(
-                        archive = state.archive,
-                        rules = rules,
-                        instance = instance,
-                        onOpenFailure = onUnavailable,
-                        modifier = Modifier.fillMaxSize(),
-                    )
-                    MapButton(
-                        description = stringResource(R.string.map_recenter),
-                        modifier = Modifier.align(Alignment.TopEnd).padding(12.dp),
-                    ) { instance.recenter(rules) }
-                    MapButton(
-                        description = stringResource(if (expanded) R.string.map_collapse else R.string.map_expand),
-                        modifier = Modifier.align(Alignment.BottomEnd).padding(12.dp),
-                    ) { expanded = !expanded }
+                BoxWithConstraints(Modifier.fillMaxWidth().testTag("map-content")) {
+                    val mapHeight = mapHeight(maxWidth, maxHeight, expanded)
+                    Box(Modifier.fillMaxWidth().height(mapHeight)) {
+                        val instance = remember(state.archive) { MapInstance() }
+                        OfflineMap(
+                            archive = state.archive,
+                            rules = rules,
+                            instance = instance,
+                            onOpenFailure = onUnavailable,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                        MapButton(
+                            description = stringResource(R.string.map_recenter),
+                            modifier = Modifier.align(Alignment.TopEnd).padding(12.dp),
+                        ) { instance.recenter(rules) }
+                        MapButton(
+                            description = stringResource(if (expanded) R.string.map_collapse else R.string.map_expand),
+                            modifier = Modifier.align(Alignment.BottomEnd).padding(12.dp),
+                        ) { expanded = !expanded }
+                    }
                 }
             }
         }
@@ -225,7 +226,7 @@ private fun OfflineMap(
         factory = {
             try {
                 Configuration.getInstance().load(context, context.getSharedPreferences("osmdroid", 0))
-                val provider = OfflineTileProvider(arrayOf(ZipFileArchive(archive)))
+                val provider = OfflineTileProvider(SimpleRegisterReceiver(context), arrayOf(archive))
                 MapView(context, provider).apply {
                     setTileSource(mapSource)
                     setUseDataConnection(false)
