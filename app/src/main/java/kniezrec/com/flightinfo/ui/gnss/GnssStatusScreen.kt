@@ -47,6 +47,7 @@ import kniezrec.com.flightinfo.course.CourseState
 import kniezrec.com.flightinfo.flight.FlightParametersState
 import kniezrec.com.flightinfo.gnss.GnssSatellite
 import kniezrec.com.flightinfo.gnss.GnssStatusState
+import kniezrec.com.flightinfo.horizon.HorizonState
 import kniezrec.com.flightinfo.ui.permission.actionCyan
 import kniezrec.com.flightinfo.ui.permission.cardPurple
 
@@ -60,6 +61,9 @@ fun GnssStatusScreen(
     onRetry: () -> Unit,
     courseState: CourseState = CourseState.Waiting,
     onCourseRetry: () -> Unit = {},
+    horizonState: HorizonState = HorizonState.Waiting,
+    onHorizonCalibrate: () -> Unit = {},
+    onHorizonRetry: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxSize()) {
@@ -77,6 +81,9 @@ fun GnssStatusScreen(
             }
             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
                 CourseCard(courseState, onCourseRetry, Modifier.padding(bottom = 12.dp).widthIn(max = 600.dp))
+            }
+            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
+                HorizonCard(horizonState, onHorizonCalibrate, onHorizonRetry, Modifier.padding(bottom = 12.dp).widthIn(max = 600.dp))
             }
         }
     }
