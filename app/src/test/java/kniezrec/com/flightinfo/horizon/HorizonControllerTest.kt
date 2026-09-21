@@ -19,7 +19,7 @@ class HorizonControllerTest {
         assertEquals(HorizonState.Available(0, 4, 0f, 4f), states.last())
 
         controller.calibrate()
-        assertEquals(HorizonState.Waiting, states.last())
+        assertEquals(HorizonState.Recalibrating, states.last())
         platform.attitude(18.0, -6.0)
         assertEquals(HorizonState.Available(0, -6, 0f, -6f), states.last())
         platform.attitude(28.0, -8.0)
@@ -28,6 +28,7 @@ class HorizonControllerTest {
 
     @Test fun unavailableFailureRetryAndStaleCallbacksAreSafe() {
         val unavailableStates = mutableListOf<HorizonState>()
+
         val unavailable = FakePlatform(available = false)
         HorizonController(unavailable, unavailableStates::add).start()
         assertEquals(HorizonState.Unavailable, unavailableStates.last())
@@ -48,6 +49,25 @@ class HorizonControllerTest {
         stale(1.0, 1.0)
         assertEquals(HorizonState.Waiting, states.last())
         assertEquals(1, platform.unregisters)
+    }
+
+    @Test fun replacementSessionAfterDisplayRotationWaitsForAndRecalibratesFromANewSample() {
+        val platform = FakePlatform()
+        val states = mutableListOf<HorizonState>()
+        val controller = HorizonController(platform, states::add)
+        controller.start()
+        platform.attitude(10.0, 2.0)
+        val staleCallback = platform.callback()
+
+        controller.start()
+        assertEquals(HorizonState.Waiting, states.last())
+        staleCallback(25.0, 9.0)
+        assertEquals(HorizonState.Waiting, states.last())
+
+        platform.attitude(30.0, -4.0)
+        assertEquals(HorizonState.Available(0, -4, 0f, -4f), states.last())
+        platform.attitude(15.0, 5.0)
+        assertEquals(HorizonState.Available(-15, 5, 0.175f, 5f), states.last())
     }
 
     private class FakePlatform(

@@ -23,6 +23,47 @@ internal interface OrientationSource {
     fun removeListener(listener: (OrientationSample) -> Unit)
 }
 
+/**
+ * Separates an Android sensor callback's registration from its main-thread delivery.
+ *
+ * A callback can already be queued when a sensor listener is unregistered. Capturing both the
+ * listener set and registration generation prevents that callback from reaching a replacement
+ * Course or Horizon session.
+ */
+internal class OrientationEventDispatcher {
+    private var activeGeneration = 0L
+
+    @Synchronized
+    fun beginRegistration(): Long = ++activeGeneration
+
+    @Synchronized
+    fun invalidateRegistration() {
+        ++activeGeneration
+    }
+
+    @Synchronized
+    fun capture(
+        generation: Long,
+        listeners: Collection<(OrientationSample) -> Unit>,
+        sample: OrientationSample,
+    ): CapturedOrientationEvent? =
+        if (generation == activeGeneration) {
+            CapturedOrientationEvent(generation, listeners.toList(), sample)
+        } else {
+            null
+        }
+
+    @Synchronized
+    fun isCurrent(event: CapturedOrientationEvent): Boolean = event.generation == activeGeneration
+}
+
+internal data class CapturedOrientationEvent(
+    val generation: Long,
+    val listeners: List<(OrientationSample) -> Unit>,
+    val sample: OrientationSample,
+)
+
+
 internal class AndroidOrientationSource(
     context: Context,
     private val callbackExecutor: Executor,
@@ -31,6 +72,7 @@ internal class AndroidOrientationSource(
     private val display = context.display
     private val rotationVector = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
     private val listeners = linkedSetOf<(OrientationSample) -> Unit>()
+    private val eventDispatcher = OrientationEventDispatcher()
     private var sensorListener: SensorEventListener? = null
 
     override fun isAvailable(): Boolean = rotationVector != null
@@ -47,11 +89,13 @@ internal class AndroidOrientationSource(
         if (listeners.isEmpty()) {
             sensorListener?.let(sensorManager::unregisterListener)
             sensorListener = null
+            eventDispatcher.invalidateRegistration()
         }
     }
 
     private fun registerSensorListener(): Boolean {
         val sensor = rotationVector ?: return false
+        val generation = eventDispatcher.beginRegistration()
         val newListener =
             object : SensorEventListener {
                 override fun onSensorChanged(event: SensorEvent) {
@@ -75,12 +119,22 @@ internal class AndroidOrientationSource(
                             rollDegrees = Math.toDegrees(orientation[2].toDouble()),
                         )
                     if (!sample.headingDegrees.isFinite() || !sample.pitchDegrees.isFinite() || !sample.rollDegrees.isFinite()) return
-                    callbackExecutor.execute { listeners.toList().forEach { it(sample) } }
+                    val captured = eventDispatcher.capture(generation, listeners, sample) ?: return
+                    callbackExecutor.execute {
+                        if (eventDispatcher.isCurrent(captured)) {
+                            captured.listeners.forEach { it(captured.sample) }
+                        }
+                    }
                 }
 
                 override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
             }
-        sensorListener = newListener
-        return sensorManager.registerListener(newListener, sensor, SensorManager.SENSOR_DELAY_UI)
+        val registered = sensorManager.registerListener(newListener, sensor, SensorManager.SENSOR_DELAY_UI)
+        if (registered) {
+            sensorListener = newListener
+        } else {
+            eventDispatcher.invalidateRegistration()
+        }
+        return registered
     }
 }

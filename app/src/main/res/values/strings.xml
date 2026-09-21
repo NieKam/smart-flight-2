@@ -78,4 +78,8 @@
     <string name="horizon_degrees_direction">%1$s° %2$s</string>
     <string name="horizon_summary">Pitch: %1$s · Roll: %2$s</string>
     <string name="horizon_summary_spoken">Horizon. Pitch %1$s. Roll %2$s.</string>
+    <string name="horizon_recalibrating_announcement">Horizon recalibrating. Waiting for attitude data.</string>
+    <string name="horizon_calibrated_announcement">Horizon calibrated</string>
+    <string name="horizon_unavailable_announcement">Horizon unavailable</string>
+    <string name="horizon_error_announcement">Unable to read horizon</string>
 </resources>

@@ -25,8 +25,32 @@ class OrientationPlatformAdaptersTest {
         assertEquals(0, source.activeRegistrationCount)
     }
 
+    @Test fun queuedOldRegistrationEventCannotReachReplacementCourseOrHorizonSessions() {
+        val dispatcher = OrientationEventDispatcher()
+        var oldCourse = 0
+        var oldHorizon = 0
+        var replacementCourse = 0
+        var replacementHorizon = 0
+        val sample = OrientationSample(20.0, 3.0, -4.0)
+
+        val oldGeneration = dispatcher.beginRegistration()
+        val oldEvent = dispatcher.capture(oldGeneration, listOf({ _: OrientationSample -> oldCourse++ }, { _: OrientationSample -> oldHorizon++ }), sample)!!
+        dispatcher.invalidateRegistration()
+        val replacementGeneration = dispatcher.beginRegistration()
+        val replacementEvent = dispatcher.capture(replacementGeneration, listOf({ _: OrientationSample -> replacementCourse++ }, { _: OrientationSample -> replacementHorizon++ }), sample)!!
+
+        if (dispatcher.isCurrent(oldEvent)) oldEvent.listeners.forEach { it(oldEvent.sample) }
+        if (dispatcher.isCurrent(replacementEvent)) replacementEvent.listeners.forEach { it(replacementEvent.sample) }
+
+        assertEquals(0, oldCourse)
+        assertEquals(0, oldHorizon)
+        assertEquals(1, replacementCourse)
+        assertEquals(1, replacementHorizon)
+    }
+
     private class FakeSource : OrientationSource {
         private val listeners = linkedSetOf<(OrientationSample) -> Unit>()
+
         var activeRegistrationCount = 0
             private set
 

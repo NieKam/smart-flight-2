@@ -51,7 +51,11 @@ internal class HorizonController(
     fun calibrate() {
         if (activeSessionToken == null) return
         referencePitchDegrees = null
-        setState(HorizonState.Waiting)
+        setState(HorizonState.Recalibrating)
+    }
+
+    fun onDisplayRotationChanged() {
+        start()
     }
 
     fun retry(isForeground: Boolean) {

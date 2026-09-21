@@ -15,6 +15,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -28,8 +29,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
@@ -56,12 +59,38 @@ internal fun HorizonCard(
         colors = CardDefaults.cardColors(containerColor = cardPurple),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
     ) {
+        HorizonStateAnnouncement(state)
         when (state) {
             HorizonState.Waiting -> HorizonStatic(R.string.horizon_title, R.string.horizon_waiting)
+            HorizonState.Recalibrating -> HorizonStatic(R.string.horizon_title, R.string.horizon_waiting)
             HorizonState.Unavailable -> HorizonStatic(R.string.horizon_unavailable, R.string.horizon_unavailable_body)
             HorizonState.Error -> HorizonStatic(R.string.horizon_error, R.string.horizon_error_body, onRetry)
             is HorizonState.Available -> HorizonAvailable(state, onCalibrate)
         }
+    }
+}
+
+@Composable
+private fun HorizonStateAnnouncement(state: HorizonState) {
+    var previousState by remember { mutableStateOf<HorizonState?>(null) }
+    var announcement by remember { mutableStateOf<String?>(null) }
+    val nextAnnouncement =
+        when {
+            state == HorizonState.Recalibrating -> stringResource(R.string.horizon_recalibrating_announcement)
+            state is HorizonState.Available && previousState == HorizonState.Recalibrating -> stringResource(R.string.horizon_calibrated_announcement)
+            state == HorizonState.Unavailable && previousState != HorizonState.Unavailable -> stringResource(R.string.horizon_unavailable_announcement)
+            state == HorizonState.Error && previousState != HorizonState.Error -> stringResource(R.string.horizon_error_announcement)
+            else -> null
+        }
+    SideEffect {
+        previousState = state
+        if (nextAnnouncement != null) announcement = nextAnnouncement
+    }
+    announcement?.let { text ->
+        Box(Modifier.semantics {
+            liveRegion = LiveRegionMode.Polite
+            contentDescription = text
+        })
     }
 }
 

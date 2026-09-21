@@ -4,6 +4,9 @@ import kotlin.math.roundToInt
 
 internal sealed interface HorizonState {
     data object Waiting : HorizonState
+    /** Waiting for the calibration sample that will become the new level reference. */
+    data object Recalibrating : HorizonState
+
 
     data object Unavailable : HorizonState
 

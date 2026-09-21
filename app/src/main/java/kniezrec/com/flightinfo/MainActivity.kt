@@ -2,6 +2,7 @@ package kniezrec.com.flightinfo
 
 import android.Manifest
 import android.content.Intent
+import android.content.res.Configuration
 import android.content.pm.PackageManager
 import android.location.LocationManager
 import android.net.Uri
@@ -133,6 +134,13 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         isForeground = true
         refreshPermissionState()
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        if (isForeground && permissionState == LocationPermissionState.Granted) {
+            horizonController.onDisplayRotationChanged()
+        }
     }
 
     override fun onPause() {
