@@ -7,6 +7,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertDoesNotExist
 import androidx.compose.ui.test.assertExists
+import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasStateDescription
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -14,15 +15,22 @@ import androidx.compose.ui.test.onNode
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kniezrec.com.flightinfo.course.CourseState
 import kniezrec.com.flightinfo.flight.FlightParametersState
 import kniezrec.com.flightinfo.gnss.GnssSatellite
 import kniezrec.com.flightinfo.gnss.GnssStatusState
+import kniezrec.com.flightinfo.map.MapSessionRules
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.io.File
+import java.io.FileOutputStream
+import java.util.zip.ZipEntry
+import java.util.zip.ZipOutputStream
 
 @RunWith(AndroidJUnit4::class)
 class GnssStatusScreenTest {
@@ -132,6 +140,81 @@ class GnssStatusScreenTest {
         composeRule.onNodeWithText("Unable to read compass").assertIsDisplayed()
         composeRule.onNodeWithText("Try again").assertIsDisplayed()
         composeRule.onNode(hasStateDescription("Retries compass")).assertExists()
+    }
+
+    @Test fun unavailableMapShowsRetryActionAndDoesNotExposeMapControls() {
+        composeRule.setContent {
+            MapCard(
+                MapCardState.Unavailable,
+                MapSessionRules(),
+                {},
+            )
+        }
+
+        composeRule.onNodeWithText("Map unavailable").assertIsDisplayed()
+        composeRule
+            .onNodeWithText("Try again")
+            .assertIsDisplayed()
+            .assertHasClickAction()
+        composeRule.onNodeWithContentDescription("My location").assertDoesNotExist()
+        composeRule.onNodeWithContentDescription("Expand map").assertDoesNotExist()
+    }
+
+    @Test fun readyMapExposesExpandAndCollapseControlsWithDifferentHeights() {
+        val archive = File(composeRule.activity.cacheDir, "map-test.zip")
+        ZipOutputStream(FileOutputStream(archive)).use { zip ->
+            zip.putNextEntry(ZipEntry("tile.jpg"))
+            zip.write(byteArrayOf(0))
+            zip.closeEntry()
+        }
+        try {
+            composeRule.setContent {
+                MapCard(
+                    MapCardState.Ready(archive),
+                    MapSessionRules(),
+                    {},
+                )
+            }
+            val expand = composeRule.onNodeWithContentDescription("Expand map").assertIsDisplayed()
+            val normalHeight =
+                composeRule
+                    .onNodeWithTag("map-content")
+                    .fetchSemanticsNode()
+                    .boundsInRoot
+                    .height
+            expand.performClick()
+            val collapse = composeRule.onNodeWithContentDescription("Collapse map").assertIsDisplayed()
+            val expandedHeight =
+                composeRule
+                    .onNodeWithTag("map-content")
+                    .fetchSemanticsNode()
+                    .boundsInRoot
+                    .height
+            assertTrue(collapse.fetchSemanticsNode().boundsInRoot.height > 0f)
+            assertTrue(expandedHeight > normalHeight)
+        } finally {
+            archive.delete()
+        }
+    }
+
+    @Test fun invalidOfflineArchiveReportsOpenFailureWithoutUsingNetworkFallback() {
+        val archive = File(composeRule.activity.cacheDir, "invalid-map-test.zip")
+        archive.writeText("not a zip archive")
+        var failed = false
+        try {
+            composeRule.setContent {
+                MapCard(
+                    MapCardState.Ready(archive),
+                    MapSessionRules(),
+                    {},
+                    onUnavailable = { failed = true },
+                )
+            }
+            composeRule.waitForIdle()
+            assertTrue(failed)
+        } finally {
+            archive.delete()
+        }
     }
 
     private fun setCourse(courseState: CourseState) {

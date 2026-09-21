@@ -105,4 +105,17 @@
     <plurals name="nearby_city_utc_offset_minutes"><item quantity="one">%d minute</item><item quantity="other">%d minutes</item></plurals>
     <string name="nearby_city_retry">Try again</string>
     <string name="nearby_city_retry_hint">Reloads nearby city data and tries the latest GPS position.</string>
+    <string name="map_title">Map</string>
+    <string name="map_loading">Loading offline map</string>
+    <string name="map_loading_body">Preparing packaged map tiles…</string>
+    <string name="map_inactive_body">Map is paused while the dashboard is not in the foreground.</string>
+    <string name="map_unavailable">Map unavailable</string>
+    <string name="map_unavailable_body">The offline map archive could not be opened. No network map is used.</string>
+    <string name="map_try_again">Try again</string>
+    <string name="map_recenter">My location</string>
+    <string name="map_expand">Expand map</string>
+    <string name="map_collapse">Collapse map</string>
+    <string name="map_ready_summary">Offline map showing the aircraft position</string>
+    <string name="map_no_position">Current aircraft position unavailable</string>
+    <string name="map_position_shown">Current aircraft position shown</string>
 </resources>

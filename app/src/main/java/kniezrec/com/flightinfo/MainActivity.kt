@@ -40,6 +40,8 @@ import kniezrec.com.flightinfo.gnss.GnssStatusController
 import kniezrec.com.flightinfo.gnss.GnssStatusState
 import kniezrec.com.flightinfo.horizon.HorizonController
 import kniezrec.com.flightinfo.horizon.HorizonState
+import kniezrec.com.flightinfo.map.MapArchiveRepository
+import kniezrec.com.flightinfo.map.MapSessionRules
 import kniezrec.com.flightinfo.nearby.AndroidNearbyCityRepository
 import kniezrec.com.flightinfo.nearby.NearbyCityController
 import kniezrec.com.flightinfo.nearby.NearbyCityState
@@ -52,6 +54,7 @@ import kniezrec.com.flightinfo.permission.LocationPermissionState
 import kniezrec.com.flightinfo.permission.LocationPermissionStateController
 import kniezrec.com.flightinfo.permission.locationPermissionRequest
 import kniezrec.com.flightinfo.ui.gnss.GnssStatusScreen
+import kniezrec.com.flightinfo.ui.gnss.MapCardState
 import kniezrec.com.flightinfo.ui.permission.PermissionOnboardingScreen
 import kniezrec.com.flightinfo.ui.permission.smartFlightPageColor
 import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
@@ -66,7 +69,11 @@ class MainActivity : ComponentActivity() {
     private var courseState by mutableStateOf<CourseState>(CourseState.Waiting)
     private var horizonState by mutableStateOf<HorizonState>(HorizonState.Waiting)
     private var nearbyCityState by mutableStateOf<NearbyCityState>(NearbyCityState.WaitingForPosition)
-    private var isForeground = false
+    private var mapState by mutableStateOf<MapCardState>(MapCardState.Inactive)
+    private val mapRules = MapSessionRules()
+    private var mapLoadToken = 0L
+    private var mapPositionVersion by mutableIntStateOf(0)
+    private var isForeground by mutableStateOf(false)
     private val permissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
             refreshPermissionState(announceChange = true)
@@ -102,6 +109,11 @@ class MainActivity : ComponentActivity() {
                                 onHorizonRetry = { horizonController.retry(isForeground) },
                                 nearbyCityState = nearbyCityState,
                                 onNearbyCityRetry = { nearbyCityController.retry() },
+                                mapState = mapState,
+                                mapRules = mapRules,
+                                mapPositionVersion = mapPositionVersion,
+                                onMapRetry = { startMapLoad() },
+                                onMapUnavailable = { mapState = MapCardState.Unavailable },
                                 onOpenLocationSettings = {
                                     if (!openLocationSettings()) {
                                         scope.launch {
@@ -151,6 +163,7 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onPause() {
+        stopMap()
         isForeground = false
         gnssStatusController.stop()
         courseObservationCoordinator.stop()
@@ -160,6 +173,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         cityLookupExecutor.shutdownNow()
+        mapArchiveRepository.close()
         super.onDestroy()
     }
 
@@ -171,6 +185,7 @@ class MainActivity : ComponentActivity() {
             gnssStatusController.stop()
             courseObservationCoordinator.stop()
             horizonController.stop()
+            stopMap()
         }
         if (announceChange) announcementVersion++
     }
@@ -242,6 +257,7 @@ class MainActivity : ComponentActivity() {
             onLocationFix = {
                 courseController.onGpsBearing(it.bearingDegrees)
                 nearbyCityController.onLocationFix(it)
+                if (mapRules.accept(it)) mapPositionVersion++
             },
         )
     }
@@ -279,6 +295,29 @@ class MainActivity : ComponentActivity() {
             courseObservationCoordinator.stop()
         }
         horizonController.start()
+        startMapLoad()
+    }
+
+    private val mapArchiveRepository by lazy { MapArchiveRepository(applicationContext) }
+
+    private fun startMapLoad() {
+        if (!isForeground || permissionState != LocationPermissionState.Granted) return
+        val token = ++mapLoadToken
+        mapRules.reset()
+        mapPositionVersion++
+        mapState = MapCardState.Loading
+        mapArchiveRepository.prepare { result ->
+            mainExecutor.execute {
+                if (token != mapLoadToken || !isForeground || permissionState != LocationPermissionState.Granted) return@execute
+                mapState = result.fold({ MapCardState.Ready(it) }, { MapCardState.Unavailable })
+            }
+        }
+    }
+
+    private fun stopMap() {
+        mapLoadToken++
+        mapRules.reset()
+        mapState = MapCardState.Inactive
     }
 
     private companion object {
