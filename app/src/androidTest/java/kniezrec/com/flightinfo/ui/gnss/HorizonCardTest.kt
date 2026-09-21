@@ -23,7 +23,6 @@ import org.junit.runner.RunWith
 class HorizonCardTest {
     @get:Rule val composeRule = createAndroidComposeRule<ComponentActivity>()
 
-    @Test fun waitingAndUnavailableDoNotOfferAttitudeActions() {
 
     @Test fun requiredStateTransitionsHavePoliteAnnouncements() {
         var state by mutableStateOf<HorizonState>(HorizonState.Waiting)
@@ -41,6 +40,8 @@ class HorizonCardTest {
         composeRule.runOnIdle { state = HorizonState.Error }
         composeRule.onNode(hasContentDescription("Unable to read horizon")).assertExists()
     }
+    @Test fun waitingAndUnavailableDoNotOfferAttitudeActions() {
+
         composeRule.setContent { HorizonCard(HorizonState.Waiting, {}, {}) }
         composeRule.onNodeWithText("Horizon").assertIsDisplayed()
         composeRule.onNodeWithText("Waiting for attitude data…").assertIsDisplayed()
