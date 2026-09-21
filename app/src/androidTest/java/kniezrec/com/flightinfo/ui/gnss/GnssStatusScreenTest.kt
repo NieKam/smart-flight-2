@@ -9,6 +9,7 @@ import androidx.compose.ui.test.assertDoesNotExist
 import androidx.compose.ui.test.assertExists
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.hasStateDescription
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNode
@@ -23,6 +24,9 @@ import kniezrec.com.flightinfo.flight.FlightParametersState
 import kniezrec.com.flightinfo.gnss.GnssSatellite
 import kniezrec.com.flightinfo.gnss.GnssStatusState
 import kniezrec.com.flightinfo.map.MapSessionRules
+import kniezrec.com.flightinfo.nearby.NearbyCityRecord
+import kniezrec.com.flightinfo.route.RouteEndpoint
+import kniezrec.com.flightinfo.ui.route.RoutePicker
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -215,6 +219,32 @@ class GnssStatusScreenTest {
         } finally {
             archive.delete()
         }
+    }
+
+    @Test fun routePickerSupportsDraftSelectionAndExplicitCancel() {
+        val city = NearbyCityRecord(7L, "Berlin", "Germany", 52.5, 13.4, "Europe/Berlin")
+        var confirmed = false
+        var cancelled = false
+        composeRule.setContent {
+            RoutePicker(
+                endpoint = RouteEndpoint.DEPARTURE,
+                initial = null,
+                results = listOf(city),
+                loading = false,
+                error = null,
+                mapArchive = null,
+                onSearch = {},
+                onNearest = {},
+                onConfirm = { confirmed = true },
+                onCancel = { cancelled = true },
+                onRetry = {},
+            )
+        }
+        composeRule.onNodeWithText("Berlin (Germany)").assertIsDisplayed().performClick()
+        composeRule.onNodeWithText("Confirm").assertIsEnabled().performClick()
+        composeRule.runOnIdle { assertTrue(confirmed) }
+        composeRule.onNodeWithText("Cancel").performClick()
+        composeRule.runOnIdle { assertTrue(cancelled) }
     }
 
     private fun setCourse(courseState: CourseState) {

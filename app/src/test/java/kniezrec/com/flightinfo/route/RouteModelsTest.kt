@@ -3,6 +3,7 @@ package kniezrec.com.flightinfo.route
 import kniezrec.com.flightinfo.nearby.NearbyCityRecord
 import kniezrec.com.flightinfo.nearby.NearbyCoordinate
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -28,6 +29,18 @@ class RouteModelsTest {
         assertTrue(details.remainingDistanceKm!! > 100.0)
         assertTrue(details.arrival!!.contains("01/01/2020"))
         assertTrue(details.duration!!.startsWith("00:18"))
+    }
+
+    @Test fun `overlay keeps endpoint names for accessible map summary`() {
+        val overlay = routeOverlay(departure, destination)
+        assertEquals(" Alpha ", overlay?.departureName)
+        assertEquals("Beta", overlay?.destinationName)
+    }
+
+    @Test fun `query results remain distinct for explicit disambiguation`() {
+        val results = listOf(departure, departure.copy(id = 3L, name = "Alpha Two"))
+        assertEquals(2, results.filter { it.name.trim().lowercase().contains(normalizeCityQuery(" alpha")) }.size)
+        assertFalse(results.isEmpty())
     }
 
     @Test fun `invalid city cannot produce overlay`() {

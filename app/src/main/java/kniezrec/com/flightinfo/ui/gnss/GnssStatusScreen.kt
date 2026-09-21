@@ -49,16 +49,17 @@ import kniezrec.com.flightinfo.gnss.GnssSatellite
 import kniezrec.com.flightinfo.gnss.GnssStatusState
 import kniezrec.com.flightinfo.horizon.HorizonState
 import kniezrec.com.flightinfo.map.MapSessionRules
+import kniezrec.com.flightinfo.nearby.NearbyCityRecord
 import kniezrec.com.flightinfo.nearby.NearbyCityState
+import kniezrec.com.flightinfo.nearby.NearbyCoordinate
+import kniezrec.com.flightinfo.route.RouteEndpoint
+import kniezrec.com.flightinfo.route.RouteState
 import kniezrec.com.flightinfo.ui.gnss.MapCardState
 import kniezrec.com.flightinfo.ui.permission.actionCyan
 import kniezrec.com.flightinfo.ui.permission.cardPurple
-import kniezrec.com.flightinfo.route.RouteEndpoint
-import kniezrec.com.flightinfo.route.RouteState
-import kniezrec.com.flightinfo.route.RouteOverlay
-import kniezrec.com.flightinfo.nearby.NearbyCityRecord
 import kniezrec.com.flightinfo.ui.route.RouteCard
 import kniezrec.com.flightinfo.ui.route.RoutePicker
+import java.io.File
 
 private val textColor = Color(0xFFD9D9ED)
 
@@ -93,9 +94,28 @@ fun GnssStatusScreen(
     onRouteConfirm: (NearbyCityRecord) -> Unit = {},
     onRouteCancel: () -> Unit = {},
     onRouteRetry: () -> Unit = {},
+    onRouteNearest: (NearbyCoordinate) -> Unit = {},
+    routeNearestLoading: Boolean = false,
+    routePickerMapArchive: File? = null,
     modifier: Modifier = Modifier,
 ) {
     mapPositionVersion
+    if (routePicker != null) {
+        RoutePicker(
+            endpoint = routePicker,
+            initial = routePickerInitial,
+            results = routeSearchResults,
+            loading = routeSearchLoading || routeNearestLoading,
+            error = routeSearchError,
+            mapArchive = routePickerMapArchive,
+            onSearch = onRouteSearch,
+            onNearest = onRouteNearest,
+            onConfirm = onRouteConfirm,
+            onCancel = onRouteCancel,
+            onRetry = onRouteRetry,
+        )
+        return
+    }
     Column(modifier = modifier.fillMaxSize()) {
         Box(Modifier.fillMaxWidth().heightIn(min = 56.dp), contentAlignment = Alignment.Center) {
             Text(stringResource(R.string.app_name), color = textColor, fontSize = 20.sp, fontWeight = FontWeight.Medium)

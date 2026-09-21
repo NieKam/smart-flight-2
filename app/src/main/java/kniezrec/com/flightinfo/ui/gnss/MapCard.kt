@@ -41,6 +41,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import kniezrec.com.flightinfo.R
 import kniezrec.com.flightinfo.map.MapSessionRules
+import kniezrec.com.flightinfo.route.RouteOverlay
 import kniezrec.com.flightinfo.ui.permission.actionCyan
 import kniezrec.com.flightinfo.ui.permission.cardPurple
 import org.osmdroid.config.Configuration
@@ -51,7 +52,6 @@ import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
 import org.osmdroid.views.overlay.Polyline
-import kniezrec.com.flightinfo.route.RouteOverlay
 import java.io.File
 
 sealed interface MapCardState {
@@ -224,7 +224,9 @@ private fun OfflineMap(
     AndroidView(
         modifier =
             modifier.semantics {
-                contentDescription = routeOverlay?.let { context.getString(R.string.route_map_summary, "${it.departure.latitude}, ${it.departure.longitude}", "${it.destination.latitude}, ${it.destination.longitude}") } ?: context.getString(R.string.map_ready_summary)
+                contentDescription =
+                    routeOverlay?.let { context.getString(R.string.route_map_summary, it.departureName, it.destinationName) }
+                        ?: context.getString(R.string.map_ready_summary)
                 stateDescription =
                     if (rules.latestPosition ==
                         null
@@ -285,13 +287,40 @@ private fun OfflineMap(
                 instance.destinationMarker = null
             } else {
                 if (instance.routeLine == null) {
-                    instance.routeLine = Polyline(map).also { it.color = android.graphics.Color.CYAN; map.overlays.add(it) }
-                    instance.departureMarker = Marker(map).also { it.title = "Departure"; map.overlays.add(it) }
-                    instance.destinationMarker = Marker(map).also { it.title = "Destination"; map.overlays.add(it) }
+                    instance.routeLine =
+                        Polyline(map).also {
+                            it.color = android.graphics.Color.CYAN
+                            map.overlays.add(it)
+                        }
+                    instance.departureMarker =
+                        Marker(map).also { marker ->
+                            marker.icon = ContextCompat.getDrawable(context, R.drawable.ic_route_departure)
+                            marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                            map.overlays.add(marker)
+                        }
+                    instance.destinationMarker =
+                        Marker(map).also { marker ->
+                            marker.icon = ContextCompat.getDrawable(context, R.drawable.ic_route_destination)
+                            marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                            map.overlays.add(marker)
+                        }
                 }
-                instance.routeLine?.setPoints(listOf(GeoPoint(route.departure.latitude, route.departure.longitude), GeoPoint(route.destination.latitude, route.destination.longitude)))
-                instance.departureMarker?.position = GeoPoint(route.departure.latitude, route.departure.longitude)
-                instance.destinationMarker?.position = GeoPoint(route.destination.latitude, route.destination.longitude)
+                instance.routeLine?.setPoints(
+                    listOf(
+                        GeoPoint(route.departure.latitude, route.departure.longitude),
+                        GeoPoint(route.destination.latitude, route.destination.longitude),
+                    ),
+                )
+                instance.departureMarker?.apply {
+                    title = context.getString(R.string.route_departure_marker, route.departureName)
+                    snippet = context.getString(R.string.route_departure_marker_description)
+                    position = GeoPoint(route.departure.latitude, route.departure.longitude)
+                }
+                instance.destinationMarker?.apply {
+                    title = context.getString(R.string.route_destination_marker, route.destinationName)
+                    snippet = context.getString(R.string.route_destination_marker_description)
+                    position = GeoPoint(route.destination.latitude, route.destination.longitude)
+                }
             }
             map.invalidate()
         },
