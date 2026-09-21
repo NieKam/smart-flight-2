@@ -16,12 +16,12 @@ class HorizonControllerTest {
         val controller = HorizonController(platform, states::add)
         controller.start()
         platform.attitude(10.0, 4.0)
-        assertEquals(HorizonState.Available(0, 4, 0f, 4f), states.last())
+        assertEquals(HorizonState.Available(0, 4, -0f, 4f), states.last())
 
         controller.calibrate()
         assertEquals(HorizonState.Recalibrating, states.last())
         platform.attitude(18.0, -6.0)
-        assertEquals(HorizonState.Available(0, -6, 0f, -6f), states.last())
+        assertEquals(HorizonState.Available(0, -6, -0f, -6f), states.last())
         platform.attitude(28.0, -8.0)
         assertEquals(HorizonState.Available(10, -8, -0.11666667f, -8f), states.last())
     }
@@ -65,7 +65,7 @@ class HorizonControllerTest {
         assertEquals(HorizonState.Waiting, states.last())
 
         platform.attitude(30.0, -4.0)
-        assertEquals(HorizonState.Available(0, -4, 0f, -4f), states.last())
+        assertEquals(HorizonState.Available(0, -4, -0f, -4f), states.last())
         platform.attitude(15.0, 5.0)
         assertEquals(HorizonState.Available(-15, 5, 0.175f, 5f), states.last())
     }

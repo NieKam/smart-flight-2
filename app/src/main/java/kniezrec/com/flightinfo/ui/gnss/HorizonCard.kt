@@ -163,7 +163,7 @@ private fun HorizonInstrument(state: HorizonState.Available, modifier: Modifier)
                 drawLine(tick, Offset(size.width * .05f, y), Offset(size.width * .05f + length, y), 2.dp.toPx())
                 drawLine(tick, Offset(size.width * .95f - length, y), Offset(size.width * .95f, y), 2.dp.toPx())
             }
-        })
+        }
         Canvas(Modifier.matchParentSize()) {
             val y = size.height / 2
             val center = Offset(size.width / 2, y)
