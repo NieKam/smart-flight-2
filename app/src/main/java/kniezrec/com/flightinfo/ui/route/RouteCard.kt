@@ -49,10 +49,11 @@ fun RouteCard(
             EndpointRow(RouteEndpoint.DEPARTURE, state.departure?.name, onChoose, onClear)
             EndpointRow(RouteEndpoint.DESTINATION, state.destination?.name, onChoose, onClear)
             state.details?.let { details ->
-                Detail(R.string.route_distance, formatDistance(details.fixedDistanceKm, distanceUnit))
+                Detail(R.string.route_distance, formatDistance(details.fixedDistanceKm, distanceUnit), formatDistanceSpoken(details.fixedDistanceKm, distanceUnit))
                 Detail(
                     R.string.route_remaining,
                     details.remainingDistanceKm?.let { formatDistance(it, distanceUnit) } ?: stringResource(R.string.route_waiting_position),
+                    details.remainingDistanceKm?.let { formatDistanceSpoken(it, distanceUnit) } ?: stringResource(R.string.route_waiting_position),
                 )
                 Detail(
                     R.string.route_arrival,
@@ -132,8 +133,9 @@ fun RouteCard(
 @Composable private fun Detail(
     label: Int,
     value: String,
+    spoken: String = value,
 ) {
-    Column(Modifier.fillMaxWidth().padding(top = 8.dp)) {
+    Column(Modifier.fillMaxWidth().padding(top = 8.dp).semantics { contentDescription = stringResource(R.string.route_detail_description, stringResource(label), spoken) }) {
         Text(
             stringResource(label),
             color =
@@ -149,4 +151,10 @@ fun RouteCard(
     }
 }
 
-private fun formatDistance(value: Double, unit: DistanceUnit): String = (formatUnitNumber(convertDistance(value, unit)) ?: "—") + " " + if (unit == DistanceUnit.MILES) "mi" else "km"
+
+@Composable
+private fun formatDistance(value: Double, unit: DistanceUnit): String = stringResource(R.string.distance_value, formatUnitNumber(convertDistance(value, unit)) ?: "—", stringResource(if (unit == DistanceUnit.MILES) R.string.unit_mi else R.string.unit_km))
+
+
+@Composable
+private fun formatDistanceSpoken(value: Double, unit: DistanceUnit): String = stringResource(R.string.distance_spoken_value, formatUnitNumber(convertDistance(value, unit)) ?: "—", stringResource(if (unit == DistanceUnit.MILES) R.string.unit_mi_accessibility else R.string.unit_km_accessibility))

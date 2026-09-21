@@ -17,7 +17,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -25,6 +26,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -61,7 +63,7 @@ fun UnitSettingsScreen(
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.settings_title)) },
-                navigationIcon = { TextButton(onClick = onBack) { Text(stringResource(R.string.navigate_up)) } },
+                navigationIcon = { IconButton(onClick = onBack) { Icon(painterResource(R.drawable.ic_arrow_back), stringResource(R.string.navigate_up)) } },
             )
         },
     ) { padding ->
@@ -88,7 +90,7 @@ private fun SettingRow(label: String, value: String, onClick: () -> Unit) {
     Column {
         Row(
             Modifier.fillMaxWidth().heightIn(min = 64.dp).clickable(onClick = onClick).semantics(mergeDescendants = true) {
-                contentDescription = "$label, $value"
+                contentDescription = stringResource(R.string.settings_row_description, label, value)
                 role = Role.Button
             }.padding(vertical = 12.dp),
         ) {
@@ -113,7 +115,7 @@ private fun <T> UnitChoiceDialog(selector: Selector<T>, preferences: UnitPrefere
         onDismissRequest = onDismiss,
         title = { Text(stringResource(selector.title)) },
         text = {
-            Column {
+            Column(Modifier.heightIn(max = 360.dp).verticalScroll(rememberScrollState())) {
                 selector.options.forEach { option ->
                     val isSelected = option == selected
                     Row(
@@ -123,7 +125,7 @@ private fun <T> UnitChoiceDialog(selector: Selector<T>, preferences: UnitPrefere
                         }.semantics { role = Role.RadioButton; selected = isSelected },
                     ) {
                         RadioButton(selected = isSelected, onClick = null)
-                        Text(optionText(option), Modifier.padding(start = 12.dp).padding(vertical = 14.dp))
+                        Text(optionText(option), Modifier.weight(1f).padding(start = 12.dp).padding(vertical = 14.dp))
                     }
                 }
             }

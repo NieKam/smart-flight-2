@@ -94,8 +94,8 @@ internal fun NearbyCityCard(
         Row(R.string.nearby_city_country, state.country)
         Row(
             R.string.nearby_city_distance,
-            stringResource(R.string.nearby_city_distance_value, number + " " + stringResource(if (distanceUnit == DistanceUnit.MILES) R.string.unit_mi else R.string.unit_km)),
-            stringResource(R.string.nearby_city_distance_spoken, number + " " + stringResource(if (distanceUnit == DistanceUnit.MILES) R.string.unit_mi else R.string.unit_km)),
+            stringResource(R.string.distance_value, number, stringResource(if (distanceUnit == DistanceUnit.MILES) R.string.unit_mi else R.string.unit_km)),
+            stringResource(R.string.distance_spoken_value, number, stringResource(if (distanceUnit == DistanceUnit.MILES) R.string.unit_mi_accessibility else R.string.unit_km_accessibility)),
         )
         val offset = utcOffsetPresentation(state.utcOffsetSeconds)
         Row(
