@@ -3,6 +3,7 @@ package kniezrec.com.flightinfo.nearby
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import java.io.File
+import java.io.FileOutputStream
 
 /** Read-only platform boundary for the immutable legacy city asset. Call only from a worker. */
 internal class AndroidNearbyCityRepository(private val context: Context) : NearbyCityRepository {
@@ -34,10 +35,16 @@ internal class AndroidNearbyCityRepository(private val context: Context) : Nearb
 
     private fun copyAsset(reload: Boolean): File {
         val target = File(context.filesDir, "nearby-city/cities_info.db")
-        val assetLength = context.assets.openFd(ASSET_PATH).length
-        if (reload || !target.isFile || target.length() != assetLength) {
+        if (reload || !target.isFile) {
             target.parentFile?.mkdirs()
-            context.assets.open(ASSET_PATH).use { input -> target.outputStream().use(input::copyTo) }
+            val replacement = File(target.parentFile, "${target.name}.tmp")
+            context.assets.open(ASSET_PATH).use { input ->
+                FileOutputStream(replacement).use(input::copyTo)
+            }
+            if (!replacement.renameTo(target)) {
+                replacement.delete()
+                throw IllegalStateException("Unable to replace nearby city database")
+            }
         }
         return target
     }
