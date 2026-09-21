@@ -79,6 +79,8 @@ class MainActivity : ComponentActivity() {
     private var routeResults by mutableStateOf<List<NearbyCityRecord>>(emptyList())
     private var routeSearchLoading by mutableStateOf(false)
     private var routeSearchError by mutableStateOf<String?>(null)
+    private var routeNearestDraft by mutableStateOf<NearbyCityRecord?>(null)
+    private var lastRouteSearchQuery = ""
     private val mapRules = MapSessionRules()
     private var mapLoadToken = 0L
     private var mapPositionVersion by mutableIntStateOf(0)
@@ -128,6 +130,8 @@ class MainActivity : ComponentActivity() {
                                     routePicker = it
                                     routeResults = emptyList()
                                     routeSearchError = null
+                                    routeNearestDraft = null
+                                    lastRouteSearchQuery = ""
                                 },
                                 onRouteClear = { routeController.clear(it) },
                                 onRouteClearAll = { routeController.clearRoute() },
@@ -144,6 +148,7 @@ class MainActivity : ComponentActivity() {
                                 routeSearchLoading = routeSearchLoading,
                                 routeSearchError = routeSearchError,
                                 onRouteSearch = { query ->
+                                    lastRouteSearchQuery = query
                                     routeSearchLoading = true
                                     routeSearchError = null
                                     routeController.search(query) { result ->
@@ -153,18 +158,24 @@ class MainActivity : ComponentActivity() {
                                 },
                                 onRouteConfirm = { city ->
                                     routePicker?.let { routeController.choose(it, city) }
+                                    routeNearestDraft = null
                                     routePicker = null
                                 },
-                                onRouteCancel = { routePicker = null },
+                                onRouteCancel = { routeNearestDraft = null; routePicker = null },
                                 onRouteRetry = {
                                     routePicker?.let {
                                         routeSearchLoading = true
-                                        routeController.search("") {
-                                            routeSearchLoading =
-                                                false
+                                        routeSearchError = null
+                                        routeController.search(lastRouteSearchQuery, reload = true) { result ->
+                                            routeSearchLoading = false
+                                            result.fold(
+                                                { routeResults = it },
+                                                { routeSearchError = getString(R.string.route_error) },
+                                            )
                                         }
                                     }
                                 },
+                                onRouteRestoreRetry = { routeController.retryRestore() },
                                 onRouteNearest = { coordinate ->
                                     routeSearchLoading = true
                                     routeSearchError = null
@@ -172,6 +183,7 @@ class MainActivity : ComponentActivity() {
                                         routeSearchLoading = false
                                         result.fold(
                                             { city ->
+                                                routeNearestDraft = city
                                                 routeResults = city?.let(::listOf) ?: emptyList()
                                                 if (city == null) routeSearchError = getString(R.string.route_no_city_at_location)
                                             },

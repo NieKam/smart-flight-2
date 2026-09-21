@@ -43,6 +43,7 @@ import org.osmdroid.tileprovider.util.SimpleRegisterReceiver
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.MapEventsOverlay
+import org.osmdroid.views.overlay.Marker
 import java.io.File
 
 private val pickerMapSource = XYTileSource("MapquestOSM", 1, 6, 256, ".jpg", arrayOf())
@@ -57,6 +58,7 @@ fun RoutePicker(
     mapArchive: File?,
     onSearch: (String) -> Unit,
     onNearest: (NearbyCoordinate) -> Unit,
+    nearestDraft: NearbyCityRecord? = null,
     onConfirm: (NearbyCityRecord) -> Unit,
     onCancel: () -> Unit,
     onRetry: () -> Unit,
@@ -65,6 +67,7 @@ fun RoutePicker(
     var selected by remember { mutableStateOf(initial) }
     var mapMessage by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(initial) { selected = initial }
+    LaunchedEffect(nearestDraft) { if (nearestDraft != null) selected = nearestDraft }
     Column(Modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(
             stringResource(if (endpoint == RouteEndpoint.DEPARTURE) R.string.route_picker_departure else R.string.route_picker_destination),
@@ -107,7 +110,7 @@ fun RoutePicker(
             item {
                 Box(Modifier.fillMaxWidth().heightIn(min = 180.dp)) {
                     if (mapArchive != null) {
-                        PickerMap(mapArchive, onNearest = { coordinate ->
+                        PickerMap(mapArchive, selected?.let { NearbyCoordinate.from(it.latitude, it.longitude) }, onNearest = { coordinate ->
                             mapMessage = null
                             onNearest(coordinate)
                         }, onInvalidLongPress = { mapMessage = it })
@@ -135,10 +138,12 @@ fun RoutePicker(
 @Composable
 private fun PickerMap(
     archive: File,
+    selectedCoordinate: NearbyCoordinate?,
     onNearest: (NearbyCoordinate) -> Unit,
     onInvalidLongPress: (String) -> Unit,
 ) {
     val context = LocalContext.current
+    var draftMarker by remember { mutableStateOf<Marker?>(null) }
     AndroidView(
         modifier = Modifier.fillMaxSize().semantics { contentDescription = context.getString(R.string.route_picker_map_description) },
         factory = {
@@ -170,6 +175,17 @@ private fun PickerMap(
                 )
             }
         },
-        update = {},
+        update = { map ->
+            draftMarker?.let { map.overlays.remove(it) }
+            draftMarker = selectedCoordinate?.let { coordinate ->
+                Marker(map).also { marker ->
+                    marker.icon = androidx.core.content.ContextCompat.getDrawable(context, R.drawable.ic_route_destination)
+                    marker.position = GeoPoint(coordinate.latitude, coordinate.longitude)
+                    marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                    map.overlays.add(marker)
+                }
+            }
+            map.invalidate()
+        },
     )
 }

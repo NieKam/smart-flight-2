@@ -65,6 +65,29 @@ class RouteControllerTest {
         assertEquals(stoppedStateCount, states.size)
     }
 
+    @Test fun restoreReadFailuresAreSurfacedForRetry() {
+        val preferences = MemoryPreferences().apply { edit().putLong("route_departure_id", departure.id).commit() }
+        val repository = object : NearbyCityRepository {
+            override fun findById(id: Long, reload: Boolean): NearbyCityRecord? = error("database unavailable")
+        }
+        var state = RouteState()
+        RouteController(repository, preferences, direct, direct, { state = it }).start()
+        assertTrue(state.error != null)
+    }
+
+    @Test fun nearestCallbackReturnsGeographicallyNearestCity() {
+        val near = destination.copy(latitude = 0.0, longitude = 0.1)
+        val far = destination.copy(id = 3L, latitude = 0.0, longitude = 10.0)
+        var nearest: NearbyCityRecord? = null
+        val repository = object : NearbyCityRepository {
+            override fun findNearest(position: NearbyCoordinate, reload: Boolean): NearbyCityRecord? = listOf(near, far).minByOrNull { kniezrec.com.flightinfo.nearby.distanceKilometres(position, NearbyCoordinate(it.latitude, it.longitude)) }
+        }
+        val controller = RouteController(repository, MemoryPreferences(), direct, direct, {})
+        controller.start()
+        controller.nearest(NearbyCoordinate(0.0, 0.0)) { nearest = it.getOrNull() }
+        assertEquals(near, nearest)
+    }
+
     private class FakeRepository(private val records: List<NearbyCityRecord>) : NearbyCityRepository {
         override fun findNearest(position: NearbyCoordinate, reload: Boolean): NearbyCityRecord? = records.minByOrNull { it.latitude }
         override fun findById(id: Long, reload: Boolean): NearbyCityRecord? = records.firstOrNull { it.id == id }

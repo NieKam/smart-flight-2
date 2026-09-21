@@ -94,7 +94,9 @@ fun GnssStatusScreen(
     onRouteConfirm: (NearbyCityRecord) -> Unit = {},
     onRouteCancel: () -> Unit = {},
     onRouteRetry: () -> Unit = {},
+    onRouteRestoreRetry: () -> Unit = {},
     onRouteNearest: (NearbyCoordinate) -> Unit = {},
+    routeNearestDraft: NearbyCityRecord? = null,
     routeNearestLoading: Boolean = false,
     routePickerMapArchive: File? = null,
     modifier: Modifier = Modifier,
@@ -110,6 +112,7 @@ fun GnssStatusScreen(
             mapArchive = routePickerMapArchive,
             onSearch = onRouteSearch,
             onNearest = onRouteNearest,
+            nearestDraft = routeNearestDraft,
             onConfirm = onRouteConfirm,
             onCancel = onRouteCancel,
             onRetry = onRouteRetry,
@@ -139,7 +142,7 @@ fun GnssStatusScreen(
                 NearbyCityCard(nearbyCityState, onNearbyCityRetry, Modifier.padding(bottom = 12.dp).widthIn(max = 600.dp))
             }
             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
-                RouteCard(routeState, onRouteChoose, onRouteClear, onRouteClearAll, Modifier.padding(bottom = 12.dp).widthIn(max = 600.dp))
+                RouteCard(routeState, onRouteChoose, onRouteClear, onRouteClearAll, onRouteRestoreRetry, Modifier.padding(bottom = 12.dp).widthIn(max = 600.dp))
             }
             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
                 MapCard(

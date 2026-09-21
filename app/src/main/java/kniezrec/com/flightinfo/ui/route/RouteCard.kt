@@ -24,32 +24,104 @@ import kniezrec.com.flightinfo.ui.permission.actionCyan
 import kniezrec.com.flightinfo.ui.permission.cardPurple
 
 @Composable
-fun RouteCard(state: RouteState, onChoose: (RouteEndpoint) -> Unit, onClear: (RouteEndpoint) -> Unit, onClearAll: () -> Unit, modifier: Modifier = Modifier) {
+fun RouteCard(
+    state: RouteState,
+    onChoose: (RouteEndpoint) -> Unit,
+    onClear: (RouteEndpoint) -> Unit,
+    onClearAll: () -> Unit,
+    onRestoreRetry: () -> Unit = {},
+    modifier: Modifier = Modifier,
+) {
     Card(modifier.fillMaxWidth().heightIn(min = 120.dp), colors = CardDefaults.cardColors(containerColor = cardPurple)) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(stringResource(R.string.route_title), color = androidx.compose.ui.graphics.Color(0xFFD9D9ED))
+            Text(
+                stringResource(R.string.route_title),
+                color =
+                    androidx.compose.ui.graphics
+                        .Color(0xFFD9D9ED),
+            )
             EndpointRow(RouteEndpoint.DEPARTURE, state.departure?.name, onChoose, onClear)
             EndpointRow(RouteEndpoint.DESTINATION, state.destination?.name, onChoose, onClear)
             state.details?.let { details ->
                 Detail(R.string.route_distance, formatKilometres(details.fixedDistanceKm))
-                Detail(R.string.route_remaining, details.remainingDistanceKm?.let(::formatKilometres) ?: stringResource(R.string.route_waiting_position))
-                Detail(R.string.route_arrival, details.arrival?.let { a -> "$a (${details.duration})" } ?: stringResource(R.string.route_waiting_speed))
+                Detail(
+                    R.string.route_remaining,
+                    details.remainingDistanceKm?.let(::formatKilometres) ?: stringResource(R.string.route_waiting_position),
+                )
+                Detail(
+                    R.string.route_arrival,
+                    details.arrival?.let { a -> "$a (${details.duration})" } ?: stringResource(R.string.route_waiting_speed),
+                )
             }
-            if (state.departure != null || state.destination != null) TextButton(onClick = onClearAll, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.route_clear_all), color = actionCyan) }
-            state.error?.let { Text(it, color = androidx.compose.ui.graphics.Color(0xFFFFB4AB)) }
+            if (state.departure != null ||
+                state.destination != null
+            ) {
+                TextButton(onClick = onClearAll, modifier = Modifier.heightIn(min = 48.dp)) {
+                    Text(stringResource(R.string.route_clear_all), color = actionCyan)
+                }
+            }
+            state.error?.let {
+                Text(
+                    stringResource(R.string.route_error),
+                    color =
+                        androidx.compose.ui.graphics
+                            .Color(0xFFFFB4AB),
+                )
+            }
+            if (state.error != null) {
+                TextButton(onClick = onRestoreRetry, modifier = Modifier.heightIn(min = 48.dp)) {
+                    Text(stringResource(R.string.route_retry), color = actionCyan)
+                }
+            }
         }
     }
 }
 
-@Composable private fun EndpointRow(endpoint: RouteEndpoint, city: String?, onChoose: (RouteEndpoint) -> Unit, onClear: (RouteEndpoint) -> Unit) {
+@Composable private fun EndpointRow(
+    endpoint: RouteEndpoint,
+    city: String?,
+    onChoose: (RouteEndpoint) -> Unit,
+    onClear: (RouteEndpoint) -> Unit,
+) {
     val role = if (endpoint == RouteEndpoint.DEPARTURE) R.string.route_departure else R.string.route_destination
     val choose = if (endpoint == RouteEndpoint.DEPARTURE) R.string.route_choose_departure else R.string.route_choose_destination
     val roleText = stringResource(role)
     val chooseText = stringResource(choose)
     Row(Modifier.fillMaxWidth().heightIn(min = 52.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-        TextButton(onClick = { onChoose(endpoint) }, modifier = Modifier.weight(1f).semantics { contentDescription = "$roleText, ${city ?: chooseText}" }) { Text("$roleText: ${city ?: chooseText}", color = actionCyan) }
-        if (city != null) TextButton(onClick = { onClear(endpoint) }, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.route_clear), color = actionCyan) }
+        TextButton(
+            onClick = { onChoose(endpoint) },
+            modifier =
+                Modifier.weight(1f).semantics {
+                    contentDescription =
+                        "$roleText, ${city ?: chooseText}"
+                },
+        ) { Text("$roleText: ${city ?: chooseText}", color = actionCyan) }
+        if (city !=
+            null
+        ) {
+            TextButton(onClick = {
+                onClear(endpoint)
+            }, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.route_clear), color = actionCyan) }
+        }
     }
 }
 
-@Composable private fun Detail(label: Int, value: String) { Column(Modifier.fillMaxWidth().padding(top = 8.dp)) { Text(stringResource(label), color = androidx.compose.ui.graphics.Color(0xFFD9D9ED)); Text(value, color = androidx.compose.ui.graphics.Color(0xFFD9D9ED)) } }
+@Composable private fun Detail(
+    label: Int,
+    value: String,
+) {
+    Column(Modifier.fillMaxWidth().padding(top = 8.dp)) {
+        Text(
+            stringResource(label),
+            color =
+                androidx.compose.ui.graphics
+                    .Color(0xFFD9D9ED),
+        )
+        Text(
+            value,
+            color =
+                androidx.compose.ui.graphics
+                    .Color(0xFFD9D9ED),
+        )
+    }
+}

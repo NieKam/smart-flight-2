@@ -56,9 +56,16 @@ internal interface NearbyCityRepository {
         position: NearbyCoordinate,
         reload: Boolean = false,
     ): NearbyCityRecord?
-    fun searchByName(query: String, reload: Boolean = false): List<NearbyCityRecord> = emptyList()
 
-    fun findById(id: Long, reload: Boolean = false): NearbyCityRecord? = null
+    fun searchByName(
+        query: String,
+        reload: Boolean = false,
+    ): List<NearbyCityRecord> = emptyList()
+
+    fun findById(
+        id: Long,
+        reload: Boolean = false,
+    ): NearbyCityRecord? = null
 }
 
 /** Owns city lookup state; callbacks from obsolete sessions or fixes are ignored. */

@@ -247,6 +247,17 @@ class GnssStatusScreenTest {
         composeRule.runOnIdle { assertTrue(cancelled) }
     }
 
+    @Test fun routePickerNearestCityIsImmediatelyConfirmableDraft() {
+        val city = NearbyCityRecord(8L, "Paris", "France", 48.8, 2.3, "Europe/Paris")
+        var confirmed = false
+        composeRule.setContent {
+            RoutePicker(endpoint = RouteEndpoint.DESTINATION, initial = null, results = emptyList(), loading = false, error = null, mapArchive = null, onSearch = {}, onNearest = {}, nearestDraft = city, onConfirm = { confirmed = true }, onCancel = {}, onRetry = {})
+        }
+        composeRule.onNodeWithText("Selected: Paris (France)").assertIsDisplayed()
+        composeRule.onNodeWithText("Confirm").assertIsEnabled().performClick()
+        composeRule.runOnIdle { assertTrue(confirmed) }
+    }
+
     private fun setCourse(courseState: CourseState) {
         composeRule.setContent {
             GnssStatusScreen(GnssStatusState.Waiting, FlightParametersState.Waiting, {}, {}, courseState, {})
