@@ -48,7 +48,9 @@ import kniezrec.com.flightinfo.flight.FlightParametersState
 import kniezrec.com.flightinfo.gnss.GnssSatellite
 import kniezrec.com.flightinfo.gnss.GnssStatusState
 import kniezrec.com.flightinfo.horizon.HorizonState
+import kniezrec.com.flightinfo.map.MapSessionRules
 import kniezrec.com.flightinfo.nearby.NearbyCityState
+import kniezrec.com.flightinfo.ui.gnss.MapCardState
 import kniezrec.com.flightinfo.ui.permission.actionCyan
 import kniezrec.com.flightinfo.ui.permission.cardPurple
 
@@ -67,8 +69,13 @@ fun GnssStatusScreen(
     onHorizonRetry: () -> Unit = {},
     nearbyCityState: NearbyCityState = NearbyCityState.WaitingForPosition,
     onNearbyCityRetry: () -> Unit = {},
+    mapState: MapCardState = MapCardState.Inactive,
+    mapRules: MapSessionRules = MapSessionRules(),
+    mapPositionVersion: Int = 0,
+    onMapRetry: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
+    mapPositionVersion
     Column(modifier = modifier.fillMaxSize()) {
         Box(Modifier.fillMaxWidth().heightIn(min = 56.dp), contentAlignment = Alignment.Center) {
             Text(stringResource(R.string.app_name), color = textColor, fontSize = 20.sp, fontWeight = FontWeight.Medium)
@@ -90,6 +97,9 @@ fun GnssStatusScreen(
             }
             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
                 NearbyCityCard(nearbyCityState, onNearbyCityRetry, Modifier.padding(bottom = 12.dp).widthIn(max = 600.dp))
+            }
+            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
+                MapCard(mapState, mapRules, onMapRetry, Modifier.padding(bottom = 12.dp).widthIn(max = 600.dp))
             }
         }
     }
