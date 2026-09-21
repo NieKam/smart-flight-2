@@ -32,6 +32,7 @@ import kniezrec.com.flightinfo.flight.AndroidFlightLocationPlatform
 import kniezrec.com.flightinfo.course.AndroidCourseOrientationPlatform
 import kniezrec.com.flightinfo.course.CourseController
 import kniezrec.com.flightinfo.course.CourseState
+import kniezrec.com.flightinfo.course.ForegroundCourseObservationCoordinator
 import kniezrec.com.flightinfo.flight.FlightParametersController
 import kniezrec.com.flightinfo.flight.FlightParametersState
 import kniezrec.com.flightinfo.gnss.AndroidGnssStatusPlatform
@@ -129,8 +130,7 @@ class MainActivity : ComponentActivity() {
     override fun onPause() {
         isForeground = false
         gnssStatusController.stop()
-        flightParametersController.stop()
-            courseController.stop()
+        courseObservationCoordinator.stop()
         super.onPause()
     }
 
@@ -140,8 +140,7 @@ class MainActivity : ComponentActivity() {
             startObservation()
         } else {
             gnssStatusController.stop()
-            flightParametersController.stop()
-            courseController.stop()
+            courseObservationCoordinator.stop()
         }
         if (announceChange) announcementVersion++
     }
@@ -209,7 +208,7 @@ class MainActivity : ComponentActivity() {
         FlightParametersController(
             platform = AndroidFlightLocationPlatform(getSystemService(LocationManager::class.java), packageManager, mainExecutor),
             onStateChanged = { flightParametersState = it },
-            onRegistrationFailed = { gnssStatusController.showError(); courseController.stop() },
+            onRegistrationFailed = { gnssStatusController.showError() },
             onLocationFix = { courseController.onGpsBearing(it.bearingDegrees) },
         )
     }
@@ -218,14 +217,16 @@ class MainActivity : ComponentActivity() {
         CourseController(AndroidCourseOrientationPlatform(this, mainExecutor)) { courseState = it }
     }
 
+    private val courseObservationCoordinator by lazy {
+        ForegroundCourseObservationCoordinator(flightParametersController, courseController)
+    }
+
     private fun startObservation() {
         gnssStatusController.start()
         if (gnssState is GnssStatusState.Waiting || gnssState is GnssStatusState.Available) {
-            flightParametersController.start()
-            courseController.start()
+            courseObservationCoordinator.start()
         } else {
-            flightParametersController.stop()
-            courseController.stop()
+            courseObservationCoordinator.stop()
         }
     }
 

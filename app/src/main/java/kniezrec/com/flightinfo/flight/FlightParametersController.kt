@@ -24,9 +24,10 @@ internal class FlightParametersController(
     private var previousAltitudeSample: AltitudeSample? = null
     private var hasReceivedDisplayableReading = false
 
-    fun start() {
+    /** Starts a foreground location session and reports whether listener registration succeeded. */
+    fun start(): Boolean {
         stop()
-        if (!platform.areLocationServicesEnabled() || !platform.hasGnssHardware()) return
+        if (!platform.areLocationServicesEnabled() || !platform.hasGnssHardware()) return false
         val session = ++nextSession
         activeSession = session
         registered =
@@ -42,7 +43,9 @@ internal class FlightParametersController(
         if (!registered) {
             activeSession = null
             onRegistrationFailed()
+            return false
         }
+        return true
     }
 
     fun stop() {
