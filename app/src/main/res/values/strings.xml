@@ -23,11 +23,14 @@
     <string name="flight_speed">Speed</string>
     <string name="flight_vertical_speed">Vertical speed</string>
     <string name="flight_altitude">Altitude</string>
+    <string name="flight_pressure">Pressure</string>
     <string name="flight_unavailable">—</string>
     <string name="flight_unavailable_accessibility">unavailable</string>
     <string name="flight_speed_value">%1$s km/h</string>
     <string name="flight_vertical_speed_value">%1$s m/s</string>
     <string name="flight_altitude_value">%1$s m</string>
+    <string name="flight_pressure_value">%1$s mbar</string>
+    <string name="flight_pressure_accessibility_value">%1$s millibars</string>
 
     <string name="course_title">Course</string>
     <string name="course_waiting">Waiting for compass heading…</string>

@@ -161,6 +161,18 @@ private fun FlightParametersReadings(state: FlightParametersState.Readings) {
                 format(it, R.string.flight_altitude_value, false)
             },
         )
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        ParameterRow(
+            R.string.flight_pressure,
+            state.pressureMillibars?.let {
+                format(it, R.string.flight_pressure_value, false)
+            },
+            accessibilityValue = state.pressureMillibars?.let {
+                format(it, R.string.flight_pressure_accessibility_value, false)
+            },
+        )
     }
 }
 
@@ -185,6 +197,7 @@ private fun FlightParametersTitle(textAlign: TextAlign = TextAlign.Start) {
 private fun ParameterRow(
     label: Int,
     value: String?,
+    accessibilityValue: String? = null,
 ) {
     val labelText =
         androidx.compose.ui.res
@@ -193,7 +206,7 @@ private fun ParameterRow(
         value ?: androidx.compose.ui.res
             .stringResource(R.string.flight_unavailable)
     val spokenValue =
-        value ?: androidx.compose.ui.res
+        (accessibilityValue ?: value) ?: androidx.compose.ui.res
             .stringResource(R.string.flight_unavailable_accessibility)
 
     Row(

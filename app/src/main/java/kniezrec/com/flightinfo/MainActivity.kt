@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.Configuration
+import android.hardware.SensorManager
 import android.location.LocationManager
 import android.net.Uri
 import android.os.Bundle
@@ -33,8 +34,10 @@ import kniezrec.com.flightinfo.course.CourseController
 import kniezrec.com.flightinfo.course.CourseState
 import kniezrec.com.flightinfo.course.ForegroundCourseObservationCoordinator
 import kniezrec.com.flightinfo.flight.AndroidFlightLocationPlatform
+import kniezrec.com.flightinfo.flight.AndroidPressurePlatform
 import kniezrec.com.flightinfo.flight.FlightParametersController
 import kniezrec.com.flightinfo.flight.FlightParametersState
+import kniezrec.com.flightinfo.flight.PressureController
 import kniezrec.com.flightinfo.gnss.AndroidGnssStatusPlatform
 import kniezrec.com.flightinfo.gnss.GnssStatusController
 import kniezrec.com.flightinfo.gnss.GnssStatusState
@@ -66,6 +69,7 @@ class MainActivity : ComponentActivity() {
     private var announcementVersion by mutableIntStateOf(0)
     private var gnssState by mutableStateOf<GnssStatusState>(GnssStatusState.Waiting)
     private var flightParametersState by mutableStateOf<FlightParametersState>(FlightParametersState.Waiting)
+    private var pressureMillibars: Double? = null
     private var courseState by mutableStateOf<CourseState>(CourseState.Waiting)
     private var horizonState by mutableStateOf<HorizonState>(HorizonState.Waiting)
     private var nearbyCityState by mutableStateOf<NearbyCityState>(NearbyCityState.WaitingForPosition)
@@ -166,12 +170,14 @@ class MainActivity : ComponentActivity() {
         stopMap()
         isForeground = false
         gnssStatusController.stop()
+        pressureController.stop()
         courseObservationCoordinator.stop()
         horizonController.stop()
         super.onPause()
     }
 
     override fun onDestroy() {
+        pressureController.stop()
         cityLookupExecutor.shutdownNow()
         mapArchiveRepository.close()
         super.onDestroy()
@@ -183,6 +189,7 @@ class MainActivity : ComponentActivity() {
             startObservation()
         } else {
             gnssStatusController.stop()
+            pressureController.stop()
             courseObservationCoordinator.stop()
             horizonController.stop()
             stopMap()
@@ -252,12 +259,28 @@ class MainActivity : ComponentActivity() {
     private val flightParametersController by lazy {
         FlightParametersController(
             platform = AndroidFlightLocationPlatform(getSystemService(LocationManager::class.java), packageManager, mainExecutor),
-            onStateChanged = { flightParametersState = it },
+            onStateChanged = { state ->
+                flightParametersState =
+                    (state as? FlightParametersState.Readings)?.copy(pressureMillibars = pressureMillibars) ?: state
+            },
             onRegistrationFailed = { gnssStatusController.showError() },
             onLocationFix = {
                 courseController.onGpsBearing(it.bearingDegrees)
                 nearbyCityController.onLocationFix(it)
                 if (mapRules.accept(it)) mapPositionVersion++
+            },
+        )
+    }
+
+    private val pressureController by lazy {
+        PressureController(
+            platform = AndroidPressurePlatform(getSystemService(SensorManager::class.java), mainExecutor),
+            onPressureChanged = { pressure ->
+                pressureMillibars = pressure
+                flightParametersState =
+                    (flightParametersState as? FlightParametersState.Readings)?.copy(
+                        pressureMillibars = pressure,
+                    ) ?: flightParametersState
             },
         )
     }
@@ -288,6 +311,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun startObservation() {
+        pressureController.start()
         gnssStatusController.start()
         if (gnssState is GnssStatusState.Waiting || gnssState is GnssStatusState.Available) {
             courseObservationCoordinator.start()

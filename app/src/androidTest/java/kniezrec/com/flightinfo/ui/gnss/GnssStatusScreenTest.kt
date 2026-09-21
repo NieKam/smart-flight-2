@@ -73,7 +73,7 @@ class GnssStatusScreenTest {
         composeRule.setContent {
             GnssStatusScreen(
                 state = GnssStatusState.Waiting,
-                flightParametersState = FlightParametersState.Readings(36.0, null, 100.0),
+                flightParametersState = FlightParametersState.Readings(36.0, null, 100.0, 1013.25),
                 onOpenLocationSettings = {},
                 onRetry = {},
             )
@@ -81,6 +81,7 @@ class GnssStatusScreenTest {
         composeRule.onNodeWithText("36.0 km/h").assertIsDisplayed()
         composeRule.onNodeWithText("—").assertIsDisplayed()
         composeRule.onNodeWithText("100.0 m").assertIsDisplayed()
+        composeRule.onNodeWithText("1013.3 mbar").assertIsDisplayed()
     }
 
     @Test fun flightParametersAnnounceAvailabilityAfterWaiting() {
