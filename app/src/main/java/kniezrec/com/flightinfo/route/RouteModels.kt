@@ -33,8 +33,12 @@ data class RouteState(
     val destination: NearbyCityRecord? = null,
     val details: RouteDetails? = null,
     val overlay: RouteOverlay? = null,
-    val error: String? = null,
+    val error: RouteError? = null,
 )
+
+enum class RouteError {
+    RESTORE,
+}
 
 data class RouteFix(
     val coordinate: NearbyCoordinate,

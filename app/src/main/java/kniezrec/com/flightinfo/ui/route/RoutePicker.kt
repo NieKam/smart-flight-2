@@ -1,5 +1,7 @@
 package kniezrec.com.flightinfo.ui.route
 
+import androidx.activity.compose.BackHandler
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -68,6 +70,7 @@ fun RoutePicker(
     var mapMessage by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(initial) { selected = initial }
     LaunchedEffect(nearestDraft) { if (nearestDraft != null) selected = nearestDraft }
+    BackHandler(onBack = onCancel)
     Column(Modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(
             stringResource(if (endpoint == RouteEndpoint.DEPARTURE) R.string.route_picker_departure else R.string.route_picker_destination),

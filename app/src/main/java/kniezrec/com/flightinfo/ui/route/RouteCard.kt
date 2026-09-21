@@ -62,7 +62,11 @@ fun RouteCard(
             }
             state.error?.let {
                 Text(
-                    stringResource(R.string.route_error),
+                    stringResource(
+                        when (it) {
+                            kniezrec.com.flightinfo.route.RouteError.RESTORE -> R.string.route_restore_error
+                        },
+                    ),
                     color =
                         androidx.compose.ui.graphics
                             .Color(0xFFFFB4AB),

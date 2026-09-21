@@ -43,6 +43,12 @@ class RouteModelsTest {
         assertFalse(results.isEmpty())
     }
 
+    @Test fun `invalid long press coordinate is rejected`() {
+        assertNull(NearbyCoordinate.from(Double.NaN, 0.0))
+        assertNull(NearbyCoordinate.from(91.0, 0.0))
+        assertNull(NearbyCoordinate.from(0.0, 181.0))
+    }
+
     @Test fun `invalid city cannot produce overlay`() {
         assertNull(routeOverlay(departure, destination.copy(latitude = 91.0)))
     }

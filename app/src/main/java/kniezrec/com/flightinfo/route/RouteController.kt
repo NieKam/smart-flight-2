@@ -143,7 +143,7 @@ class RouteController(
                     persist()
                     publish()
                 } else {
-                    publish(ROUTE_RESTORE_ERROR)
+                    publish(RouteError.RESTORE)
                 }
             }
         }
@@ -174,7 +174,7 @@ class RouteController(
             }.commit()
     }
 
-    private fun publish(error: String? = null) {
+    private fun publish(error: RouteError? = null) {
         val d = departure
         val a = destination
         onStateChanged(
@@ -197,6 +197,5 @@ class RouteController(
     private companion object {
         const val DEPARTURE = "route_departure_id"
         const val DESTINATION = "route_destination_id"
-        const val ROUTE_RESTORE_ERROR = "Unable to restore saved route. Retry to read city data."
     }
 }
