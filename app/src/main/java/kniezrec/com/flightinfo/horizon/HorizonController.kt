@@ -62,7 +62,11 @@ internal class HorizonController(
         if (isForeground) start()
     }
 
-    private fun onAttitude(session: Long, pitchDegrees: Double, rollDegrees: Double) {
+    private fun onAttitude(
+        session: Long,
+        pitchDegrees: Double,
+        rollDegrees: Double,
+    ) {
         if (activeSessionToken != session || !pitchDegrees.isFinite() || !rollDegrees.isFinite()) return
         val reference = referencePitchDegrees ?: pitchDegrees.also { referencePitchDegrees = it }
         mapHorizonAttitude(pitchDegrees - reference, rollDegrees)?.let(::setState)

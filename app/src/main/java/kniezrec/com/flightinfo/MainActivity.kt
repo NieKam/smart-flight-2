@@ -2,8 +2,8 @@ package kniezrec.com.flightinfo
 
 import android.Manifest
 import android.content.Intent
-import android.content.res.Configuration
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.location.LocationManager
 import android.net.Uri
 import android.os.Bundle

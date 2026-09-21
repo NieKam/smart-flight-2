@@ -91,7 +91,10 @@ class HorizonControllerTest {
             listener = null
         }
 
-        fun attitude(pitch: Double, roll: Double) = listener?.invoke(pitch, roll)
+        fun attitude(
+            pitch: Double,
+            roll: Double,
+        ) = listener?.invoke(pitch, roll)
 
         fun callback(): (Double, Double) -> Unit = requireNotNull(listener)
     }

@@ -15,14 +15,12 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kniezrec.com.flightinfo.horizon.HorizonState
 import org.junit.Rule
-
 import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class HorizonCardTest {
     @get:Rule val composeRule = createAndroidComposeRule<ComponentActivity>()
-
 
     @Test fun requiredStateTransitionsHavePoliteAnnouncements() {
         var state by mutableStateOf<HorizonState>(HorizonState.Waiting)
@@ -40,8 +38,8 @@ class HorizonCardTest {
         composeRule.runOnIdle { state = HorizonState.Error }
         composeRule.onNode(hasContentDescription("Unable to read horizon")).assertExists()
     }
-    @Test fun waitingAndUnavailableDoNotOfferAttitudeActions() {
 
+    @Test fun waitingAndUnavailableDoNotOfferAttitudeActions() {
         composeRule.setContent { HorizonCard(HorizonState.Waiting, {}, {}) }
         composeRule.onNodeWithText("Horizon").assertIsDisplayed()
         composeRule.onNodeWithText("Waiting for attitude data…").assertIsDisplayed()

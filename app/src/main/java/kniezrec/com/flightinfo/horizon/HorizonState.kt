@@ -4,9 +4,9 @@ import kotlin.math.roundToInt
 
 sealed interface HorizonState {
     data object Waiting : HorizonState
+
     /** Waiting for the calibration sample that will become the new level reference. */
     data object Recalibrating : HorizonState
-
 
     data object Unavailable : HorizonState
 
@@ -20,7 +20,10 @@ sealed interface HorizonState {
     ) : HorizonState
 }
 
-internal fun mapHorizonAttitude(relativePitchDegrees: Double, rollDegrees: Double): HorizonState.Available? {
+internal fun mapHorizonAttitude(
+    relativePitchDegrees: Double,
+    rollDegrees: Double,
+): HorizonState.Available? {
     if (!relativePitchDegrees.isFinite() || !rollDegrees.isFinite()) return null
     val pitch = relativePitchDegrees.coerceIn(-30.0, 30.0)
     val roll = rollDegrees.coerceIn(-45.0, 45.0)

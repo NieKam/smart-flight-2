@@ -63,10 +63,20 @@ class OrientationPlatformAdaptersTest {
         val sample = OrientationSample(20.0, 3.0, -4.0)
 
         val oldGeneration = dispatcher.beginRegistration()
-        val oldEvent = dispatcher.capture(oldGeneration, listOf({ _: OrientationSample -> oldCourse++ }, { _: OrientationSample -> oldHorizon++ }), sample)!!
+        val oldEvent =
+            dispatcher.capture(
+                oldGeneration,
+                listOf({ _: OrientationSample -> oldCourse++ }, { _: OrientationSample -> oldHorizon++ }),
+                sample,
+            )!!
         dispatcher.invalidateRegistration()
         val replacementGeneration = dispatcher.beginRegistration()
-        val replacementEvent = dispatcher.capture(replacementGeneration, listOf({ _: OrientationSample -> replacementCourse++ }, { _: OrientationSample -> replacementHorizon++ }), sample)!!
+        val replacementEvent =
+            dispatcher.capture(
+                replacementGeneration,
+                listOf({ _: OrientationSample -> replacementCourse++ }, { _: OrientationSample -> replacementHorizon++ }),
+                sample,
+            )!!
 
         if (dispatcher.isCurrent(oldEvent)) oldEvent.listeners.forEach { it(oldEvent.sample) }
         if (dispatcher.isCurrent(replacementEvent)) replacementEvent.listeners.forEach { it(replacementEvent.sample) }
@@ -122,7 +132,12 @@ class OrientationPlatformAdaptersTest {
         return floatArrayOf(cosine, 0f, sine, 0f, 1f, 0f, -sine, 0f, cosine)
     }
 
-    private fun assertOrientation(actual: OrientationSample, heading: Double, pitch: Double, roll: Double) {
+    private fun assertOrientation(
+        actual: OrientationSample,
+        heading: Double,
+        pitch: Double,
+        roll: Double,
+    ) {
         assertEquals(heading, actual.headingDegrees, 0.001)
         assertEquals(pitch, actual.pitchDegrees, 0.001)
         assertEquals(roll, actual.rollDegrees, 0.001)

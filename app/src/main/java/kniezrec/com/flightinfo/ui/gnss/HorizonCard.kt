@@ -26,7 +26,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -55,7 +54,9 @@ internal fun HorizonCard(
 ) {
     Card(
         modifier.fillMaxWidth().heightIn(min = 160.dp),
-        shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp),
+        shape =
+            androidx.compose.foundation.shape
+                .RoundedCornerShape(10.dp),
         colors = CardDefaults.cardColors(containerColor = cardPurple),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
     ) {
@@ -77,8 +78,14 @@ private fun HorizonStateAnnouncement(state: HorizonState) {
     val nextAnnouncement =
         when {
             state == HorizonState.Recalibrating -> stringResource(R.string.horizon_recalibrating_announcement)
-            state is HorizonState.Available && previousState == HorizonState.Recalibrating -> stringResource(R.string.horizon_calibrated_announcement)
-            state == HorizonState.Unavailable && previousState != HorizonState.Unavailable -> stringResource(R.string.horizon_unavailable_announcement)
+            state is HorizonState.Available && previousState == HorizonState.Recalibrating ->
+                stringResource(
+                    R.string.horizon_calibrated_announcement,
+                )
+            state == HorizonState.Unavailable && previousState != HorizonState.Unavailable ->
+                stringResource(
+                    R.string.horizon_unavailable_announcement,
+                )
             state == HorizonState.Error && previousState != HorizonState.Error -> stringResource(R.string.horizon_error_announcement)
             else -> null
         }
@@ -87,15 +94,21 @@ private fun HorizonStateAnnouncement(state: HorizonState) {
         if (nextAnnouncement != null) announcement = nextAnnouncement
     }
     announcement?.let { text ->
-        Box(Modifier.semantics {
-            liveRegion = LiveRegionMode.Polite
-            contentDescription = text
-        })
+        Box(
+            Modifier.semantics {
+                liveRegion = LiveRegionMode.Polite
+                contentDescription = text
+            },
+        )
     }
 }
 
 @Composable
-private fun HorizonStatic(title: Int, body: Int, retry: (() -> Unit)? = null) {
+private fun HorizonStatic(
+    title: Int,
+    body: Int,
+    retry: (() -> Unit)? = null,
+) {
     Column(
         Modifier.fillMaxWidth().heightIn(min = 160.dp).padding(horizontal = 24.dp, vertical = 20.dp),
         verticalArrangement = Arrangement.Center,
@@ -113,7 +126,10 @@ private fun HorizonStatic(title: Int, body: Int, retry: (() -> Unit)? = null) {
 }
 
 @Composable
-private fun HorizonAvailable(state: HorizonState.Available, onCalibrate: () -> Unit) {
+private fun HorizonAvailable(
+    state: HorizonState.Available,
+    onCalibrate: () -> Unit,
+) {
     val pitch = attitudeValue(state.pitchDegrees, R.string.horizon_up, R.string.horizon_down)
     val roll = attitudeValue(state.rollDegrees, R.string.horizon_right, R.string.horizon_left)
     val summary = stringResource(R.string.horizon_summary, pitch, roll)
@@ -134,27 +150,65 @@ private fun HorizonAvailable(state: HorizonState.Available, onCalibrate: () -> U
 }
 
 @Composable
-private fun attitudeValue(value: Int, positive: Int, negative: Int): String =
+private fun attitudeValue(
+    value: Int,
+    positive: Int,
+    negative: Int,
+): String =
     when {
         value == 0 -> stringResource(R.string.horizon_level)
-        value > 0 -> stringResource(R.string.horizon_degrees_direction, NumberFormat.getIntegerInstance().format(value), stringResource(positive))
-        else -> stringResource(R.string.horizon_degrees_direction, NumberFormat.getIntegerInstance().format(-value), stringResource(negative))
+        value > 0 ->
+            stringResource(
+                R.string.horizon_degrees_direction,
+                NumberFormat.getIntegerInstance().format(value),
+                stringResource(positive),
+            )
+        else ->
+            stringResource(
+                R.string.horizon_degrees_direction,
+                NumberFormat.getIntegerInstance().format(-value),
+                stringResource(negative),
+            )
     }
 
 @Composable
-private fun HorizonInstrument(state: HorizonState.Available, modifier: Modifier) {
+private fun HorizonInstrument(
+    state: HorizonState.Available,
+    modifier: Modifier,
+) {
     Box(
-        modifier.heightIn(min = 160.dp, max = 200.dp).clip(androidx.compose.foundation.shape.RoundedCornerShape(6.dp)),
+        modifier.heightIn(min = 160.dp, max = 200.dp).clip(
+            androidx.compose.foundation.shape
+                .RoundedCornerShape(6.dp),
+        ),
         contentAlignment = Alignment.Center,
     ) {
-        Canvas(Modifier.matchParentSize().graphicsLayer {
-            translationY = state.verticalOffsetFraction * size.height
-            rotationZ = state.visualRollDegrees
-        }) {
+        Canvas(
+            Modifier.matchParentSize().graphicsLayer {
+                translationY = state.verticalOffsetFraction * size.height
+                rotationZ = state.visualRollDegrees
+            },
+        ) {
             val sky = Color(0xFF7775B5)
             val ground = Color(0xFF3F3D70)
-            drawRect(sky, topLeft = Offset(-size.width, -size.height), size = androidx.compose.ui.geometry.Size(size.width * 3, size.height * 1.5f))
-            drawRect(ground, topLeft = Offset(-size.width, size.height / 2), size = androidx.compose.ui.geometry.Size(size.width * 3, size.height * 2))
+            drawRect(
+                sky,
+                topLeft = Offset(-size.width, -size.height),
+                size =
+                    androidx.compose.ui.geometry.Size(
+                        size.width * 3,
+                        size.height * 1.5f,
+                    ),
+            )
+            drawRect(
+                ground,
+                topLeft = Offset(-size.width, size.height / 2),
+                size =
+                    androidx.compose.ui.geometry.Size(
+                        size.width * 3,
+                        size.height * 2,
+                    ),
+            )
             drawLine(horizonText, Offset(-size.width, size.height / 2), Offset(size.width * 2, size.height / 2), 1.dp.toPx())
             val tick = horizonText.copy(alpha = .7f)
             for (index in -3..3) {
@@ -177,15 +231,34 @@ private fun HorizonInstrument(state: HorizonState.Available, modifier: Modifier)
 }
 
 @Composable
-private fun HorizonAction(label: Int, hint: Int, callback: () -> Unit) {
+private fun HorizonAction(
+    label: Int,
+    hint: Int,
+    callback: () -> Unit,
+) {
     var focused by remember { mutableStateOf(false) }
     val actionHint = stringResource(hint)
     TextButton(
         onClick = callback,
-        modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp)
-            .then(if (focused) Modifier.border(2.dp, actionCyan, androidx.compose.foundation.shape.RoundedCornerShape(4.dp)) else Modifier)
-            .onFocusChanged { focused = it.isFocused }
-            .semantics { role = Role.Button; stateDescription = actionHint },
+        modifier =
+            Modifier
+                .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
+                .then(
+                    if (focused) {
+                        Modifier.border(
+                            2.dp,
+                            actionCyan,
+                            androidx.compose.foundation.shape
+                                .RoundedCornerShape(4.dp),
+                        )
+                    } else {
+                        Modifier
+                    },
+                ).onFocusChanged { focused = it.isFocused }
+                .semantics {
+                    role = Role.Button
+                    stateDescription = actionHint
+                },
     ) { Text(stringResource(label), color = actionCyan, style = horizonBody().copy(fontWeight = FontWeight.Medium)) }
 }
 

@@ -34,7 +34,10 @@ internal enum class DisplayRotation {
 }
 
 internal object DisplayRelativeOrientation {
-    fun calculate(rotationMatrix: FloatArray, rotation: DisplayRotation): OrientationSample? {
+    fun calculate(
+        rotationMatrix: FloatArray,
+        rotation: DisplayRotation,
+    ): OrientationSample? {
         if (rotationMatrix.size < 9 || rotationMatrix.take(9).any { !it.isFinite() }) return null
         val (xAxis, yAxis) =
             when (rotation) {
@@ -60,7 +63,10 @@ internal object DisplayRelativeOrientation {
         )
     }
 
-    private fun FloatArray.axisValue(row: Int, axis: Int): Float {
+    private fun FloatArray.axisValue(
+        row: Int,
+        axis: Int,
+    ): Float {
         val column = kotlin.math.abs(axis) - 1
         val value = this[row * 3 + column]
         return if (axis < 0) -value else value
@@ -116,7 +122,6 @@ internal data class CapturedOrientationEvent(
     val sample: OrientationSample,
 )
 
-
 internal class AndroidOrientationSource(
     context: Context,
     private val callbackExecutor: Executor,
@@ -167,7 +172,10 @@ internal class AndroidOrientationSource(
                     }
                 }
 
-                override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
+                override fun onAccuracyChanged(
+                    sensor: Sensor?,
+                    accuracy: Int,
+                ) = Unit
             }
         val registered = sensorManager.registerListener(newListener, sensor, SensorManager.SENSOR_DELAY_UI)
         if (registered) {
