@@ -22,6 +22,14 @@ def resume_workflow():
 
     stage = workflow["stage"]
 
+    if stage == "COMPLETED":
+        print()
+        print("Workflow is completed.")
+        print("Starting next workflow with Architect.")
+        print()
+        run_workflow()
+        return
+
     resumable_stages = {
         "ESCALATED",
         "DEVELOPER_FIX",
