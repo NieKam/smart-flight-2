@@ -4,19 +4,17 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class CourseControllerTest {
-    @Test fun cardinalBoundariesAndNormalizationMatchSpecification() {
-        assertEquals("N", compassCardinal(0))
-        assertEquals("N", compassCardinal(22))
-        assertEquals("NE", compassCardinal(23))
-        assertEquals("E", compassCardinal(68))
-        assertEquals("SE", compassCardinal(113))
-        assertEquals("S", compassCardinal(158))
-        assertEquals("SW", compassCardinal(203))
-        assertEquals("W", compassCardinal(248))
-        assertEquals("NW", compassCardinal(293))
-        assertEquals("N", compassCardinal(338))
+    @Test fun everyCardinalBoundaryMatchesSpecification() {
+        val expected = mapOf(0 to "N", 22 to "N", 23 to "NE", 67 to "NE", 68 to "E", 112 to "E", 113 to "SE", 157 to "SE", 158 to "S", 202 to "S", 203 to "SW", 247 to "SW", 248 to "W", 292 to "W", 293 to "NW", 337 to "NW", 338 to "N", 359 to "N")
+        expected.forEach { (heading, cardinal) -> assertEquals(cardinal, compassCardinal(heading)) }
+    }
+
+    @Test fun normalizationHandlesPositiveNegativeAndInvalidValues() {
         assertEquals(359, normalizeCourseDegrees(-1.0))
         assertEquals(1, normalizeCourseDegrees(361.0))
+        assertEquals(0, normalizeCourseDegrees(720.9))
+        assertEquals(null, normalizeCourseDegrees(Double.NaN))
+        assertEquals(null, normalizeCourseDegrees(Double.POSITIVE_INFINITY))
     }
 
     @Test fun unavailableAndFailedRegistrationNeverKeepHeading() {
@@ -44,6 +42,24 @@ class CourseControllerTest {
         controller.stop()
         assertEquals(CourseState.Waiting, states.last())
         assertEquals(1, platform.unregisters)
+    }
+
+    @Test fun retryAndRepeatedLifecycleEventsClearSessionAndDoNotAccumulateListeners() {
+        val platform = FakePlatform(true)
+        val states = mutableListOf<CourseState>()
+        val controller = CourseController(platform, states::add)
+        controller.start()
+        platform.heading(42.0)
+        controller.onGpsBearing(99.0)
+        controller.retry(true)
+        assertEquals(CourseState.Waiting, states.last())
+        assertEquals(2, platform.registers)
+        assertEquals(1, platform.unregisters)
+        controller.stop()
+        controller.stop()
+        assertEquals(2, platform.unregisters)
+        controller.retry(false)
+        assertEquals(2, platform.registers)
     }
 
     private class FakePlatform(val available: Boolean, val result: Boolean = true) : CourseOrientationPlatform {

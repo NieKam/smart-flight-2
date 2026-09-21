@@ -36,9 +36,11 @@
     <string name="compass_error">Unable to read compass</string>
     <string name="compass_error_body">Smart Flight could not start the compass.</string>
     <string name="course_try_again">Try again</string>
+    <string name="course_try_again_hint">Retries compass</string>
     <string name="course_gps_bearing">GPS bearing</string>
     <string name="course_unavailable">—</string>
     <string name="course_unavailable_spoken">unavailable</string>
+    <string name="course_degree_value">%1$s°</string>
     <string name="course_heading_spoken">Compass heading, %1$s degrees, %2$s</string>
     <string name="course_bearing_spoken">GPS bearing, %1$s</string>
 </resources>

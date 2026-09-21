@@ -6,11 +6,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertExists
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertDoesNotExist
+import androidx.compose.ui.test.hasStateDescription
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNode
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kniezrec.com.flightinfo.flight.FlightParametersState
+import kniezrec.com.flightinfo.course.CourseState
 import kniezrec.com.flightinfo.gnss.GnssSatellite
 import kniezrec.com.flightinfo.gnss.GnssStatusState
 import org.junit.Rule
@@ -79,5 +83,36 @@ class GnssStatusScreenTest {
         }
 
         composeRule.onNodeWithContentDescription("Flight parameters available").assertExists()
+    }
+
+    @Test fun courseWaitingShowsOnlyCurrentSessionWaitingContent() {
+        setCourse(CourseState.Waiting)
+        composeRule.onNodeWithText("Waiting for compass heading…").assertIsDisplayed()
+        composeRule.onNodeWithText("GPS bearing").assertDoesNotExist()
+    }
+
+    @Test fun courseAvailableShowsHeadingBearingAndDecorativeVisual() {
+        setCourse(CourseState.Available(23, 287))
+        composeRule.onNodeWithText("23°").assertIsDisplayed()
+        composeRule.onNodeWithText("NE").assertIsDisplayed()
+        composeRule.onNodeWithText("287°").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Compass heading, 23 degrees, NE").assertExists()
+        composeRule.onNodeWithContentDescription("GPS bearing, 287°").assertExists()
+    }
+
+    @Test fun courseUnavailableAndErrorHideReadingsAndExposeRetryHint() {
+        setCourse(CourseState.Unavailable)
+        composeRule.onNodeWithText("Compass unavailable").assertIsDisplayed()
+        composeRule.onNodeWithText("Try again").assertDoesNotExist()
+        setCourse(CourseState.Error)
+        composeRule.onNodeWithText("Unable to read compass").assertIsDisplayed()
+        composeRule.onNodeWithText("Try again").assertIsDisplayed()
+        composeRule.onNode(hasStateDescription("Retries compass")).assertExists()
+    }
+
+    private fun setCourse(courseState: CourseState) {
+        composeRule.setContent {
+            GnssStatusScreen(GnssStatusState.Waiting, FlightParametersState.Waiting, {}, {}, courseState, {})
+        }
     }
 }
