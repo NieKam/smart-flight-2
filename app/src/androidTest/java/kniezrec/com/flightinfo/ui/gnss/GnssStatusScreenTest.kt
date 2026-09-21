@@ -87,7 +87,7 @@ class GnssStatusScreenTest {
         composeRule.setContent {
             GnssStatusScreen(
                 state = GnssStatusState.Waiting,
-                flightParametersState = FlightParametersState.Readings(36.0, null, 100.0),
+                flightParametersState = FlightParametersState.Readings(36.0, null, 100.0, 1013.25),
                 onOpenLocationSettings = {},
                 onRetry = {},
             )
@@ -95,6 +95,42 @@ class GnssStatusScreenTest {
         composeRule.onNodeWithText("36.0 km/h").assertIsDisplayed()
         composeRule.onNodeWithText("—").assertIsDisplayed()
         composeRule.onNodeWithText("100.0 m").assertIsDisplayed()
+        composeRule.onNodeWithText("1013.3 mbar").assertIsDisplayed()
+    }
+
+    @Test fun flightParametersPressureRowHasOrderPlaceholderAndAccessibility() {
+        composeRule.setContent {
+            GnssStatusScreen(
+                state = GnssStatusState.Waiting,
+                flightParametersState = FlightParametersState.Readings(36.0, 1.2, 100.0),
+                onOpenLocationSettings = {},
+                onRetry = {},
+            )
+        }
+
+        val labels = listOf("Speed", "Vertical speed", "Altitude", "Pressure")
+        val tops =
+            labels.map { label ->
+                composeRule
+                    .onNodeWithText(label)
+                    .fetchSemanticsNode()
+                    .boundsInRoot.top
+            }
+        assertTrue(tops.zipWithNext().all { (upper, lower) -> upper < lower })
+        composeRule.onNodeWithContentDescription("Pressure, unavailable").assertExists()
+    }
+
+    @Test fun flightParametersPressureAccessibilityExpandsUnitName() {
+        composeRule.setContent {
+            GnssStatusScreen(
+                state = GnssStatusState.Waiting,
+                flightParametersState = FlightParametersState.Readings(36.0, 1.2, 100.0, 1013.25),
+                onOpenLocationSettings = {},
+                onRetry = {},
+            )
+        }
+
+        composeRule.onNodeWithContentDescription("Pressure, 1013.3 millibars").assertExists()
     }
 
     @Test fun flightParametersAnnounceAvailabilityAfterWaiting() {

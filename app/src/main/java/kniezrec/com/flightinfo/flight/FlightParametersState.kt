@@ -8,6 +8,7 @@ sealed interface FlightParametersState {
         val speedKilometresPerHour: Double?,
         val verticalSpeedMetresPerSecond: Double?,
         val altitudeMetres: Double?,
+        val pressureMillibars: Double? = null,
     ) : FlightParametersState
 }
 
