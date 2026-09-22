@@ -2,6 +2,7 @@ package kniezrec.com.flightinfo.about
 
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageInfo
 import android.net.Uri
 import android.os.Build
 
@@ -22,12 +23,15 @@ fun formatAppVersion(version: AppVersion): String {
 }
 
 class AndroidAppVersionProvider(
-    private val context: Context,
+    private val context: Context? = null,
+    private val packageInfoReader: () -> PackageInfo? = {
+        context?.let { current ->
+            current.packageManager.getPackageInfo(current.packageName, 0)
+        }
+    },
 ) {
     fun read(): AppVersion {
-        val info =
-            runCatching { context.packageManager.getPackageInfo(context.packageName, 0) }.getOrNull()
-                ?: return AppVersion(null, null)
+        val info = runCatching { packageInfoReader() }.getOrNull() ?: return AppVersion(null, null)
         val code =
             runCatching {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
@@ -50,11 +54,17 @@ object AboutIntentFactory {
 }
 
 class AndroidExternalIntentLauncher(
-    private val context: Context,
+    private val resolves: (Intent) -> Boolean,
+    private val start: (Intent) -> Unit,
 ) {
+    constructor(context: Context) : this(
+        resolves = { intent -> intent.resolveActivity(context.packageManager) != null },
+        start = { intent -> context.startActivity(intent) },
+    )
+
     fun launch(intent: Intent): Boolean {
-        if (intent.resolveActivity(context.packageManager) == null) return false
-        return runCatching { context.startActivity(intent) }.isSuccess
+        if (!runCatching { resolves(intent) }.getOrDefault(false)) return false
+        return runCatching { start(intent) }.isSuccess
     }
 
     fun launchRate(packageName: String): Boolean =

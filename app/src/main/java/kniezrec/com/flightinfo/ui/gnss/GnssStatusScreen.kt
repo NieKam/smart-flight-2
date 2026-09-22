@@ -6,8 +6,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -19,6 +21,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -109,23 +113,7 @@ fun GnssStatusScreen(
     mapPositionVersion
     androidx.compose.foundation.layout.Box(Modifier.fillMaxSize().then(modifier)) {
         Column(Modifier.fillMaxSize()) {
-            Box(Modifier.fillMaxWidth().heightIn(min = 56.dp), contentAlignment = Alignment.Center) {
-                Text(stringResource(R.string.app_name), color = textColor, fontSize = 20.sp, fontWeight = FontWeight.Medium)
-                androidx.compose.foundation.layout.Row(Modifier.align(Alignment.CenterEnd)) {
-                    androidx.compose.material3.TextButton(
-                        onClick = onOpenSettings,
-                        modifier = Modifier.heightIn(min = 48.dp),
-                    ) {
-                        Text(stringResource(R.string.settings_title), color = actionCyan)
-                    }
-                    androidx.compose.material3.TextButton(
-                        onClick = onOpenAbout,
-                        modifier = Modifier.heightIn(min = 48.dp),
-                    ) {
-                        Text(stringResource(R.string.about_title), color = actionCyan)
-                    }
-                }
-            }
+            DashboardHeader(onOpenSettings = onOpenSettings, onOpenAbout = onOpenAbout)
             Column(
                 Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 12.dp),
             ) {
@@ -194,6 +182,84 @@ fun GnssStatusScreen(
                     onRetry = onRouteRetry,
                 )
             }
+        }
+    }
+}
+
+@Composable
+fun DashboardHeader(
+    onOpenSettings: () -> Unit,
+    onOpenAbout: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    BoxWithConstraints(modifier.fillMaxWidth().heightIn(min = 56.dp)) {
+        val compact = maxWidth < 360.dp
+        if (compact) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    stringResource(R.string.app_name),
+                    modifier = Modifier.weight(1f).padding(start = 12.dp),
+                    color = textColor,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Medium,
+                )
+                CompactDashboardActions(onOpenSettings, onOpenAbout)
+            }
+        } else {
+            Text(
+                stringResource(R.string.app_name),
+                modifier = Modifier.align(Alignment.Center),
+                color = textColor,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Medium,
+            )
+            Row(Modifier.align(Alignment.CenterEnd)) {
+                DashboardAction(stringResource(R.string.settings_title), onOpenSettings)
+                DashboardAction(stringResource(R.string.about_title), onOpenAbout)
+            }
+        }
+    }
+}
+
+@Composable
+private fun DashboardAction(
+    label: String,
+    onClick: () -> Unit,
+) {
+    TextButton(onClick = onClick, modifier = Modifier.heightIn(min = 48.dp)) {
+        Text(label, color = actionCyan)
+    }
+}
+
+@Composable
+private fun CompactDashboardActions(
+    onOpenSettings: () -> Unit,
+    onOpenAbout: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Box(modifier) {
+        TextButton(
+            onClick = { expanded = true },
+            modifier = Modifier.heightIn(min = 48.dp),
+        ) {
+            Text(stringResource(R.string.dashboard_more_options), color = actionCyan)
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.settings_title)) },
+                onClick = {
+                    expanded = false
+                    onOpenSettings()
+                },
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.about_title)) },
+                onClick = {
+                    expanded = false
+                    onOpenAbout()
+                },
+            )
         }
     }
 }
