@@ -14,6 +14,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -29,6 +30,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.zIndex
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import kniezrec.com.flightinfo.about.AboutIntentFactory
@@ -158,6 +160,9 @@ class MainActivity : ComponentActivity() {
                         snackbarHost = { SnackbarHost(snackbarHostState) },
                     ) { innerPadding ->
                         if (permissionState == LocationPermissionState.Granted) {
+                            // Settings is an overlay so the dashboard's AndroidView-backed map remains
+                            // composed. This preserves its viewport, overlays, and in-place zoom policy.
+                            Box(Modifier.fillMaxSize()) {
                             if (showUnitSettings) {
                                 UnitSettingsScreen(
                                     preferences = unitPreferences,
@@ -172,9 +177,9 @@ class MainActivity : ComponentActivity() {
                                         applyDisplayPreferences()
                                     },
                                     onBack = { showUnitSettings = false },
-                                    modifier = Modifier.padding(innerPadding).safeDrawingPadding(),
+                                    modifier = Modifier.padding(innerPadding).safeDrawingPadding().zIndex(1f),
                                 )
-                            } else {
+                            }
                                 GnssStatusScreen(
                                     state = gnssState,
                                     flightParametersState = flightParametersState,
@@ -292,6 +297,7 @@ class MainActivity : ComponentActivity() {
                                     onRetry = { if (isForeground) startObservation() },
                                     modifier = Modifier.padding(innerPadding).safeDrawingPadding(),
                                 )
+                            }
                             }
                         } else {
                             PermissionOnboardingScreen(

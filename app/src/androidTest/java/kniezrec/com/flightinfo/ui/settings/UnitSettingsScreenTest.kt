@@ -1,9 +1,14 @@
 package kniezrec.com.flightinfo.ui.settings
 
+import android.view.View
+import android.view.ViewGroup
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertDoesNotExist
 import androidx.compose.ui.test.assertExists
 import androidx.compose.ui.test.assertIsDisplayed
@@ -26,11 +31,20 @@ import kniezrec.com.flightinfo.displayunits.UnitPreferences
 import kniezrec.com.flightinfo.displayunits.VerticalSpeedUnit
 import kniezrec.com.flightinfo.flight.FlightParametersState
 import kniezrec.com.flightinfo.gnss.GnssStatusState
+import kniezrec.com.flightinfo.map.MapSessionRules
 import kniezrec.com.flightinfo.ui.gnss.GnssStatusScreen
+import kniezrec.com.flightinfo.ui.gnss.MapCardState
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertSame
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.osmdroid.util.GeoPoint
+import org.osmdroid.views.MapView
+import java.io.File
+import java.io.FileOutputStream
+import java.util.zip.ZipEntry
+import java.util.zip.ZipOutputStream
 
 @RunWith(AndroidJUnit4::class)
 class UnitSettingsScreenTest {
@@ -161,4 +175,78 @@ class UnitSettingsScreenTest {
         composeRule.onNodeWithText("GNSS status").assertIsDisplayed()
         composeRule.onNodeWithText("Settings").assertIsDisplayed()
     }
+
+    @Test fun settingsFlowRetainsMapViewportAndAppliesLargerZoomPolicyInPlace() {
+        val archive = File(composeRule.activity.cacheDir, "settings-map-test.zip")
+        ZipOutputStream(FileOutputStream(archive)).use { zip ->
+            zip.putNextEntry(ZipEntry("tile.jpg"))
+            zip.write(byteArrayOf(0))
+            zip.closeEntry()
+        }
+        var showSettings by mutableStateOf(false)
+        var displayPreferences by mutableStateOf(DisplayPreferences(largerMapZoom = true))
+        try {
+            composeRule.setContent {
+                Box(Modifier.fillMaxSize()) {
+                    GnssStatusScreen(
+                        state = GnssStatusState.Waiting,
+                        flightParametersState = FlightParametersState.Waiting,
+                        onOpenLocationSettings = {},
+                        onRetry = {},
+                        onOpenSettings = { showSettings = true },
+                        mapState = MapCardState.Ready(archive),
+                        mapRules = MapSessionRules(),
+                        largerMapZoom = displayPreferences.largerMapZoom,
+                    )
+                    if (showSettings) {
+                        UnitSettingsScreen(
+                            preferences = UnitPreferences(),
+                            onPreferenceChange = {},
+                            onBack = { showSettings = false },
+                            displayPreferences = displayPreferences,
+                            onDisplayPreferenceChange = { displayPreferences = it },
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
+                }
+            }
+
+            val initialMap = requireNotNull(findMapView(composeRule.activity.window.decorView))
+            composeRule.runOnIdle {
+                initialMap.controller.setCenter(GeoPoint(48.8566, 2.3522))
+                initialMap.controller.setZoom(8.0)
+            }
+            composeRule.onNodeWithText("Settings").performClick()
+            composeRule.runOnIdle {
+                assertSame(initialMap, findMapView(composeRule.activity.window.decorView))
+                assertEquals(9.0, initialMap.maxZoomLevel, 0.0)
+            }
+
+            composeRule.onNodeWithContentDescription("Larger map zoom, current value On").performClick()
+            composeRule.runOnIdle {
+                assertSame(initialMap, findMapView(composeRule.activity.window.decorView))
+                assertEquals(6.0, initialMap.maxZoomLevel, 0.0)
+                assertEquals(6.0, initialMap.zoomLevel, 0.0)
+                assertEquals(48.8566, initialMap.mapCenter.latitude, 0.0)
+                assertEquals(2.3522, initialMap.mapCenter.longitude, 0.0)
+            }
+
+            composeRule.onNodeWithContentDescription("Navigate up").performClick()
+            composeRule.runOnIdle {
+                assertSame(initialMap, findMapView(composeRule.activity.window.decorView))
+                assertEquals(6.0, initialMap.maxZoomLevel, 0.0)
+                assertEquals(48.8566, initialMap.mapCenter.latitude, 0.0)
+                assertEquals(2.3522, initialMap.mapCenter.longitude, 0.0)
+            }
+        } finally {
+            archive.delete()
+        }
+    }
+
+    private fun findMapView(view: View): MapView? =
+        when (view) {
+            is MapView -> view
+            is ViewGroup -> (0 until view.childCount).firstNotNullOfOrNull { findMapView(view.getChildAt(it)) }
+            else -> null
+        }
 }
