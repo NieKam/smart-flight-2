@@ -23,13 +23,19 @@ import kniezrec.com.flightinfo.flight.AndroidFlightLocationPlatform
 import kniezrec.com.flightinfo.gnss.AndroidGnssStatusPlatform
 
 /** Foreground lifetime for the service-owned location/GNSS monitoring session. */
-class LocationForegroundService :
+internal interface MonitoringSession {
+    fun start(): Boolean
+
+    fun stop()
+}
+
+internal class LocationForegroundService :
     Service(),
     BackgroundMonitoringService {
     private val handler = Handler(Looper.getMainLooper())
     private var providerReceiver: BroadcastReceiver? = null
     private var started = false
-    private var monitoringSession: LocationGnssMonitoringSession? = null
+    private var monitoringSession: MonitoringSession? = null
     private var bridgeGeneration: Long? = null
 
     private val eligibilityCheck =
@@ -69,29 +75,14 @@ class LocationForegroundService :
             started = true
             val generation = BackgroundMonitoringBridge.attach(this)
             bridgeGeneration = generation
-            monitoringSession =
-                LocationGnssMonitoringSession(
-                    locationPlatform =
-                        AndroidFlightLocationPlatform(
-                            getSystemService(LocationManager::class.java),
-                            packageManager,
-                            mainExecutor,
-                        ),
-                    gnssPlatform =
-                        AndroidGnssStatusPlatform(
-                            getSystemService(LocationManager::class.java),
-                            packageManager,
-                            mainExecutor,
-                        ),
-                    onLocation = { fix -> BackgroundMonitoringBridge.forwardLocation(generation, fix) },
-                    onGnssStatus = { status -> BackgroundMonitoringBridge.forwardGnssStatus(generation, status) },
-                ).also { session ->
-                    if (!session.start()) {
-                        stopMonitoring()
-                        stopSelf()
-                        return START_NOT_STICKY
-                    }
+            createMonitoringSession(generation).also { session ->
+                monitoringSession = session
+                if (!session.start()) {
+                    stopMonitoring()
+                    stopSelf()
+                    return START_NOT_STICKY
                 }
+            }
             registerProviderReceiver()
             handler.post(eligibilityCheck)
             BackgroundMonitoringBridge.reconcile()
@@ -142,11 +133,11 @@ class LocationForegroundService :
         stopSelf()
     }
 
-    private fun isMonitoringEligible(): Boolean =
+    protected open fun isMonitoringEligible(): Boolean =
         ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED &&
             getSystemService(LocationManager::class.java).isLocationEnabled
 
-    private fun showBackgroundNotification(): Boolean =
+    protected open fun showBackgroundNotification(): Boolean =
         BackgroundNotificationPreferencesStore(
             getSharedPreferences(BackgroundNotificationPreferencesStore.PREFERENCES_NAME, MODE_PRIVATE),
         ).read().showBackgroundNotification
@@ -189,13 +180,31 @@ class LocationForegroundService :
         )
     }
 
-    private fun canPostNotifications(): Boolean =
+    protected open fun canPostNotifications(): Boolean =
         android.os.Build.VERSION.SDK_INT < 33 ||
             ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
 
     private fun updateNotification(showWaiting: Boolean) {
         if (started) getSystemService(NotificationManager::class.java).notify(NOTIFICATION_ID, notification(showWaiting))
     }
+
+    protected open fun createMonitoringSession(generation: Long): MonitoringSession =
+        LocationGnssMonitoringSession(
+            locationPlatform =
+                AndroidFlightLocationPlatform(
+                    getSystemService(LocationManager::class.java),
+                    packageManager,
+                    mainExecutor,
+                ),
+            gnssPlatform =
+                AndroidGnssStatusPlatform(
+                    getSystemService(LocationManager::class.java),
+                    packageManager,
+                    mainExecutor,
+                ),
+            onLocation = { fix -> BackgroundMonitoringBridge.forwardLocation(generation, fix) },
+            onGnssStatus = { status -> BackgroundMonitoringBridge.forwardGnssStatus(generation, status) },
+        )
 
     private fun notification(showWaiting: Boolean): Notification {
         val openApp =

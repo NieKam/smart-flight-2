@@ -10,12 +10,12 @@ internal class LocationGnssMonitoringSession(
     private val gnssPlatform: GnssStatusPlatform,
     private val onLocation: (FlightLocationFix) -> Unit,
     private val onGnssStatus: (List<GnssSatellite>) -> Unit,
-) {
+) : MonitoringSession {
     private var generation = 0L
     private var locationRegistered = false
     private var gnssRegistered = false
 
-    fun start(): Boolean {
+    override fun start(): Boolean {
         stop()
         if (!locationPlatform.areLocationServicesEnabled() || !locationPlatform.hasGnssHardware()) return false
         val currentGeneration = ++generation
@@ -42,7 +42,7 @@ internal class LocationGnssMonitoringSession(
         return true
     }
 
-    fun stop() {
+    override fun stop() {
         generation++
         if (locationRegistered) runCatching { locationPlatform.unregisterLocationListener() }
         if (gnssRegistered) runCatching { gnssPlatform.unregisterGnssStatusCallback() }

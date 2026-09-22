@@ -3,17 +3,11 @@ package kniezrec.com.flightinfo.monitoring
 import kniezrec.com.flightinfo.flight.FlightLocationFix
 import kniezrec.com.flightinfo.gnss.GnssSatellite
 import org.junit.After
-import org.junit.Before
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class BackgroundMonitoringBridgeTest {
-    private lateinit var service: FakeService
-
-    @Before
-    fun setUp() {
-        service = FakeService()
-    }
+    private val service = FakeService()
 
     @After
     fun tearDown() {
@@ -61,7 +55,7 @@ class BackgroundMonitoringBridgeTest {
         BackgroundMonitoringBridge.setEventHandlers({ fixes++ }, {})
         BackgroundMonitoringBridge.attach(service)
         BackgroundMonitoringBridge.setActivityVisible(false)
-        val generation = BackgroundMonitoringBridge.attach(service)
+        val generation = serviceGeneration()
         BackgroundMonitoringBridge.forwardLocation(generation, FIX)
 
         assertEquals(1, fixes)
@@ -123,7 +117,10 @@ private class FakeService : BackgroundMonitoringService {
     var onUsableFixCount = 0
     var stopForPreferenceDisabledCount = 0
 
-    override fun reconcile(activityVisible: Boolean, hasUsableFix: Boolean) {
+    override fun reconcile(
+        activityVisible: Boolean,
+        hasUsableFix: Boolean,
+    ) {
         reconciliations += activityVisible to hasUsableFix
     }
 
