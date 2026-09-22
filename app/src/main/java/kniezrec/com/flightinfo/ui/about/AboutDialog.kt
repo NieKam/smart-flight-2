@@ -47,6 +47,8 @@ fun AboutDialog(
 ) {
     var failure by remember { mutableStateOf<AboutFailure?>(null) }
     val versionText = formatAppVersion(version).ifEmpty { stringResource(R.string.about_version_unavailable) }
+    val feedbackActionDescription = stringResource(R.string.about_feedback_action_description)
+    val ratingActionDescription = stringResource(R.string.about_rating_action_description)
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
@@ -65,7 +67,7 @@ fun AboutDialog(
                     modifier =
                         Modifier.fillMaxWidth().heightIn(min = 48.dp).semantics {
                             role = Role.Button
-                            stateDescription = stringResource(R.string.about_feedback_action_description)
+                            stateDescription = feedbackActionDescription
                         },
                 ) { Text(stringResource(R.string.about_send_feedback)) }
                 Spacer(Modifier.height(12.dp))
@@ -74,7 +76,7 @@ fun AboutDialog(
                     modifier =
                         Modifier.fillMaxWidth().heightIn(min = 48.dp).semantics {
                             role = Role.Button
-                            stateDescription = stringResource(R.string.about_rating_action_description)
+                            stateDescription = ratingActionDescription
                         },
                 ) { Text(stringResource(R.string.about_rate)) }
                 failure?.let { currentFailure ->
