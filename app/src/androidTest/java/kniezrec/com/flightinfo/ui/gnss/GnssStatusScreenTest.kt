@@ -27,11 +27,19 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kniezrec.com.flightinfo.course.CourseState
+import kniezrec.com.flightinfo.displayunits.AltitudeUnit
+import kniezrec.com.flightinfo.displayunits.DistanceUnit
+import kniezrec.com.flightinfo.displayunits.PressureUnit
+import kniezrec.com.flightinfo.displayunits.SpeedUnit
+import kniezrec.com.flightinfo.displayunits.UnitPreferences
+import kniezrec.com.flightinfo.displayunits.VerticalSpeedUnit
 import kniezrec.com.flightinfo.flight.FlightParametersState
 import kniezrec.com.flightinfo.gnss.GnssSatellite
 import kniezrec.com.flightinfo.gnss.GnssStatusState
 import kniezrec.com.flightinfo.map.MapSessionRules
 import kniezrec.com.flightinfo.nearby.NearbyCityRecord
+import kniezrec.com.flightinfo.nearby.NearbyCityState
+import kniezrec.com.flightinfo.route.RouteDetails
 import kniezrec.com.flightinfo.route.RouteEndpoint
 import kniezrec.com.flightinfo.route.RouteOverlay
 import kniezrec.com.flightinfo.route.RouteState
@@ -144,6 +152,49 @@ class GnssStatusScreenTest {
         }
 
         composeRule.onNodeWithContentDescription("Flight parameters available").assertExists()
+    }
+
+    @Test fun changingUnitsImmediatelyUpdatesFlightNearbyAndRouteValues() {
+        var preferences by mutableStateOf(UnitPreferences())
+        composeRule.setContent {
+            GnssStatusScreen(
+                state = GnssStatusState.Waiting,
+                flightParametersState = FlightParametersState.Readings(36.0, 1.0, 100.0, 1013.25),
+                onOpenLocationSettings = {},
+                onRetry = {},
+                unitPreferences = preferences,
+                nearbyCityState = NearbyCityState.Available("Nearby", "US", 10.0, "12:00", 0),
+                routeState =
+                    RouteState(
+                        details = RouteDetails(100.0, 50.0, "10:00", "01:00"),
+                    ),
+            )
+        }
+        composeRule.onNodeWithText("36.0 km/h").assertIsDisplayed()
+        composeRule.onNodeWithText("10.0 km").assertIsDisplayed()
+        composeRule.onNodeWithText("100.0 km").assertIsDisplayed()
+        composeRule.onNodeWithText("50.0 km").assertIsDisplayed()
+        composeRule.onNodeWithText("10:00 (01:00)").assertIsDisplayed()
+
+        composeRule.runOnIdle {
+            preferences =
+                UnitPreferences(
+                    speed = SpeedUnit.MILES_PER_HOUR,
+                    altitude = AltitudeUnit.FEET,
+                    distance = DistanceUnit.MILES,
+                    verticalSpeed = VerticalSpeedUnit.FEET_PER_MINUTE,
+                    pressure = PressureUnit.INCHES_OF_MERCURY,
+                )
+        }
+
+        composeRule.onNodeWithText("22.4 mph").assertIsDisplayed()
+        composeRule.onNodeWithText("196.9 ft/min").assertIsDisplayed()
+        composeRule.onNodeWithText("328.1 ft").assertIsDisplayed()
+        composeRule.onNodeWithText("29.9 inHg").assertIsDisplayed()
+        composeRule.onNodeWithText("6.2 mi").assertIsDisplayed()
+        composeRule.onNodeWithText("62.1 mi").assertIsDisplayed()
+        composeRule.onNodeWithText("31.1 mi").assertIsDisplayed()
+        composeRule.onNodeWithText("10:00 (01:00)").assertIsDisplayed()
     }
 
     @Test fun courseWaitingShowsOnlyCurrentSessionWaitingContent() {

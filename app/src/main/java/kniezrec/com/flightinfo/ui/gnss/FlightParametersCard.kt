@@ -22,6 +22,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
@@ -31,16 +32,21 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kniezrec.com.flightinfo.R
+import kniezrec.com.flightinfo.displayunits.UnitPreferences
+import kniezrec.com.flightinfo.displayunits.convertAltitude
+import kniezrec.com.flightinfo.displayunits.convertPressure
+import kniezrec.com.flightinfo.displayunits.convertSpeed
+import kniezrec.com.flightinfo.displayunits.convertVerticalSpeed
+import kniezrec.com.flightinfo.displayunits.formatUnitNumber
 import kniezrec.com.flightinfo.flight.FlightParametersState
 import kniezrec.com.flightinfo.ui.permission.cardPurple
-import java.text.NumberFormat
-import java.util.Locale
 
 private val textColor = Color(0xFFD9D9ED)
 
 @Composable
 internal fun FlightParametersCard(
     state: FlightParametersState,
+    preferences: UnitPreferences = UnitPreferences(),
     modifier: Modifier = Modifier,
 ) {
     var wasWaiting by remember { mutableStateOf(state is FlightParametersState.Waiting) }
@@ -74,7 +80,7 @@ internal fun FlightParametersCard(
         Box {
             when (state) {
                 FlightParametersState.Waiting -> FlightParametersWaiting()
-                is FlightParametersState.Readings -> FlightParametersReadings(state)
+                is FlightParametersState.Readings -> FlightParametersReadings(state, preferences)
             }
 
             if (announceAvailability) {
@@ -127,7 +133,10 @@ private fun FlightParametersWaiting() {
 }
 
 @Composable
-private fun FlightParametersReadings(state: FlightParametersState.Readings) {
+private fun FlightParametersReadings(
+    state: FlightParametersState.Readings,
+    preferences: UnitPreferences,
+) {
     Column(
         Modifier
             .fillMaxWidth()
@@ -140,7 +149,26 @@ private fun FlightParametersReadings(state: FlightParametersState.Readings) {
         ParameterRow(
             R.string.flight_speed,
             state.speedKilometresPerHour?.let {
-                format(it, R.string.flight_speed_value, false)
+                format(
+                    convertSpeed(it, preferences.speed),
+                    R.string.flight_speed_value,
+                    false,
+                    stringResource(
+                        when (preferences.speed) {
+                            kniezrec.com.flightinfo.displayunits.SpeedUnit.KILOMETRES_PER_HOUR -> R.string.unit_kmh
+                            kniezrec.com.flightinfo.displayunits.SpeedUnit.MILES_PER_HOUR -> R.string.unit_mph
+                            kniezrec.com.flightinfo.displayunits.SpeedUnit.KNOTS -> R.string.unit_kt
+                        },
+                    ),
+                )
+            },
+            state.speedKilometresPerHour?.let {
+                format(
+                    convertSpeed(it, preferences.speed),
+                    R.string.flight_value_accessibility,
+                    false,
+                    stringResource(speedAccessibilityUnit(preferences.speed)),
+                )
             },
         )
 
@@ -149,7 +177,26 @@ private fun FlightParametersReadings(state: FlightParametersState.Readings) {
         ParameterRow(
             R.string.flight_vertical_speed,
             state.verticalSpeedMetresPerSecond?.let {
-                format(it, R.string.flight_vertical_speed_value, true)
+                format(
+                    convertVerticalSpeed(it, preferences.verticalSpeed),
+                    R.string.flight_vertical_speed_value,
+                    true,
+                    stringResource(
+                        when (preferences.verticalSpeed) {
+                            kniezrec.com.flightinfo.displayunits.VerticalSpeedUnit.METRES_PER_SECOND -> R.string.unit_ms
+                            kniezrec.com.flightinfo.displayunits.VerticalSpeedUnit.METRES_PER_MINUTE -> R.string.unit_mmin
+                            kniezrec.com.flightinfo.displayunits.VerticalSpeedUnit.FEET_PER_MINUTE -> R.string.unit_ftmin
+                        },
+                    ),
+                )
+            },
+            state.verticalSpeedMetresPerSecond?.let {
+                format(
+                    convertVerticalSpeed(it, preferences.verticalSpeed),
+                    R.string.flight_value_accessibility,
+                    true,
+                    stringResource(verticalSpeedAccessibilityUnit(preferences.verticalSpeed)),
+                )
             },
         )
 
@@ -158,7 +205,36 @@ private fun FlightParametersReadings(state: FlightParametersState.Readings) {
         ParameterRow(
             R.string.flight_altitude,
             state.altitudeMetres?.let {
-                format(it, R.string.flight_altitude_value, false)
+                format(
+                    convertAltitude(it, preferences.altitude),
+                    R.string.flight_altitude_value,
+                    false,
+                    stringResource(
+                        if (preferences.altitude ==
+                            kniezrec.com.flightinfo.displayunits.AltitudeUnit.FEET
+                        ) {
+                            R.string.unit_ft
+                        } else {
+                            R.string.unit_m
+                        },
+                    ),
+                )
+            },
+            state.altitudeMetres?.let {
+                format(
+                    convertAltitude(it, preferences.altitude),
+                    R.string.flight_value_accessibility,
+                    false,
+                    stringResource(
+                        if (preferences.altitude ==
+                            kniezrec.com.flightinfo.displayunits.AltitudeUnit.FEET
+                        ) {
+                            R.string.unit_ft_accessibility
+                        } else {
+                            R.string.unit_m_accessibility
+                        },
+                    ),
+                )
             },
         )
 
@@ -167,15 +243,57 @@ private fun FlightParametersReadings(state: FlightParametersState.Readings) {
         ParameterRow(
             R.string.flight_pressure,
             state.pressureMillibars?.let {
-                format(it, R.string.flight_pressure_value, false)
+                format(
+                    convertPressure(it, preferences.pressure),
+                    R.string.flight_pressure_value,
+                    false,
+                    stringResource(
+                        if (preferences.pressure ==
+                            kniezrec.com.flightinfo.displayunits.PressureUnit.INCHES_OF_MERCURY
+                        ) {
+                            R.string.unit_inhg
+                        } else {
+                            R.string.unit_mbar
+                        },
+                    ),
+                )
             },
             accessibilityValue =
                 state.pressureMillibars?.let {
-                    format(it, R.string.flight_pressure_accessibility_value, false)
+                    format(
+                        convertPressure(it, preferences.pressure),
+                        R.string.flight_value_accessibility,
+                        false,
+                        stringResource(
+                            if (preferences.pressure ==
+                                kniezrec.com.flightinfo.displayunits.PressureUnit.INCHES_OF_MERCURY
+                            ) {
+                                R.string.unit_inhg_accessibility
+                            } else {
+                                R.string.unit_mbar_accessibility
+                            },
+                        ),
+                    )
                 },
         )
     }
 }
+
+@Composable
+private fun speedAccessibilityUnit(unit: kniezrec.com.flightinfo.displayunits.SpeedUnit): Int =
+    when (unit) {
+        kniezrec.com.flightinfo.displayunits.SpeedUnit.KILOMETRES_PER_HOUR -> R.string.unit_kmh_accessibility
+        kniezrec.com.flightinfo.displayunits.SpeedUnit.MILES_PER_HOUR -> R.string.unit_mph_accessibility
+        kniezrec.com.flightinfo.displayunits.SpeedUnit.KNOTS -> R.string.unit_kt_accessibility
+    }
+
+@Composable
+private fun verticalSpeedAccessibilityUnit(unit: kniezrec.com.flightinfo.displayunits.VerticalSpeedUnit): Int =
+    when (unit) {
+        kniezrec.com.flightinfo.displayunits.VerticalSpeedUnit.METRES_PER_SECOND -> R.string.unit_ms_accessibility
+        kniezrec.com.flightinfo.displayunits.VerticalSpeedUnit.METRES_PER_MINUTE -> R.string.unit_mmin_accessibility
+        kniezrec.com.flightinfo.displayunits.VerticalSpeedUnit.FEET_PER_MINUTE -> R.string.unit_ftmin_accessibility
+    }
 
 @Composable
 private fun FlightParametersTitle(textAlign: TextAlign = TextAlign.Start) {
@@ -209,13 +327,16 @@ private fun ParameterRow(
     val spokenValue =
         (accessibilityValue ?: value) ?: androidx.compose.ui.res
             .stringResource(R.string.flight_unavailable_accessibility)
+    val rowDescription =
+        androidx.compose.ui.res
+            .stringResource(R.string.flight_value_accessibility, labelText, spokenValue)
 
     Row(
         Modifier
             .fillMaxWidth()
             .heightIn(min = 48.dp)
             .semantics(mergeDescendants = true) {
-                contentDescription = "$labelText, $spokenValue"
+                contentDescription = rowDescription
             },
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -246,25 +367,14 @@ private fun ParameterRow(
 
 @Composable
 private fun format(
-    value: Double,
+    value: Double?,
     template: Int,
     signed: Boolean,
+    unit: String,
 ): String {
     val number =
-        NumberFormat
-            .getNumberInstance(Locale.getDefault())
-            .apply {
-                minimumFractionDigits = 1
-                maximumFractionDigits = 1
-            }.format(kotlin.math.abs(value))
-
-    val signedNumber =
-        if (signed) {
-            if (value < 0) "−$number" else "+$number"
-        } else {
-            number
-        }
-
+        formatUnitNumber(value, signed) ?: return androidx.compose.ui.res
+            .stringResource(R.string.flight_unavailable)
     return androidx.compose.ui.res
-        .stringResource(template, signedNumber)
+        .stringResource(template, number, unit)
 }
