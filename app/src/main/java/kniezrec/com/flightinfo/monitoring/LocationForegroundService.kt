@@ -83,7 +83,6 @@ internal open class LocationForegroundService :
             }
             registerProviderReceiver()
             handler.post(eligibilityCheck)
-            BackgroundMonitoringBridge.reconcile()
         }
         return START_NOT_STICKY
     }
@@ -133,7 +132,10 @@ internal open class LocationForegroundService :
 
     protected open fun isMonitoringEligible(): Boolean =
         ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED &&
-            getSystemService(LocationManager::class.java).isLocationEnabled
+            getSystemService(LocationManager::class.java).let { locationManager ->
+                locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) ||
+                    locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+            }
 
     protected open fun showBackgroundNotification(): Boolean =
         BackgroundNotificationPreferencesStore(

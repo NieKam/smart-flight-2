@@ -75,11 +75,7 @@ internal object BackgroundMonitoringBridge {
     fun setNotificationEnabled(enabled: Boolean) {
         if (enabled) {
             service?.reconcile(activityVisible, hasUsableFix)
-        } else if (activityVisible) {
-            // The setting controls the background waiting notification, not the
-            // visible dashboard's authoritative service-owned registration.
-            service?.reconcile(activityVisible = true, hasUsableFix = hasUsableFix)
-        } else {
+        } else if (!activityVisible) {
             service?.stopForPreferenceDisabled()
         }
     }
@@ -93,8 +89,10 @@ internal object BackgroundMonitoringBridge {
     }
 
     fun onUsableLocationFix(_fix: FlightLocationFix) {
-        hasUsableFix = true
-        if (!activityVisible) service?.onUsableFix()
+        if (!hasUsableFix) {
+            hasUsableFix = true
+            if (!activityVisible) service?.onUsableFix()
+        }
     }
 
     fun setEventHandlers(
@@ -107,6 +105,7 @@ internal object BackgroundMonitoringBridge {
 
     fun forwardLocation(fix: FlightLocationFix) {
         onLocation?.invoke(fix)
+        onUsableLocationFix(fix)
     }
 
     fun forwardGnssStatus(satellites: List<GnssSatellite>) {
@@ -119,6 +118,9 @@ internal object BackgroundMonitoringBridge {
         service = null
         serviceGeneration++
         onEligibilityLost = null
+    }
+
+    fun clearEventHandlers() {
         onLocation = null
         onGnssStatus = null
     }

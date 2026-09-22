@@ -401,6 +401,7 @@ class MainActivity : ComponentActivity() {
         mapArchiveRepository.close()
         if (!isChangingConfigurations) {
             BackgroundMonitoringBridge.clear()
+            BackgroundMonitoringBridge.clearEventHandlers()
             stopBackgroundMonitoring()
         }
         super.onDestroy()
