@@ -1,5 +1,6 @@
 <resources>
     <string name="app_name">Smart Flight</string>
+    <string name="dashboard_more_options">More options</string>
     <string name="permission_title">Location permission</string>
     <string name="permission_body">Smart Flight needs precise location permission to enable flight information cards.</string>
     <string name="permission_grant">Grant permission</string>
@@ -133,6 +134,21 @@
     <string name="route_departure_marker_description">Departure endpoint marker</string>
     <string name="route_destination_marker_description">Destination endpoint marker</string>
     <string name="settings_title">Settings</string><string name="navigate_up">Navigate up</string><string name="units_section">Units</string>
+    <string name="about_title">About</string>
+    <string name="about_version">Version</string>
+    <string name="about_version_unavailable">Version unavailable</string>
+    <string name="about_feedback_address" translatable="false">kamil.niezrecki@gmail.com</string>
+    <string name="about_send_feedback">Send feedback</string>
+    <string name="about_rate">Rate in Google Play</string>
+    <string name="about_feedback_action_description">Opens an email addressed to Smart Flight feedback</string>
+    <string name="about_rating_action_description">Opens the Smart Flight store listing</string>
+    <string name="about_feedback_unavailable">No email app is available.</string>
+    <string name="about_rating_unavailable">Unable to open Google Play or a web browser.</string>
+    <string name="about_disclaimer_heading">Safety information</string>
+    <string name="about_disclaimer">Smart Flight is not an aviation-certified instrument. Its readings and estimates may be inaccurate or unavailable. Always verify information independently and remain responsible for safe flight decisions.</string>
+    <string name="about_attribution_heading">Open-source attribution</string>
+    <string name="about_attribution">This application uses AndroidX Jetpack Compose for its user interface and osmdroid for its offline map display.</string>
+    <string name="about_close">OK</string>
     <string name="settings_row_description">%1$s, current value %2$s, double tap to change</string>
     <string name="flight_value_accessibility">%1$s %2$s</string>
     <string name="card_row_description">%1$s, %2$s</string>

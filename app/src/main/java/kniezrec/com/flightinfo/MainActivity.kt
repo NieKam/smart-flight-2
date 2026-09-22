@@ -31,6 +31,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
+import kniezrec.com.flightinfo.about.AboutIntentFactory
+import kniezrec.com.flightinfo.about.AndroidAppVersionProvider
+import kniezrec.com.flightinfo.about.AndroidExternalIntentLauncher
 import kniezrec.com.flightinfo.course.CourseController
 import kniezrec.com.flightinfo.course.CourseState
 import kniezrec.com.flightinfo.course.ForegroundCourseObservationCoordinator
@@ -64,6 +67,7 @@ import kniezrec.com.flightinfo.route.RouteController
 import kniezrec.com.flightinfo.route.RouteEndpoint
 import kniezrec.com.flightinfo.route.RouteState
 import kniezrec.com.flightinfo.route.validCity
+import kniezrec.com.flightinfo.ui.about.AboutDialog
 import kniezrec.com.flightinfo.ui.gnss.GnssStatusScreen
 import kniezrec.com.flightinfo.ui.gnss.MapCardState
 import kniezrec.com.flightinfo.ui.permission.PermissionOnboardingScreen
@@ -90,6 +94,7 @@ class MainActivity : ComponentActivity() {
     private var routeSearchError by mutableStateOf<String?>(null)
     private var routeNearestDraft by mutableStateOf<NearbyCityRecord?>(null)
     private var showUnitSettings by mutableStateOf(false)
+    private var showAbout by mutableStateOf(false)
     private var unitPreferences by mutableStateOf(UnitPreferences())
     private var lastRouteSearchQuery = ""
     private val mapRules = MapSessionRules()
@@ -113,8 +118,11 @@ class MainActivity : ComponentActivity() {
         setContent {
             SmartFlightTheme {
                 BackHandler(enabled = showUnitSettings) { showUnitSettings = false }
+                BackHandler(enabled = showAbout) { showAbout = false }
                 val snackbarHostState = remember { SnackbarHostState() }
                 val scope = rememberCoroutineScope()
+                val aboutVersion = remember { AndroidAppVersionProvider(this).read() }
+                val externalLauncher = remember { AndroidExternalIntentLauncher(this) }
                 Surface(modifier = Modifier.fillMaxSize(), color = smartFlightPageColor) {
                     Scaffold(
                         modifier = Modifier.fillMaxSize(),
@@ -236,6 +244,7 @@ class MainActivity : ComponentActivity() {
                                     routeNearestLoading = routeSearchLoading,
                                     routePickerMapArchive = (mapState as? MapCardState.Ready)?.archive,
                                     onOpenSettings = { showUnitSettings = true },
+                                    onOpenAbout = { showAbout = true },
                                     unitPreferences = unitPreferences,
                                     onOpenLocationSettings = {
                                         if (!openLocationSettings()) {
@@ -267,6 +276,18 @@ class MainActivity : ComponentActivity() {
                                 announceStateChange = announcementVersion > 0,
                             )
                         }
+                    }
+                    if (showAbout && permissionState == LocationPermissionState.Granted) {
+                        AboutDialog(
+                            version = aboutVersion,
+                            onSendFeedback = {
+                                externalLauncher.launch(
+                                    AboutIntentFactory.feedback(getString(R.string.about_feedback_address)),
+                                )
+                            },
+                            onRate = { externalLauncher.launchRate(packageName) },
+                            onDismiss = { showAbout = false },
+                        )
                     }
                 }
             }
