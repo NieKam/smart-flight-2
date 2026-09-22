@@ -274,12 +274,16 @@ private fun OfflineMap(
                     addMapListener(
                         object : MapListener {
                             override fun onScroll(event: ScrollEvent): Boolean {
-                                onMaximumZoomWarningChanged(MapSessionRules.shouldShowMaximumZoomWarning(zoomLevel, instance.largerMapZoom))
+                                onMaximumZoomWarningChanged(
+                                    MapSessionRules.shouldShowMaximumZoomWarning(zoomLevel.toDouble(), instance.largerMapZoom),
+                                )
                                 return true
                             }
 
                             override fun onZoom(event: ZoomEvent): Boolean {
-                                onMaximumZoomWarningChanged(MapSessionRules.shouldShowMaximumZoomWarning(zoomLevel, instance.largerMapZoom))
+                                onMaximumZoomWarningChanged(
+                                    MapSessionRules.shouldShowMaximumZoomWarning(zoomLevel.toDouble(), instance.largerMapZoom),
+                                )
                                 return true
                             }
                         },
@@ -298,11 +302,11 @@ private fun OfflineMap(
                 target =
                     object : MapZoomTarget {
                         override var maxZoomLevel: Double
-                            get() = map.maxZoomLevel
+                            get() = map.maxZoomLevel.toDouble()
                             set(value) {
                                 map.maxZoomLevel = value
                             }
-                        override val zoomLevel: Double get() = map.zoomLevel
+                        override val zoomLevel: Double get() = map.zoomLevel.toDouble()
 
                         override fun setZoom(zoom: Double) {
                             map.controller.setZoom(zoom)
@@ -314,7 +318,7 @@ private fun OfflineMap(
                     },
                 largerMapZoom = largerMapZoom,
             )
-            onMaximumZoomWarningChanged(MapSessionRules.shouldShowMaximumZoomWarning(map.zoomLevel, largerMapZoom))
+            onMaximumZoomWarningChanged(MapSessionRules.shouldShowMaximumZoomWarning(map.zoomLevel.toDouble(), largerMapZoom))
             val firstFix = rules.consumeFirstFixCenter()
             if (firstFix != null) map.controller.setCenter(GeoPoint(firstFix.latitude, firstFix.longitude))
             val position = rules.latestPosition

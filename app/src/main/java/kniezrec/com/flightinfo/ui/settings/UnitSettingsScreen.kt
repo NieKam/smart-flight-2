@@ -190,6 +190,7 @@ private fun displaysettingRow(
     }
 }
 
+@Composable
 private fun settingRow(
     label: String,
     value: String,

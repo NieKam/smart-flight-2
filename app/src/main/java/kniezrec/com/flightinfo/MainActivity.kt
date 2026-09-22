@@ -224,7 +224,10 @@ class MainActivity : ComponentActivity() {
                                         routeSearchError = null
                                         routeController.search(query) { result ->
                                             routeSearchLoading = false
-                                            result.fold({ routeResults = it }, { routeSearchError = getString(R.string.route_error) })
+                                            result.fold(
+                                                { routeResults = it },
+                                                { routeSearchError = getString(R.string.route_error) },
+                                            )
                                         }
                                     },
                                     onRouteConfirm = { city ->
@@ -297,7 +300,6 @@ class MainActivity : ComponentActivity() {
                                     onRetry = { if (isForeground) startObservation() },
                                     modifier = Modifier.padding(innerPadding).safeDrawingPadding(),
                                 )
-                                }
                             }
                         } else {
                             PermissionOnboardingScreen(
