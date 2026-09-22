@@ -163,23 +163,23 @@ class MainActivity : ComponentActivity() {
                             // Settings is an overlay so the dashboard's AndroidView-backed map remains
                             // composed. This preserves its viewport, overlays, and in-place zoom policy.
                             Box(Modifier.fillMaxSize()) {
-                            if (showUnitSettings) {
-                                UnitSettingsScreen(
-                                    preferences = unitPreferences,
-                                    onPreferenceChange = { value ->
-                                        unitPreferencesStore.write(value)
-                                        unitPreferences = value
-                                    },
-                                    displayPreferences = displayPreferences,
-                                    onDisplayPreferenceChange = { value ->
-                                        displayPreferencesStore.write(value)
-                                        displayPreferences = value
-                                        applyDisplayPreferences()
-                                    },
-                                    onBack = { showUnitSettings = false },
-                                    modifier = Modifier.padding(innerPadding).safeDrawingPadding().zIndex(1f),
-                                )
-                            }
+                                if (showUnitSettings) {
+                                    UnitSettingsScreen(
+                                        preferences = unitPreferences,
+                                        onPreferenceChange = { value ->
+                                            unitPreferencesStore.write(value)
+                                            unitPreferences = value
+                                        },
+                                        displayPreferences = displayPreferences,
+                                        onDisplayPreferenceChange = { value ->
+                                            displayPreferencesStore.write(value)
+                                            displayPreferences = value
+                                            applyDisplayPreferences()
+                                        },
+                                        onBack = { showUnitSettings = false },
+                                        modifier = Modifier.padding(innerPadding).safeDrawingPadding().zIndex(1f),
+                                    )
+                                }
                                 GnssStatusScreen(
                                     state = gnssState,
                                     flightParametersState = flightParametersState,
@@ -297,7 +297,7 @@ class MainActivity : ComponentActivity() {
                                     onRetry = { if (isForeground) startObservation() },
                                     modifier = Modifier.padding(innerPadding).safeDrawingPadding(),
                                 )
-                            }
+                                }
                             }
                         } else {
                             PermissionOnboardingScreen(
