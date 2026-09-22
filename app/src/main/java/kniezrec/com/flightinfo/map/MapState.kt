@@ -76,5 +76,15 @@ class MapSessionRules {
         const val LARGER_MAX_ZOOM = 9.0
 
         fun maxZoom(largerMapZoom: Boolean): Double = if (largerMapZoom) LARGER_MAX_ZOOM else STANDARD_MAX_ZOOM
+
+        fun shouldShowMaximumZoomWarning(
+            currentZoom: Double,
+            largerMapZoom: Boolean,
+        ): Boolean = !largerMapZoom && currentZoom >= STANDARD_MAX_ZOOM
+
+        fun reconcileZoom(
+            currentZoom: Double,
+            largerMapZoom: Boolean,
+        ): Double = currentZoom.coerceAtMost(maxZoom(largerMapZoom))
     }
 }

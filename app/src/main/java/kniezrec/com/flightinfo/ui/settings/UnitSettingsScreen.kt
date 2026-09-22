@@ -117,7 +117,7 @@ fun UnitSettingsScreen(
                         R.string.larger_map_zoom,
                         if (displayPreferences.largerMapZoom) R.string.settings_on else R.string.settings_off,
                         displayPreferences.largerMapZoom,
-                        R.string.larger_map_zoom_warning,
+                        if (displayPreferences.largerMapZoom) R.string.larger_map_zoom_warning else null,
                     ) {
                         onDisplayPreferenceChange(displayPreferences.copy(largerMapZoom = !displayPreferences.largerMapZoom))
                     }
@@ -149,6 +149,13 @@ private fun displaysettingRow(
 ) {
     val labelText = stringResource(label)
     val summaryText = stringResource(summary)
+    val warningText = warning?.let { stringResource(it) }
+    val descriptionText =
+        if (warningText == null) {
+            stringResource(R.string.display_setting_description, labelText, summaryText)
+        } else {
+            stringResource(R.string.display_setting_warning_description, labelText, summaryText, warningText)
+        }
     Column {
         Row(
             Modifier
@@ -156,18 +163,16 @@ private fun displaysettingRow(
                 .heightIn(min = 64.dp)
                 .clickable(onClick = onClick)
                 .semantics(mergeDescendants = true) {
-                    contentDescription =
-                        if (warning == null) {
-                            stringResource(R.string.display_setting_description, labelText, summaryText)
-                        } else {
-                            stringResource(R.string.display_setting_warning_description, labelText, summaryText, stringResource(warning))
-                        }
+                    contentDescription = descriptionText
                     role = Role.Switch
                     stateDescription = summaryText
                 }.padding(vertical = 12.dp),
             verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
         ) {
-            Text(labelText, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+            Column(Modifier.weight(1f)) {
+                Text(labelText, style = MaterialTheme.typography.bodyLarge)
+                Text(summaryText, style = MaterialTheme.typography.bodyMedium)
+            }
             androidx.compose.material3.Switch(checked = checked, onCheckedChange = null, modifier = Modifier.padding(start = 12.dp))
         }
         warning?.let {

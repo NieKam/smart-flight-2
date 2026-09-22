@@ -37,7 +37,9 @@ import kniezrec.com.flightinfo.about.AndroidExternalIntentLauncher
 import kniezrec.com.flightinfo.course.CourseController
 import kniezrec.com.flightinfo.course.CourseState
 import kniezrec.com.flightinfo.course.ForegroundCourseObservationCoordinator
+import kniezrec.com.flightinfo.display.DisplayEffectSink
 import kniezrec.com.flightinfo.display.DisplayPreferences
+import kniezrec.com.flightinfo.display.DisplayPreferencesApplier
 import kniezrec.com.flightinfo.display.DisplayPreferencesStore
 import kniezrec.com.flightinfo.displayunits.UnitPreferences
 import kniezrec.com.flightinfo.displayunits.UnitPreferencesStore
@@ -99,6 +101,26 @@ class MainActivity : ComponentActivity() {
     private var showAbout by mutableStateOf(false)
     private var unitPreferences by mutableStateOf(UnitPreferences())
     private var displayPreferences by mutableStateOf(DisplayPreferences())
+    private val displayPreferencesApplier by lazy {
+        DisplayPreferencesApplier(
+            sink =
+                object : DisplayEffectSink {
+                    override fun setKeepScreenAlwaysOn(enabled: Boolean) {
+                        if (enabled) {
+                            window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                        } else {
+                            window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                        }
+                    }
+
+                    override fun requestOrientation(orientation: Int) {
+                        requestedOrientation = orientation
+                    }
+                },
+            portraitOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT,
+            sensorOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR,
+        )
+    }
     private var lastRouteSearchQuery = ""
     private val mapRules = MapSessionRules()
     private var mapLoadToken = 0L
@@ -490,18 +512,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun applyDisplayPreferences() {
-        if (displayPreferences.keepScreenAlwaysOn) {
-            window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        } else {
-            window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        }
-        val requested =
-            if (displayPreferences.portraitOrientation) {
-                android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-            } else {
-                android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR
-            }
-        if (requestedOrientation != requested) requestedOrientation = requested
+        displayPreferencesApplier.apply(displayPreferences, requestedOrientation)
     }
 
     private fun startObservation() {

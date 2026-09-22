@@ -8,6 +8,27 @@ data class DisplayPreferences(
     val largerMapZoom: Boolean = false,
 )
 
+interface DisplayEffectSink {
+    fun setKeepScreenAlwaysOn(enabled: Boolean)
+
+    fun requestOrientation(orientation: Int)
+}
+
+class DisplayPreferencesApplier(
+    private val sink: DisplayEffectSink,
+    private val portraitOrientation: Int,
+    private val sensorOrientation: Int,
+) {
+    fun apply(
+        preferences: DisplayPreferences,
+        currentOrientation: Int,
+    ) {
+        sink.setKeepScreenAlwaysOn(preferences.keepScreenAlwaysOn)
+        val requested = if (preferences.portraitOrientation) portraitOrientation else sensorOrientation
+        if (currentOrientation != requested) sink.requestOrientation(requested)
+    }
+}
+
 class DisplayPreferencesStore(
     private val preferences: SharedPreferences,
 ) {

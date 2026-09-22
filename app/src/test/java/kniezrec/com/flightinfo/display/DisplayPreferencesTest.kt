@@ -37,4 +37,30 @@ class DisplayPreferencesTest {
         store.write(expected)
         assertEquals(expected, store.read())
     }
+
+    @Test fun effectsApplyFlagAndOrientationOnlyWhenNeeded() {
+        val calls = mutableListOf<String>()
+        val applier =
+            DisplayPreferencesApplier(
+                sink =
+                    object : DisplayEffectSink {
+                        override fun setKeepScreenAlwaysOn(enabled: Boolean) {
+                            calls += "keep:$enabled"
+                        }
+
+                        override fun requestOrientation(orientation: Int) {
+                            calls += "orientation:$orientation"
+                        }
+                    },
+                portraitOrientation = 1,
+                sensorOrientation = 4,
+            )
+
+        applier.apply(DisplayPreferences(keepScreenAlwaysOn = true, portraitOrientation = false), currentOrientation = 1)
+        assertEquals(listOf("keep:true", "orientation:4"), calls)
+
+        calls.clear()
+        applier.apply(DisplayPreferences(), currentOrientation = 1)
+        assertEquals(listOf("keep:false"), calls)
+    }
 }

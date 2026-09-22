@@ -45,6 +45,9 @@ import kniezrec.com.flightinfo.route.RouteOverlay
 import kniezrec.com.flightinfo.ui.permission.actionCyan
 import kniezrec.com.flightinfo.ui.permission.cardPurple
 import org.osmdroid.config.Configuration
+import org.osmdroid.events.MapListener
+import org.osmdroid.events.ScrollEvent
+import org.osmdroid.events.ZoomEvent
 import org.osmdroid.tileprovider.modules.OfflineTileProvider
 import org.osmdroid.tileprovider.tilesource.XYTileSource
 import org.osmdroid.tileprovider.util.SimpleRegisterReceiver
@@ -74,10 +77,12 @@ fun MapCard(
     rules: MapSessionRules,
     onRetry: () -> Unit,
     onUnavailable: () -> Unit = {},
+    largerMapZoom: Boolean = false,
     routeOverlay: RouteOverlay? = null,
     modifier: Modifier = Modifier,
 ) {
     var expanded by remember { mutableStateOf(false) }
+    var showMaximumZoomWarning by remember { mutableStateOf(false) }
     Card(
         modifier = modifier.fillMaxWidth().heightIn(min = 240.dp),
         shape = RoundedCornerShape(10.dp),
@@ -100,8 +105,17 @@ fun MapCard(
                             routeOverlay = routeOverlay,
                             largerMapZoom = largerMapZoom,
                             onOpenFailure = onUnavailable,
+                            onMaximumZoomWarningChanged = { showMaximumZoomWarning = it },
                             modifier = Modifier.fillMaxSize(),
                         )
+                        if (showMaximumZoomWarning) {
+                            Text(
+                                stringResource(R.string.map_maximum_zoom_warning),
+                                Modifier.align(Alignment.BottomStart).padding(12.dp),
+                                color = Color.White,
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                        }
                         MapButton(
                             description = stringResource(R.string.map_recenter),
                             modifier = Modifier.align(Alignment.TopEnd).padding(12.dp),
@@ -184,6 +198,7 @@ private fun MapButton(
 
 private class MapInstance {
     var map: MapView? = null
+    var largerMapZoom: Boolean = false
     var marker: Marker? = null
     var routeLine: Polyline? = null
     var departureMarker: Marker? = null
@@ -203,6 +218,7 @@ private class MapInstance {
         routeLine = null
         departureMarker = null
         destinationMarker = null
+        largerMapZoom = false
         map = null
     }
 }
@@ -213,11 +229,13 @@ private fun OfflineMap(
     rules: MapSessionRules,
     instance: MapInstance,
     routeOverlay: RouteOverlay?,
-    largerMapZoom: Boolean = false,
+    largerMapZoom: Boolean,
     onOpenFailure: () -> Unit,
+    onMaximumZoomWarningChanged: (Boolean) -> Unit,
     modifier: Modifier,
 ) {
     val context = LocalContext.current
+    instance.largerMapZoom = largerMapZoom
     DisposableEffect(instance) {
         onDispose {
             instance.dispose()
@@ -251,6 +269,19 @@ private fun OfflineMap(
                     controller.setZoom(MapSessionRules.DEFAULT_ZOOM)
                     controller.setCenter(GeoPoint(MapSessionRules.DEFAULT_CENTER.latitude, MapSessionRules.DEFAULT_CENTER.longitude))
                     instance.map = this
+                    addMapListener(
+                        object : MapListener {
+                            override fun onScroll(event: ScrollEvent): Boolean {
+                                onMaximumZoomWarningChanged(MapSessionRules.shouldShowMaximumZoomWarning(zoomLevel, instance.largerMapZoom))
+                                return true
+                            }
+
+                            override fun onZoom(event: ZoomEvent): Boolean {
+                                onMaximumZoomWarningChanged(MapSessionRules.shouldShowMaximumZoomWarning(zoomLevel, instance.largerMapZoom))
+                                return true
+                            }
+                        },
+                    )
                 }
             } catch (_: Exception) {
                 onOpenFailure()
@@ -263,10 +294,13 @@ private fun OfflineMap(
         update = { map ->
             val maxZoom = MapSessionRules.maxZoom(largerMapZoom)
             if (map.maxZoomLevel != maxZoom) {
-                if (!largerMapZoom && map.zoomLevel > maxZoom) map.controller.setZoom(maxZoom)
+                if (!largerMapZoom && map.zoomLevel > maxZoom) {
+                    map.controller.setZoom(MapSessionRules.reconcileZoom(map.zoomLevel, largerMapZoom))
+                }
                 map.maxZoomLevel = maxZoom
                 map.invalidate()
             }
+            onMaximumZoomWarningChanged(MapSessionRules.shouldShowMaximumZoomWarning(map.zoomLevel, largerMapZoom))
             val firstFix = rules.consumeFirstFixCenter()
             if (firstFix != null) map.controller.setCenter(GeoPoint(firstFix.latitude, firstFix.longitude))
             val position = rules.latestPosition
