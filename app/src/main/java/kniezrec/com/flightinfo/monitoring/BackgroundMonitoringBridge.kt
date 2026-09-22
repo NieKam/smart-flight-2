@@ -6,6 +6,7 @@ import kniezrec.com.flightinfo.gnss.GnssSatellite
 /** Process-local handoff; the service owns platform callbacks and the activity consumes events. */
 internal object BackgroundMonitoringBridge {
     private var service: LocationForegroundService? = null
+    private var serviceGeneration = 0L
     private var activityVisible = false
     private var hasUsableFix = false
     private var onEligibilityLost: (() -> Unit)? = null
@@ -16,13 +17,39 @@ internal object BackgroundMonitoringBridge {
         hasUsableFix = false
     }
 
-    fun attach(service: LocationForegroundService) {
+    /** Attaches the current service and returns a token for its callback closures. */
+    fun attach(service: LocationForegroundService): Long {
+        serviceGeneration++
         this.service = service
-        service.reconcile(activityVisible, hasUsableFix)
+        return serviceGeneration
     }
 
-    fun detach(service: LocationForegroundService) {
-        if (this.service === service) this.service = null
+    fun reconcile() {
+        service?.reconcile(activityVisible, hasUsableFix)
+    }
+
+    fun detach(
+        service: LocationForegroundService,
+        generation: Long,
+    ) {
+        if (this.service === service && generation == serviceGeneration) {
+            this.service = null
+            serviceGeneration++
+        }
+    }
+
+    fun forwardLocation(
+        generation: Long,
+        fix: FlightLocationFix,
+    ) {
+        if (generation == serviceGeneration) forwardLocation(fix)
+    }
+
+    fun forwardGnssStatus(
+        generation: Long,
+        satellites: List<GnssSatellite>,
+    ) {
+        if (generation == serviceGeneration) forwardGnssStatus(satellites)
     }
 
     fun setActivityVisible(visible: Boolean) {
@@ -68,6 +95,7 @@ internal object BackgroundMonitoringBridge {
         activityVisible = false
         hasUsableFix = false
         service = null
+        serviceGeneration++
         onEligibilityLost = null
         onLocation = null
         onGnssStatus = null

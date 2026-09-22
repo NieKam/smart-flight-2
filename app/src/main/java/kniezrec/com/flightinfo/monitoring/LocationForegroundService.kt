@@ -28,11 +28,12 @@ class LocationForegroundService : Service() {
     private var providerReceiver: BroadcastReceiver? = null
     private var started = false
     private var monitoringSession: LocationGnssMonitoringSession? = null
+    private var bridgeGeneration: Long? = null
 
     private val eligibilityCheck =
         object : Runnable {
             override fun run() {
-                if (!isEligible()) {
+                if (!isMonitoringEligible()) {
                     stopForEligibility()
                 } else {
                     handler.postDelayed(this, CHECK_INTERVAL_MS)
@@ -45,19 +46,27 @@ class LocationForegroundService : Service() {
         flags: Int,
         startId: Int,
     ): Int {
-        if (intent?.action == ACTION_STOP || !isEligible()) {
+        if (intent?.action == ACTION_STOP || !isMonitoringEligible()) {
             stopMonitoring()
             stopSelf()
             return START_NOT_STICKY
         }
         createChannel()
         if (!started) {
-            startForeground(
-                NOTIFICATION_ID,
-                notification(showWaiting = false),
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION,
-            )
+            try {
+                startForeground(
+                    NOTIFICATION_ID,
+                    notification(showWaiting = false),
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION,
+                )
+            } catch (_: RuntimeException) {
+                stopMonitoring()
+                stopSelf()
+                return START_NOT_STICKY
+            }
             started = true
+            val generation = BackgroundMonitoringBridge.attach(this)
+            bridgeGeneration = generation
             monitoringSession =
                 LocationGnssMonitoringSession(
                     locationPlatform =
@@ -72,8 +81,8 @@ class LocationForegroundService : Service() {
                             packageManager,
                             mainExecutor,
                         ),
-                    onLocation = BackgroundMonitoringBridge::forwardLocation,
-                    onGnssStatus = BackgroundMonitoringBridge::forwardGnssStatus,
+                    onLocation = { fix -> BackgroundMonitoringBridge.forwardLocation(generation, fix) },
+                    onGnssStatus = { status -> BackgroundMonitoringBridge.forwardGnssStatus(generation, status) },
                 ).also { session ->
                     if (!session.start()) {
                         stopMonitoring()
@@ -83,8 +92,8 @@ class LocationForegroundService : Service() {
                 }
             registerProviderReceiver()
             handler.post(eligibilityCheck)
+            BackgroundMonitoringBridge.reconcile()
         }
-        BackgroundMonitoringBridge.attach(this)
         return START_NOT_STICKY
     }
 
@@ -92,7 +101,8 @@ class LocationForegroundService : Service() {
 
     override fun onDestroy() {
         stopMonitoring()
-        BackgroundMonitoringBridge.detach(this)
+        bridgeGeneration?.let { BackgroundMonitoringBridge.detach(this, it) }
+        bridgeGeneration = null
         super.onDestroy()
     }
 
@@ -106,10 +116,15 @@ class LocationForegroundService : Service() {
         activityVisible: Boolean,
         hasUsableFix: Boolean,
     ) {
-        if (!started || !isEligible()) {
-            if (!isEligible()) {
+        if (!started || !isMonitoringEligible()) {
+            if (!isMonitoringEligible()) {
                 stopForEligibility()
             }
+            return
+        }
+        if (!activityVisible && !showBackgroundNotification()) {
+            stopMonitoring()
+            stopSelf()
             return
         }
         updateNotification(showWaiting = !activityVisible && !hasUsableFix && canPostNotifications())
@@ -120,12 +135,14 @@ class LocationForegroundService : Service() {
         stopSelf()
     }
 
-    private fun isEligible(): Boolean =
+    private fun isMonitoringEligible(): Boolean =
         ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED &&
-            getSystemService(LocationManager::class.java).isLocationEnabled &&
-            BackgroundNotificationPreferencesStore(
-                getSharedPreferences(BackgroundNotificationPreferencesStore.PREFERENCES_NAME, MODE_PRIVATE),
-            ).read().showBackgroundNotification
+            getSystemService(LocationManager::class.java).isLocationEnabled
+
+    private fun showBackgroundNotification(): Boolean =
+        BackgroundNotificationPreferencesStore(
+            getSharedPreferences(BackgroundNotificationPreferencesStore.PREFERENCES_NAME, MODE_PRIVATE),
+        ).read().showBackgroundNotification
 
     private fun registerProviderReceiver() {
         if (providerReceiver != null) return
@@ -135,7 +152,7 @@ class LocationForegroundService : Service() {
                     context: Context,
                     intent: Intent,
                 ) {
-                    if (intent.action == LocationManager.PROVIDERS_CHANGED_ACTION && !isEligible()) {
+                    if (intent.action == LocationManager.PROVIDERS_CHANGED_ACTION && !isMonitoringEligible()) {
                         stopForEligibility()
                     }
                 }

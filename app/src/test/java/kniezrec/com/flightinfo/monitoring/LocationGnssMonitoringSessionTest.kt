@@ -41,6 +41,23 @@ class LocationGnssMonitoringSessionTest {
         assertEquals(1, location.unregisterCount)
         assertFalse(session.isActive)
     }
+
+    @Test fun `late callback from a stopped generation is ignored`() {
+        val location = RetainingLocationPlatform()
+        val gnss = FakeGnssPlatform()
+        var fixes = 0
+        val session = LocationGnssMonitoringSession(location, gnss, { fixes++ }, {})
+
+        assertTrue(session.start())
+        val oldCallback = location.callbacks.single()
+        session.stop()
+        assertTrue(session.start())
+
+        oldCallback(FIX)
+        assertEquals(0, fixes)
+        location.emit(FIX)
+        assertEquals(1, fixes)
+    }
 }
 
 private val FIX = FlightLocationFix(1.0, 100.0, 1L)
@@ -66,6 +83,23 @@ private class FakeLocationPlatform : FlightLocationPlatform {
     }
 
     fun emit(fix: FlightLocationFix) = callback?.invoke(fix)
+}
+
+private class RetainingLocationPlatform : FlightLocationPlatform {
+    val callbacks = mutableListOf<(FlightLocationFix) -> Unit>()
+
+    override fun areLocationServicesEnabled() = true
+
+    override fun hasGnssHardware() = true
+
+    override fun registerLocationListener(onLocation: (FlightLocationFix) -> Unit): Boolean {
+        callbacks += onLocation
+        return true
+    }
+
+    override fun unregisterLocationListener() = Unit
+
+    fun emit(fix: FlightLocationFix) = callbacks.last()(fix)
 }
 
 private class FakeGnssPlatform(

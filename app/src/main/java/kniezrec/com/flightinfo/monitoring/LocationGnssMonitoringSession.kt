@@ -44,8 +44,8 @@ internal class LocationGnssMonitoringSession(
 
     fun stop() {
         generation++
-        if (locationRegistered) locationPlatform.unregisterLocationListener()
-        if (gnssRegistered) gnssPlatform.unregisterGnssStatusCallback()
+        if (locationRegistered) runCatching { locationPlatform.unregisterLocationListener() }
+        if (gnssRegistered) runCatching { gnssPlatform.unregisterGnssStatusCallback() }
         locationRegistered = false
         gnssRegistered = false
     }
