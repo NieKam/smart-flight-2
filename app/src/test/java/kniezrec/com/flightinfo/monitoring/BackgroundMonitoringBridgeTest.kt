@@ -41,12 +41,21 @@ class BackgroundMonitoringBridgeTest {
     @Test
     fun `setting off stops current run and on reconciles without changing state`() {
         BackgroundMonitoringBridge.attach(service)
-        BackgroundMonitoringBridge.setActivityVisible(false)
+        BackgroundMonitoringBridge.setActivityVisible(true)
         BackgroundMonitoringBridge.setNotificationEnabled(false)
         BackgroundMonitoringBridge.setNotificationEnabled(true)
 
+        assertEquals(0, service.stopForPreferenceDisabledCount)
+        assertEquals(listOf(true, true), service.reconciliations.map { it.first })
+    }
+
+    @Test
+    fun `setting off while backgrounded stops only the current run`() {
+        BackgroundMonitoringBridge.attach(service)
+        BackgroundMonitoringBridge.setActivityVisible(false)
+        BackgroundMonitoringBridge.setNotificationEnabled(false)
+
         assertEquals(1, service.stopForPreferenceDisabledCount)
-        assertEquals(listOf(false), service.reconciliations.map { it.first })
     }
 
     @Test

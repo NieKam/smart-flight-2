@@ -138,10 +138,11 @@ class LocationForegroundServiceTest {
             service.getSharedPreferences(BackgroundNotificationPreferencesStore.PREFERENCES_NAME, 0),
         ).write(BackgroundNotificationPreferences(false))
         service.onStartCommand(null, 0, 1)
+        BackgroundMonitoringBridge.setActivityVisible(true)
         BackgroundMonitoringBridge.setNotificationEnabled(false)
 
-        assertEquals(1, sessions.single().stopCount)
-        assertTrue(notifications().isEmpty())
+        assertEquals(0, sessions.single().stopCount)
+        assertEquals(1, notifications().size)
         assertFalse(
             BackgroundNotificationPreferencesStore(
                 service.getSharedPreferences(BackgroundNotificationPreferencesStore.PREFERENCES_NAME, 0),
@@ -150,11 +151,33 @@ class LocationForegroundServiceTest {
     }
 
     @Test
+    fun `preference off releases a background session but keeps preference off`() {
+        service = startService()
+        service.onStartCommand(null, 0, 1)
+        BackgroundMonitoringBridge.setActivityVisible(false)
+        BackgroundMonitoringBridge.setNotificationEnabled(false)
+
+        assertEquals(1, sessions.single().stopCount)
+        assertTrue(notifications().isEmpty())
+    }
+
+    @Test
     fun `eligibility loss releases callbacks and stable notification`() {
         service = startService()
         service.onStartCommand(null, 0, 1)
         service.eligible = false
         service.reconcile(activityVisible = false, hasUsableFix = false)
+
+        assertEquals(1, sessions.single().stopCount)
+        assertTrue(notifications().isEmpty())
+    }
+
+    @Test
+    fun `running service eligibility check cleans up after provider loss`() {
+        service = startService()
+        service.onStartCommand(null, 0, 1)
+        service.eligible = false
+        service.checkEligibilityForTest()
 
         assertEquals(1, sessions.single().stopCount)
         assertTrue(notifications().isEmpty())
@@ -207,6 +230,34 @@ class LocationForegroundServiceTest {
         newSession.emitLocation(FIX)
 
         assertEquals(1, fixes)
+    }
+
+    @Test
+    fun `notification tap reconciles the existing service-owned session`() {
+        service = startService()
+        service.onStartCommand(null, 0, 1)
+        BackgroundMonitoringBridge.setActivityVisible(false)
+        val intent = shadowOf(notificationAtStableId()!!.contentIntent).savedIntent
+
+        assertEquals(kniezrec.com.flightinfo.MainActivity::class.java.name, intent.component!!.className)
+        BackgroundMonitoringBridge.setActivityVisible(true)
+
+        assertEquals(1, sessions.size)
+        assertFalse(notificationTitle().contains("waiting", true))
+    }
+
+    @Test
+    fun `activity recreation and repeated handoff retain one service session`() {
+        service = startService()
+        service.onStartCommand(null, 0, 1)
+        BackgroundMonitoringBridge.setActivityVisible(false)
+        service.onStartCommand(null, 0, 2)
+        BackgroundMonitoringBridge.setActivityVisible(true)
+        BackgroundMonitoringBridge.setActivityVisible(false)
+        BackgroundMonitoringBridge.setActivityVisible(true)
+
+        assertEquals(1, sessions.size)
+        assertEquals(1, sessions.single().startCount)
     }
 
     private fun startService(

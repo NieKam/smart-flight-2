@@ -75,6 +75,10 @@ internal object BackgroundMonitoringBridge {
     fun setNotificationEnabled(enabled: Boolean) {
         if (enabled) {
             service?.reconcile(activityVisible, hasUsableFix)
+        } else if (activityVisible) {
+            // The setting controls the background waiting notification, not the
+            // visible dashboard's authoritative service-owned registration.
+            service?.reconcile(activityVisible = true, hasUsableFix = hasUsableFix)
         } else {
             service?.stopForPreferenceDisabled()
         }

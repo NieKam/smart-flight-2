@@ -370,7 +370,7 @@ class MainActivity : ComponentActivity() {
         displayPreferences = displayPreferencesStore.read()
         backgroundNotificationPreferences = backgroundNotificationPreferencesStore.read()
         applyDisplayPreferences()
-        if (permissionState == LocationPermissionState.Granted && backgroundNotificationPreferences.showBackgroundNotification) {
+        if (permissionState == LocationPermissionState.Granted) {
             startBackgroundMonitoring()
         } else {
             stopBackgroundMonitoring()

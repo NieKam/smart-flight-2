@@ -49,6 +49,10 @@ internal class LocationForegroundService :
             }
         }
 
+    internal fun checkEligibilityForTest() {
+        eligibilityCheck.run()
+    }
+
     override fun onStartCommand(
         intent: Intent?,
         flags: Int,
