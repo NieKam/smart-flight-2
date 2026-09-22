@@ -36,6 +36,7 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.toggleableState
 import androidx.compose.ui.unit.dp
 import kniezrec.com.flightinfo.R
 import kniezrec.com.flightinfo.display.DisplayPreferences
@@ -166,6 +167,9 @@ private fun displaysettingRow(
                     contentDescription = descriptionText
                     role = Role.Switch
                     stateDescription = summaryText
+                    toggleableState =
+                        androidx.compose.ui.state
+                            .ToggleableState(checked)
                 }.padding(vertical = 12.dp),
             verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
         ) {
