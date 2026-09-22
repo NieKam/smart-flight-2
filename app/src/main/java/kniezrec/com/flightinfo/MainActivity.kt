@@ -57,6 +57,7 @@ import kniezrec.com.flightinfo.horizon.HorizonController
 import kniezrec.com.flightinfo.horizon.HorizonState
 import kniezrec.com.flightinfo.map.MapArchiveRepository
 import kniezrec.com.flightinfo.map.MapSessionRules
+import kniezrec.com.flightinfo.monitoring.BackgroundMonitoringBridge
 import kniezrec.com.flightinfo.monitoring.BackgroundNotificationPreferences
 import kniezrec.com.flightinfo.monitoring.BackgroundNotificationPreferencesStore
 import kniezrec.com.flightinfo.monitoring.LocationForegroundService

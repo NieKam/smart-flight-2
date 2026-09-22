@@ -18,6 +18,7 @@ import android.os.IBinder
 import android.os.Looper
 import androidx.core.content.ContextCompat
 import kniezrec.com.flightinfo.MainActivity
+import kniezrec.com.flightinfo.R
 import kniezrec.com.flightinfo.flight.AndroidFlightLocationPlatform
 import kniezrec.com.flightinfo.gnss.AndroidGnssStatusPlatform
 
