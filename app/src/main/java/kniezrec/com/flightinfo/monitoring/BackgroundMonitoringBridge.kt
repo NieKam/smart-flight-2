@@ -1,13 +1,16 @@
 package kniezrec.com.flightinfo.monitoring
 
 import kniezrec.com.flightinfo.flight.FlightLocationFix
+import kniezrec.com.flightinfo.gnss.GnssSatellite
 
-/** Process-local handoff; the activity owns location/GNSS callbacks. */
+/** Process-local handoff; the service owns platform callbacks and the activity consumes events. */
 internal object BackgroundMonitoringBridge {
     private var service: LocationForegroundService? = null
     private var activityVisible = false
     private var hasUsableFix = false
     private var onEligibilityLost: (() -> Unit)? = null
+    private var onLocation: ((FlightLocationFix) -> Unit)? = null
+    private var onGnssStatus: ((List<GnssSatellite>) -> Unit)? = null
 
     fun beginSession() {
         hasUsableFix = false
@@ -24,7 +27,11 @@ internal object BackgroundMonitoringBridge {
 
     fun setActivityVisible(visible: Boolean) {
         activityVisible = visible
-        service?.reconcile(activityVisible, hasUsableFix)
+        if (!visible && hasUsableFix) {
+            service?.onUsableFix()
+        } else {
+            service?.reconcile(activityVisible, hasUsableFix)
+        }
     }
 
     fun setEligibilityLostHandler(handler: () -> Unit) {
@@ -37,7 +44,24 @@ internal object BackgroundMonitoringBridge {
 
     fun onUsableLocationFix(_fix: FlightLocationFix) {
         hasUsableFix = true
-        service?.onUsableFix()
+        if (!activityVisible) service?.onUsableFix()
+    }
+
+    fun setEventHandlers(
+        onLocation: (FlightLocationFix) -> Unit,
+        onGnssStatus: (List<GnssSatellite>) -> Unit,
+    ) {
+        this.onLocation = onLocation
+        this.onGnssStatus = onGnssStatus
+    }
+
+    fun forwardLocation(fix: FlightLocationFix) {
+        onLocation?.invoke(fix)
+        onUsableLocationFix(fix)
+    }
+
+    fun forwardGnssStatus(satellites: List<GnssSatellite>) {
+        onGnssStatus?.invoke(satellites)
     }
 
     fun clear() {
@@ -45,5 +69,7 @@ internal object BackgroundMonitoringBridge {
         hasUsableFix = false
         service = null
         onEligibilityLost = null
+        onLocation = null
+        onGnssStatus = null
     }
 }

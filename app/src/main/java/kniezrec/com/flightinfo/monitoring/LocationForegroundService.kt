@@ -18,12 +18,15 @@ import android.os.IBinder
 import android.os.Looper
 import androidx.core.content.ContextCompat
 import kniezrec.com.flightinfo.MainActivity
+import kniezrec.com.flightinfo.flight.AndroidFlightLocationPlatform
+import kniezrec.com.flightinfo.gnss.AndroidGnssStatusPlatform
 
-/** Foreground lifetime for the activity-owned location/GNSS monitoring session. */
+/** Foreground lifetime for the service-owned location/GNSS monitoring session. */
 class LocationForegroundService : Service() {
     private val handler = Handler(Looper.getMainLooper())
     private var providerReceiver: BroadcastReceiver? = null
     private var started = false
+    private var monitoringSession: LocationGnssMonitoringSession? = null
 
     private val eligibilityCheck =
         object : Runnable {
@@ -54,6 +57,29 @@ class LocationForegroundService : Service() {
                 ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION,
             )
             started = true
+            monitoringSession =
+                LocationGnssMonitoringSession(
+                    locationPlatform =
+                        AndroidFlightLocationPlatform(
+                            getSystemService(LocationManager::class.java),
+                            packageManager,
+                            mainExecutor,
+                        ),
+                    gnssPlatform =
+                        AndroidGnssStatusPlatform(
+                            getSystemService(LocationManager::class.java),
+                            packageManager,
+                            mainExecutor,
+                        ),
+                    onLocation = BackgroundMonitoringBridge::forwardLocation,
+                    onGnssStatus = BackgroundMonitoringBridge::forwardGnssStatus,
+                ).also { session ->
+                    if (!session.start()) {
+                        stopMonitoring()
+                        stopSelf()
+                        return START_NOT_STICKY
+                    }
+                }
             registerProviderReceiver()
             handler.post(eligibilityCheck)
         }
@@ -85,7 +111,7 @@ class LocationForegroundService : Service() {
             }
             return
         }
-        updateNotification(showWaiting = !activityVisible && !hasUsableFix)
+        updateNotification(showWaiting = !activityVisible && !hasUsableFix && canPostNotifications())
     }
 
     internal fun onUsableFix() {
@@ -124,6 +150,8 @@ class LocationForegroundService : Service() {
 
     private fun stopMonitoring() {
         handler.removeCallbacks(eligibilityCheck)
+        monitoringSession?.stop()
+        monitoringSession = null
         providerReceiver?.let { unregisterReceiver(it) }
         providerReceiver = null
         getSystemService(NotificationManager::class.java).cancel(NOTIFICATION_ID)
@@ -135,6 +163,10 @@ class LocationForegroundService : Service() {
             NotificationChannel(CHANNEL_ID, getString(R.string.background_notification_channel), NotificationManager.IMPORTANCE_LOW),
         )
     }
+
+    private fun canPostNotifications(): Boolean =
+        android.os.Build.VERSION.SDK_INT < 33 ||
+            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
 
     private fun updateNotification(showWaiting: Boolean) {
         if (started) getSystemService(NotificationManager::class.java).notify(NOTIFICATION_ID, notification(showWaiting))

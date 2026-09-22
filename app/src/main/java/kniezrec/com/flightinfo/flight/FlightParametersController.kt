@@ -23,10 +23,16 @@ internal class FlightParametersController(
     private var nextSession = 0L
     private var previousAltitudeSample: AltitudeSample? = null
     private var hasReceivedDisplayableReading = false
+    private var externalSession = false
 
     /** Starts a foreground location session and reports whether listener registration succeeded. */
     fun start(): Boolean {
         stop()
+        if (externalSession) {
+            registered = true
+            activeSession = ++nextSession
+            return true
+        }
         if (!platform.areLocationServicesEnabled() || !platform.hasGnssHardware()) return false
         val session = ++nextSession
         activeSession = session
@@ -50,11 +56,24 @@ internal class FlightParametersController(
 
     fun stop() {
         activeSession = null
-        if (registered) platform.unregisterLocationListener()
+        if (registered && !externalSession) platform.unregisterLocationListener()
         registered = false
         previousAltitudeSample = null
         hasReceivedDisplayableReading = false
         onStateChanged(FlightParametersState.Waiting)
+    }
+
+    /** Accepts a fix from the service-owned monitoring session. */
+    fun acceptLocationFix(fix: FlightLocationFix) {
+        if (registered) onLocation(fix)
+    }
+
+    /** Marks this controller as consuming an already-registered shared session. */
+    fun attachToExternalSession() {
+        stop()
+        externalSession = true
+        registered = true
+        activeSession = ++nextSession
     }
 
     private fun onLocation(fix: FlightLocationFix) {

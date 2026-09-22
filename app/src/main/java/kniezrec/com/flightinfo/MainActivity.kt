@@ -149,6 +149,10 @@ class MainActivity : ComponentActivity() {
             flightParametersController.stop()
             gnssStatusController.stop()
         }
+        BackgroundMonitoringBridge.setEventHandlers(
+            onLocation = flightParametersController::acceptLocationFix,
+            onGnssStatus = gnssStatusController::acceptStatus,
+        )
         unitPreferences = unitPreferencesStore.read()
         displayPreferences = displayPreferencesStore.read()
         backgroundNotificationPreferences = backgroundNotificationPreferencesStore.read()
@@ -407,6 +411,7 @@ class MainActivity : ComponentActivity() {
             routeController.stop()
             horizonController.stop()
             stopMap()
+            stopBackgroundMonitoring()
         }
         if (announceChange) announcementVersion++
     }
@@ -567,7 +572,8 @@ class MainActivity : ComponentActivity() {
     private fun startObservation() {
         pressureController.start()
         routeController.start()
-        gnssStatusController.start()
+        gnssStatusController.attachToExternalSession()
+        flightParametersController.attachToExternalSession()
         if (gnssState is GnssStatusState.Waiting || gnssState is GnssStatusState.Available) {
             courseObservationCoordinator.start()
         } else {
