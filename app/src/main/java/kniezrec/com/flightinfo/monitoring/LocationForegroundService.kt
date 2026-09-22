@@ -23,7 +23,9 @@ import kniezrec.com.flightinfo.flight.AndroidFlightLocationPlatform
 import kniezrec.com.flightinfo.gnss.AndroidGnssStatusPlatform
 
 /** Foreground lifetime for the service-owned location/GNSS monitoring session. */
-class LocationForegroundService : Service() {
+class LocationForegroundService :
+    Service(),
+    BackgroundMonitoringService {
     private val handler = Handler(Looper.getMainLooper())
     private var providerReceiver: BroadcastReceiver? = null
     private var started = false
@@ -112,7 +114,7 @@ class LocationForegroundService : Service() {
         super.onTaskRemoved(rootIntent)
     }
 
-    internal fun reconcile(
+    override fun reconcile(
         activityVisible: Boolean,
         hasUsableFix: Boolean,
     ) {
@@ -130,7 +132,12 @@ class LocationForegroundService : Service() {
         updateNotification(showWaiting = !activityVisible && !hasUsableFix && canPostNotifications())
     }
 
-    internal fun onUsableFix() {
+    override fun onUsableFix() {
+        stopMonitoring()
+        stopSelf()
+    }
+
+    override fun stopForPreferenceDisabled() {
         stopMonitoring()
         stopSelf()
     }

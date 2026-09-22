@@ -195,7 +195,10 @@ class MainActivity : ComponentActivity() {
                                             val value = BackgroundNotificationPreferences(enabled)
                                             backgroundNotificationPreferencesStore.write(value)
                                             backgroundNotificationPreferences = value
-                                            if (!enabled) BackgroundMonitoringBridge.setActivityVisible(isForeground)
+                                            BackgroundMonitoringBridge.setNotificationEnabled(enabled)
+                                            if (enabled && isForeground && permissionState == LocationPermissionState.Granted) {
+                                                startBackgroundMonitoring()
+                                            }
                                         },
                                         onBack = { showUnitSettings = false },
                                         modifier = Modifier.padding(innerPadding).safeDrawingPadding().zIndex(1f),

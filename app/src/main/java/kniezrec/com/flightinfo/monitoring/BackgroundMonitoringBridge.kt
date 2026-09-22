@@ -3,9 +3,20 @@ package kniezrec.com.flightinfo.monitoring
 import kniezrec.com.flightinfo.flight.FlightLocationFix
 import kniezrec.com.flightinfo.gnss.GnssSatellite
 
+internal interface BackgroundMonitoringService {
+    fun reconcile(
+        activityVisible: Boolean,
+        hasUsableFix: Boolean,
+    )
+
+    fun onUsableFix()
+
+    fun stopForPreferenceDisabled()
+}
+
 /** Process-local handoff; the service owns platform callbacks and the activity consumes events. */
 internal object BackgroundMonitoringBridge {
-    private var service: LocationForegroundService? = null
+    private var service: BackgroundMonitoringService? = null
     private var serviceGeneration = 0L
     private var activityVisible = false
     private var hasUsableFix = false
@@ -14,11 +25,11 @@ internal object BackgroundMonitoringBridge {
     private var onGnssStatus: ((List<GnssSatellite>) -> Unit)? = null
 
     fun beginSession() {
-        hasUsableFix = false
+        if (service == null) hasUsableFix = false
     }
 
     /** Attaches the current service and returns a token for its callback closures. */
-    fun attach(service: LocationForegroundService): Long {
+    fun attach(service: BackgroundMonitoringService): Long {
         serviceGeneration++
         this.service = service
         return serviceGeneration
@@ -29,7 +40,7 @@ internal object BackgroundMonitoringBridge {
     }
 
     fun detach(
-        service: LocationForegroundService,
+        service: BackgroundMonitoringService,
         generation: Long,
     ) {
         if (this.service === service && generation == serviceGeneration) {
@@ -58,6 +69,14 @@ internal object BackgroundMonitoringBridge {
             service?.onUsableFix()
         } else {
             service?.reconcile(activityVisible, hasUsableFix)
+        }
+    }
+
+    fun setNotificationEnabled(enabled: Boolean) {
+        if (enabled) {
+            service?.reconcile(activityVisible, hasUsableFix)
+        } else {
+            service?.stopForPreferenceDisabled()
         }
     }
 
