@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.pm.PackageInfo
 import android.net.Uri
 import android.os.Build
+import java.net.URLEncoder
 
 data class AppVersion(
     val name: String?,
@@ -46,7 +47,8 @@ class AndroidAppVersionProvider(
 }
 
 object AboutIntentFactory {
-    fun feedback(address: String) = Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:${Uri.encode(address)}"))
+    fun feedback(address: String) =
+        Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:${URLEncoder.encode(address, "UTF-8")}"))
 
     fun market(packageName: String) = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=$packageName"))
 
