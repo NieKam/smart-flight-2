@@ -57,6 +57,10 @@ import kniezrec.com.flightinfo.horizon.HorizonController
 import kniezrec.com.flightinfo.horizon.HorizonState
 import kniezrec.com.flightinfo.map.MapArchiveRepository
 import kniezrec.com.flightinfo.map.MapSessionRules
+import kniezrec.com.flightinfo.monitoring.BackgroundMonitoringBridge
+import kniezrec.com.flightinfo.monitoring.BackgroundNotificationPreferences
+import kniezrec.com.flightinfo.monitoring.BackgroundNotificationPreferencesStore
+import kniezrec.com.flightinfo.monitoring.LocationForegroundService
 import kniezrec.com.flightinfo.nearby.AndroidNearbyCityRepository
 import kniezrec.com.flightinfo.nearby.NearbyCityController
 import kniezrec.com.flightinfo.nearby.NearbyCityRecord
@@ -103,6 +107,7 @@ class MainActivity : ComponentActivity() {
     private var showAbout by mutableStateOf(false)
     private var unitPreferences by mutableStateOf(UnitPreferences())
     private var displayPreferences by mutableStateOf(DisplayPreferences())
+    private var backgroundNotificationPreferences by mutableStateOf(BackgroundNotificationPreferences())
     private val displayPreferencesApplier by lazy {
         DisplayPreferencesApplier(
             sink =
@@ -141,8 +146,17 @@ class MainActivity : ComponentActivity() {
             isAppearanceLightNavigationBars = false
         }
         refreshPermissionState()
+        BackgroundMonitoringBridge.setEligibilityLostHandler {
+            flightParametersController.stop()
+            gnssStatusController.stop()
+        }
+        BackgroundMonitoringBridge.setEventHandlers(
+            onLocation = flightParametersController::acceptLocationFix,
+            onGnssStatus = gnssStatusController::acceptStatus,
+        )
         unitPreferences = unitPreferencesStore.read()
         displayPreferences = displayPreferencesStore.read()
+        backgroundNotificationPreferences = backgroundNotificationPreferencesStore.read()
         applyDisplayPreferences()
         setContent {
             SmartFlightTheme {
@@ -175,6 +189,13 @@ class MainActivity : ComponentActivity() {
                                             displayPreferencesStore.write(value)
                                             displayPreferences = value
                                             applyDisplayPreferences()
+                                        },
+                                        showBackgroundNotification = backgroundNotificationPreferences.showBackgroundNotification,
+                                        onBackgroundNotificationChange = { enabled ->
+                                            val value = BackgroundNotificationPreferences(enabled)
+                                            backgroundNotificationPreferencesStore.write(value)
+                                            backgroundNotificationPreferences = value
+                                            if (!enabled) stopBackgroundMonitoring()
                                         },
                                         onBack = { showUnitSettings = false },
                                         modifier = Modifier.padding(innerPadding).safeDrawingPadding().zIndex(1f),
@@ -339,10 +360,18 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         isForeground = true
+        BackgroundMonitoringBridge.beginSession()
+        BackgroundMonitoringBridge.setActivityVisible(true)
         refreshPermissionState()
         unitPreferences = unitPreferencesStore.read()
         displayPreferences = displayPreferencesStore.read()
+        backgroundNotificationPreferences = backgroundNotificationPreferencesStore.read()
         applyDisplayPreferences()
+        if (permissionState == LocationPermissionState.Granted && backgroundNotificationPreferences.showBackgroundNotification) {
+            startBackgroundMonitoring()
+        } else {
+            stopBackgroundMonitoring()
+        }
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
@@ -355,11 +384,11 @@ class MainActivity : ComponentActivity() {
     override fun onPause() {
         stopMap()
         isForeground = false
-        gnssStatusController.stop()
         pressureController.stop()
-        courseObservationCoordinator.stop()
+        courseObservationCoordinator.stopForegroundOnly()
         routeController.stop()
         horizonController.stop()
+        BackgroundMonitoringBridge.setActivityVisible(false)
         super.onPause()
     }
 
@@ -367,6 +396,8 @@ class MainActivity : ComponentActivity() {
         pressureController.stop()
         cityLookupExecutor.shutdownNow()
         mapArchiveRepository.close()
+        BackgroundMonitoringBridge.clear()
+        stopBackgroundMonitoring()
         super.onDestroy()
     }
 
@@ -381,6 +412,7 @@ class MainActivity : ComponentActivity() {
             routeController.stop()
             horizonController.stop()
             stopMap()
+            stopBackgroundMonitoring()
         }
         if (announceChange) announcementVersion++
     }
@@ -437,6 +469,10 @@ class MainActivity : ComponentActivity() {
         DisplayPreferencesStore(getSharedPreferences("display_behavior", MODE_PRIVATE))
     }
 
+    private val backgroundNotificationPreferencesStore by lazy {
+        BackgroundNotificationPreferencesStore(getSharedPreferences(BackgroundNotificationPreferencesStore.PREFERENCES_NAME, MODE_PRIVATE))
+    }
+
     private val unitPreferencesStore by lazy {
         UnitPreferencesStore(getSharedPreferences("display_units", MODE_PRIVATE))
     }
@@ -461,6 +497,7 @@ class MainActivity : ComponentActivity() {
             },
             onRegistrationFailed = { gnssStatusController.showError() },
             onLocationFix = {
+                BackgroundMonitoringBridge.onUsableLocationFix(it)
                 courseController.onGpsBearing(it.bearingDegrees)
                 nearbyCityController.onLocationFix(it)
                 routeController.onFix(it)
@@ -523,10 +560,21 @@ class MainActivity : ComponentActivity() {
         displayPreferencesApplier.apply(displayPreferences, requestedOrientation)
     }
 
+    private fun startBackgroundMonitoring() {
+        runCatching {
+            ContextCompat.startForegroundService(this, Intent(this, LocationForegroundService::class.java))
+        }
+    }
+
+    private fun stopBackgroundMonitoring() {
+        stopService(Intent(this, LocationForegroundService::class.java))
+    }
+
     private fun startObservation() {
         pressureController.start()
         routeController.start()
-        gnssStatusController.start()
+        gnssStatusController.attachToExternalSession()
+        flightParametersController.attachToExternalSession()
         if (gnssState is GnssStatusState.Waiting || gnssState is GnssStatusState.Available) {
             courseObservationCoordinator.start()
         } else {

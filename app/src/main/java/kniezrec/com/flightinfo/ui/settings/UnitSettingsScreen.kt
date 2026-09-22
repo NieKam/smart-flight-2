@@ -70,6 +70,8 @@ fun UnitSettingsScreen(
     onBack: () -> Unit,
     displayPreferences: DisplayPreferences = DisplayPreferences(),
     onDisplayPreferenceChange: (DisplayPreferences) -> Unit = {},
+    showBackgroundNotification: Boolean = true,
+    onBackgroundNotificationChange: (Boolean) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     var selector by remember { mutableStateOf<Selector<*>?>(null) }
@@ -123,6 +125,19 @@ fun UnitSettingsScreen(
                         onDisplayPreferenceChange(displayPreferences.copy(largerMapZoom = !displayPreferences.largerMapZoom))
                     }
                 }
+                Text(
+                    stringResource(R.string.monitoring_section),
+                    Modifier.padding(top = 24.dp),
+                    style = MaterialTheme.typography.titleLarge,
+                )
+                Column(Modifier.padding(top = 8.dp)) {
+                    displaysettingRow(
+                        R.string.show_background_notification,
+                        if (showBackgroundNotification) R.string.settings_on else R.string.settings_off,
+                        showBackgroundNotification,
+                        description = R.string.background_notification_settings_description,
+                    ) { onBackgroundNotificationChange(!showBackgroundNotification) }
+                }
                 Text(stringResource(R.string.units_section), Modifier.padding(top = 24.dp), style = MaterialTheme.typography.titleLarge)
                 Column(Modifier.padding(top = 8.dp)) {
                     settingRow(stringResource(R.string.unit_speed), unitText(preferences.speed)) { selector = Selector.Speed() }
@@ -146,13 +161,17 @@ private fun displaysettingRow(
     summary: Int,
     checked: Boolean,
     warning: Int? = null,
+    description: Int? = null,
     onClick: () -> Unit,
 ) {
     val labelText = stringResource(label)
     val summaryText = stringResource(summary)
     val warningText = warning?.let { stringResource(it) }
+    val explanationText = description?.let { stringResource(it) }
     val descriptionText =
-        if (warningText == null) {
+        if (explanationText != null) {
+            stringResource(R.string.display_setting_warning_description, labelText, summaryText, explanationText)
+        } else if (warningText == null) {
             stringResource(R.string.display_setting_description, labelText, summaryText)
         } else {
             stringResource(R.string.display_setting_warning_description, labelText, summaryText, warningText)

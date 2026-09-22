@@ -49,6 +49,16 @@ internal class GnssStatusController(
         onStateChanged(GnssStatusState.Error)
     }
 
+    fun attachToExternalSession() {
+        stop()
+        registered = true
+        onStateChanged(GnssStatusState.Waiting)
+    }
+
+    fun acceptStatus(satellites: List<GnssSatellite>) {
+        if (registered) onSatelliteStatus(satellites)
+    }
+
     private fun onSatelliteStatus(satellites: List<GnssSatellite>) {
         onStateChanged(
             if (satellites.isEmpty()) GnssStatusState.Waiting else GnssStatusState.Available(satellites),

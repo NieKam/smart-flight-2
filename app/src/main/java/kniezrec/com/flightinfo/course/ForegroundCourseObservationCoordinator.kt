@@ -25,4 +25,10 @@ internal class ForegroundCourseObservationCoordinator(
         courseController.stop()
         nearbyCityController?.stop()
     }
+
+    // Stops foreground-only sensors while leaving the shared location session alive.
+    fun stopForegroundOnly() {
+        courseController.stop()
+        nearbyCityController?.stop()
+    }
 }
