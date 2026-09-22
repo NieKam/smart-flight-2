@@ -61,13 +61,7 @@ internal class LocationForegroundService :
         }
         createChannel()
         if (!started) {
-            try {
-                startForeground(
-                    NOTIFICATION_ID,
-                    notification(showWaiting = false),
-                    ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION,
-                )
-            } catch (_: RuntimeException) {
+            if (!startForegroundServiceNotification()) {
                 stopMonitoring()
                 stopSelf()
                 return START_NOT_STICKY
@@ -183,6 +177,15 @@ internal class LocationForegroundService :
     protected open fun canPostNotifications(): Boolean =
         android.os.Build.VERSION.SDK_INT < 33 ||
             ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+
+    protected open fun startForegroundServiceNotification(): Boolean =
+        runCatching {
+            startForeground(
+                NOTIFICATION_ID,
+                notification(showWaiting = false),
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION,
+            )
+        }.isSuccess
 
     private fun updateNotification(showWaiting: Boolean) {
         if (started) getSystemService(NotificationManager::class.java).notify(NOTIFICATION_ID, notification(showWaiting))

@@ -42,6 +42,24 @@ class LocationGnssMonitoringSessionTest {
         assertFalse(session.isActive)
     }
 
+    @Test fun `throwing location registration is unregistered`() {
+        val location = ThrowingLocationPlatform()
+        val session = LocationGnssMonitoringSession(location, FakeGnssPlatform(), {}, {})
+
+        assertFalse(session.start())
+        assertEquals(1, location.unregisterCount)
+    }
+
+    @Test fun `throwing gnss registration releases both registrations`() {
+        val location = FakeLocationPlatform()
+        val gnss = FakeGnssPlatform(throwOnRegister = true)
+        val session = LocationGnssMonitoringSession(location, gnss, {}, {})
+
+        assertFalse(session.start())
+        assertEquals(1, location.unregisterCount)
+        assertEquals(1, gnss.unregisterCount)
+    }
+
     @Test fun `late callback from a stopped generation is ignored`() {
         val location = RetainingLocationPlatform()
         val gnss = FakeGnssPlatform()
@@ -85,6 +103,21 @@ private class FakeLocationPlatform : FlightLocationPlatform {
     fun emit(fix: FlightLocationFix) = callback?.invoke(fix)
 }
 
+private class ThrowingLocationPlatform : FlightLocationPlatform {
+    var unregisterCount = 0
+
+    override fun areLocationServicesEnabled() = true
+
+    override fun hasGnssHardware() = true
+
+    override fun registerLocationListener(onLocation: (FlightLocationFix) -> Unit): Boolean =
+        throw IllegalStateException("registration failed")
+
+    override fun unregisterLocationListener() {
+        unregisterCount++
+    }
+}
+
 private class RetainingLocationPlatform : FlightLocationPlatform {
     val callbacks = mutableListOf<(FlightLocationFix) -> Unit>()
 
@@ -104,6 +137,7 @@ private class RetainingLocationPlatform : FlightLocationPlatform {
 
 private class FakeGnssPlatform(
     private val registerResult: Boolean = true,
+    private val throwOnRegister: Boolean = false,
 ) : GnssStatusPlatform {
     var registerCount = 0
     var unregisterCount = 0
@@ -116,6 +150,7 @@ private class FakeGnssPlatform(
     override fun registerGnssStatusCallback(onStatus: (List<GnssSatellite>) -> Unit): Boolean {
         registerCount++
         callback = onStatus
+        if (throwOnRegister) throw IllegalStateException("registration failed")
         return registerResult
     }
 

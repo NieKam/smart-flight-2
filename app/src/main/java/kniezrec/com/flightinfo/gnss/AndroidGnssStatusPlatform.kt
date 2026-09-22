@@ -28,7 +28,13 @@ internal class AndroidGnssStatusPlatform(
                 }
             }
         callback = newCallback
-        return locationManager.registerGnssStatusCallback(callbackExecutor, newCallback)
+        return try {
+            locationManager.registerGnssStatusCallback(callbackExecutor, newCallback)
+        } catch (_: RuntimeException) {
+            runCatching { locationManager.unregisterGnssStatusCallback(newCallback) }
+            callback = null
+            false
+        }
     }
 
     override fun unregisterGnssStatusCallback() {

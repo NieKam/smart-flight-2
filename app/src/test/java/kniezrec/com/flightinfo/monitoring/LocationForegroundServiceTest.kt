@@ -96,22 +96,37 @@ class LocationForegroundServiceTest {
     fun `notification dismissal stops only the current run`() {
         service = startService()
         service.onStartCommand(null, 0, 1)
-        service.onStartCommand(Intent(service, LocationForegroundService::class.java).setAction(LocationForegroundService.ACTION_STOP), 0, 2)
+        service.onStartCommand(
+            Intent(service, LocationForegroundService::class.java).setAction(LocationForegroundService.ACTION_STOP),
+            0,
+            2,
+        )
 
         assertEquals(1, sessions.single().stopCount)
         assertTrue(notifications().isEmpty())
-        assertTrue(BackgroundNotificationPreferencesStore(service.getSharedPreferences(BackgroundNotificationPreferencesStore.PREFERENCES_NAME, 0)).read().showBackgroundNotification)
+        assertTrue(
+            BackgroundNotificationPreferencesStore(
+                service.getSharedPreferences(BackgroundNotificationPreferencesStore.PREFERENCES_NAME, 0),
+            ).read().showBackgroundNotification,
+        )
     }
 
     @Test
     fun `preference off stops session and leaves preference unchanged`() {
         service = startService()
+        BackgroundNotificationPreferencesStore(
+            service.getSharedPreferences(BackgroundNotificationPreferencesStore.PREFERENCES_NAME, 0),
+        ).write(BackgroundNotificationPreferences(false))
         service.onStartCommand(null, 0, 1)
         BackgroundMonitoringBridge.setNotificationEnabled(false)
 
         assertEquals(1, sessions.single().stopCount)
         assertTrue(notifications().isEmpty())
-        assertTrue(BackgroundNotificationPreferencesStore(service.getSharedPreferences(BackgroundNotificationPreferencesStore.PREFERENCES_NAME, 0)).read().showBackgroundNotification)
+        assertFalse(
+            BackgroundNotificationPreferencesStore(
+                service.getSharedPreferences(BackgroundNotificationPreferencesStore.PREFERENCES_NAME, 0),
+            ).read().showBackgroundNotification,
+        )
     }
 
     @Test
@@ -132,6 +147,16 @@ class LocationForegroundServiceTest {
 
         assertEquals(1, sessions.single().startCount)
         assertEquals(1, sessions.single().stopCount)
+        assertTrue(notifications().isEmpty())
+    }
+
+    @Test
+    fun `foreground startup failure cleans up without creating a session`() {
+        service = startService()
+        service.failForegroundStart = true
+        service.onStartCommand(null, 0, 1)
+
+        assertTrue(sessions.isEmpty())
         assertTrue(notifications().isEmpty())
     }
 
@@ -179,16 +204,22 @@ class LocationForegroundServiceTest {
 
     private fun notificationAtStableId(): Notification? =
         shadowOf(
-            ApplicationProvider.getApplicationContext<android.content.Context>()
+            ApplicationProvider
+                .getApplicationContext<android.content.Context>()
                 .getSystemService(NotificationManager::class.java),
         ).getNotification(LocationForegroundService.NOTIFICATION_ID)
 
     private fun notificationTitle(): String =
-        notifications().single().extras.getCharSequence(Notification.EXTRA_TITLE).toString()
+        notifications()
+            .single()
+            .extras
+            .getCharSequence(Notification.EXTRA_TITLE)
+            .toString()
 
     private fun notifications(): List<Notification> =
         shadowOf(
-            ApplicationProvider.getApplicationContext<android.content.Context>()
+            ApplicationProvider
+                .getApplicationContext<android.content.Context>()
                 .getSystemService(NotificationManager::class.java),
         ).allNotifications
 }
@@ -196,11 +227,14 @@ class LocationForegroundServiceTest {
 internal class TestLocationForegroundService : LocationForegroundService() {
     var eligible = true
     var canPost = true
+    var failForegroundStart = false
     var sessionFactory: (Long) -> MonitoringSession = { FakeMonitoringSession(it, true) }
 
     override fun isMonitoringEligible(): Boolean = eligible
 
     override fun canPostNotifications(): Boolean = canPost
+
+    override fun startForegroundServiceNotification(): Boolean = !failForegroundStart
 
     override fun createMonitoringSession(generation: Long): MonitoringSession = sessionFactory(generation)
 }

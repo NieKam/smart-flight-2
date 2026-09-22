@@ -399,8 +399,10 @@ class MainActivity : ComponentActivity() {
         pressureController.stop()
         cityLookupExecutor.shutdownNow()
         mapArchiveRepository.close()
-        BackgroundMonitoringBridge.clear()
-        stopBackgroundMonitoring()
+        if (!isChangingConfigurations) {
+            BackgroundMonitoringBridge.clear()
+            stopBackgroundMonitoring()
+        }
         super.onDestroy()
     }
 
@@ -408,7 +410,7 @@ class MainActivity : ComponentActivity() {
         permissionState = permissionStateController.currentState()
         if (isForeground && permissionState == LocationPermissionState.Granted) {
             startObservation()
-        } else {
+        } else if (permissionState != LocationPermissionState.Granted || isForeground) {
             gnssStatusController.stop()
             pressureController.stop()
             courseObservationCoordinator.stop()
