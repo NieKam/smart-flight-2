@@ -52,10 +52,17 @@ class BackgroundMonitoringBridgeTest {
     @Test
     fun `usable fix cancels background run and forwards exactly once`() {
         var fixes = 0
-        BackgroundMonitoringBridge.setEventHandlers({ fixes++ }, {})
-        BackgroundMonitoringBridge.attach(service)
-        BackgroundMonitoringBridge.setActivityVisible(false)
         val generation = serviceGeneration()
+        BackgroundMonitoringBridge.setEventHandlers(
+            onLocation = {
+                fixes++
+                // This is the same callback path used by MainActivity's
+                // FlightParametersController.
+                BackgroundMonitoringBridge.onUsableLocationFix(it)
+            },
+            onGnssStatus = {},
+        )
+        BackgroundMonitoringBridge.setActivityVisible(false)
         BackgroundMonitoringBridge.forwardLocation(generation, FIX)
 
         assertEquals(1, fixes)

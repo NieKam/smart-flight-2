@@ -103,7 +103,6 @@ internal object BackgroundMonitoringBridge {
 
     fun forwardLocation(fix: FlightLocationFix) {
         onLocation?.invoke(fix)
-        onUsableLocationFix(fix)
     }
 
     fun forwardGnssStatus(satellites: List<GnssSatellite>) {

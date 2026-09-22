@@ -72,6 +72,10 @@ class LocationForegroundServiceTest {
 
     @Test
     fun `usable fix cancels notification and stops current session`() {
+        BackgroundMonitoringBridge.setEventHandlers(
+            onLocation = BackgroundMonitoringBridge::onUsableLocationFix,
+            onGnssStatus = {},
+        )
         service = startService()
         service.onStartCommand(null, 0, 1)
         BackgroundMonitoringBridge.setActivityVisible(false)
@@ -90,6 +94,22 @@ class LocationForegroundServiceTest {
         assertEquals(1, sessions.size)
         assertEquals(1, notifications().size)
         assertFalse(notificationTitle().contains("waiting", true))
+    }
+
+    @Test
+    fun `waiting notification tap targets the existing main activity`() {
+        service = startService()
+        service.onStartCommand(null, 0, 1)
+        BackgroundMonitoringBridge.setActivityVisible(false)
+
+        val intent = shadowOf(notificationAtStableId()!!.contentIntent).savedIntent
+
+        assertEquals(
+            kniezrec.com.flightinfo.MainActivity::class.java.name,
+            intent.component!!.className,
+        )
+        assertTrue(intent.flags and Intent.FLAG_ACTIVITY_SINGLE_TOP != 0)
+        assertTrue(intent.flags and Intent.FLAG_ACTIVITY_CLEAR_TOP != 0)
     }
 
     @Test
