@@ -1,6 +1,6 @@
 package kniezrec.com.flightinfo.ui.about
 
-import androidx.compose.foundation.Image
+import android.widget.ImageView
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -23,7 +23,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
@@ -32,6 +31,7 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import kniezrec.com.flightinfo.R
 import kniezrec.com.flightinfo.about.AppVersion
 import kniezrec.com.flightinfo.about.formatAppVersion
@@ -53,7 +53,15 @@ fun AboutDialog(
         onDismissRequest = onDismiss,
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Image(painterResource(R.mipmap.ic_launcher), null, Modifier.size(64.dp))
+                AndroidView(
+                    factory = { context ->
+                        ImageView(context).apply {
+                            setImageResource(R.mipmap.ic_launcher)
+                            scaleType = ImageView.ScaleType.CENTER_INSIDE
+                        }
+                    },
+                    modifier = Modifier.size(64.dp),
+                )
                 Text(stringResource(R.string.app_name), Modifier.padding(start = 16.dp), style = MaterialTheme.typography.headlineSmall)
             }
         },
