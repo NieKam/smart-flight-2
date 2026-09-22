@@ -125,7 +125,11 @@ fun UnitSettingsScreen(
                         onDisplayPreferenceChange(displayPreferences.copy(largerMapZoom = !displayPreferences.largerMapZoom))
                     }
                 }
-                Text(stringResource(R.string.monitoring_section), Modifier.padding(top = 24.dp), style = MaterialTheme.typography.titleLarge)
+                Text(
+                    stringResource(R.string.monitoring_section),
+                    Modifier.padding(top = 24.dp),
+                    style = MaterialTheme.typography.titleLarge,
+                )
                 Column(Modifier.padding(top = 8.dp)) {
                     displaysettingRow(
                         R.string.show_background_notification,

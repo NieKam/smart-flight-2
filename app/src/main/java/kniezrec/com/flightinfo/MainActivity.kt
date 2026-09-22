@@ -145,6 +145,10 @@ class MainActivity : ComponentActivity() {
             isAppearanceLightNavigationBars = false
         }
         refreshPermissionState()
+        BackgroundMonitoringBridge.setEligibilityLostHandler {
+            flightParametersController.stop()
+            gnssStatusController.stop()
+        }
         unitPreferences = unitPreferencesStore.read()
         displayPreferences = displayPreferencesStore.read()
         backgroundNotificationPreferences = backgroundNotificationPreferencesStore.read()
@@ -351,12 +355,18 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         isForeground = true
+        BackgroundMonitoringBridge.beginSession()
+        BackgroundMonitoringBridge.setActivityVisible(true)
         refreshPermissionState()
         unitPreferences = unitPreferencesStore.read()
         displayPreferences = displayPreferencesStore.read()
         backgroundNotificationPreferences = backgroundNotificationPreferencesStore.read()
         applyDisplayPreferences()
-        stopBackgroundMonitoring()
+        if (permissionState == LocationPermissionState.Granted && backgroundNotificationPreferences.showBackgroundNotification) {
+            startBackgroundMonitoring()
+        } else {
+            stopBackgroundMonitoring()
+        }
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
@@ -369,14 +379,11 @@ class MainActivity : ComponentActivity() {
     override fun onPause() {
         stopMap()
         isForeground = false
-        gnssStatusController.stop()
         pressureController.stop()
-        courseObservationCoordinator.stop()
+        courseObservationCoordinator.stopForegroundOnly()
         routeController.stop()
         horizonController.stop()
-        if (permissionState == LocationPermissionState.Granted && backgroundNotificationPreferences.showBackgroundNotification) {
-            startBackgroundMonitoring()
-        }
+        BackgroundMonitoringBridge.setActivityVisible(false)
         super.onPause()
     }
 
@@ -384,6 +391,7 @@ class MainActivity : ComponentActivity() {
         pressureController.stop()
         cityLookupExecutor.shutdownNow()
         mapArchiveRepository.close()
+        BackgroundMonitoringBridge.clear()
         stopBackgroundMonitoring()
         super.onDestroy()
     }
@@ -483,6 +491,7 @@ class MainActivity : ComponentActivity() {
             },
             onRegistrationFailed = { gnssStatusController.showError() },
             onLocationFix = {
+                BackgroundMonitoringBridge.onUsableLocationFix(it)
                 courseController.onGpsBearing(it.bearingDegrees)
                 nearbyCityController.onLocationFix(it)
                 routeController.onFix(it)

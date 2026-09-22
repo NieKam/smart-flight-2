@@ -2,9 +2,13 @@ package kniezrec.com.flightinfo.monitoring
 
 import android.content.SharedPreferences
 
-data class BackgroundNotificationPreferences(val showBackgroundNotification: Boolean = true)
+data class BackgroundNotificationPreferences(
+    val showBackgroundNotification: Boolean = true,
+)
 
-class BackgroundNotificationPreferencesStore(private val preferences: SharedPreferences) {
+class BackgroundNotificationPreferencesStore(
+    private val preferences: SharedPreferences,
+) {
     fun read() =
         BackgroundNotificationPreferences(
             showBackgroundNotification =
