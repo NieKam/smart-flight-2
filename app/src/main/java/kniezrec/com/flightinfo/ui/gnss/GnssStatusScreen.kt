@@ -87,6 +87,7 @@ fun GnssStatusScreen(
     onNearbyCityRetry: () -> Unit = {},
     mapState: MapCardState = MapCardState.Inactive,
     mapRules: MapSessionRules = MapSessionRules(),
+    largerMapZoom: Boolean = false,
     mapPositionVersion: Int = 0,
     onMapRetry: () -> Unit = {},
     onMapUnavailable: () -> Unit = {},
@@ -158,6 +159,7 @@ fun GnssStatusScreen(
                         rules = mapRules,
                         onRetry = onMapRetry,
                         onUnavailable = onMapUnavailable,
+                        largerMapZoom = largerMapZoom,
                         routeOverlay = routeState.overlay,
                         modifier = Modifier.padding(bottom = 12.dp).widthIn(max = 600.dp),
                     )

@@ -37,6 +37,8 @@ import kniezrec.com.flightinfo.about.AndroidExternalIntentLauncher
 import kniezrec.com.flightinfo.course.CourseController
 import kniezrec.com.flightinfo.course.CourseState
 import kniezrec.com.flightinfo.course.ForegroundCourseObservationCoordinator
+import kniezrec.com.flightinfo.display.DisplayPreferences
+import kniezrec.com.flightinfo.display.DisplayPreferencesStore
 import kniezrec.com.flightinfo.displayunits.UnitPreferences
 import kniezrec.com.flightinfo.displayunits.UnitPreferencesStore
 import kniezrec.com.flightinfo.flight.AndroidFlightLocationPlatform
@@ -96,6 +98,7 @@ class MainActivity : ComponentActivity() {
     private var showUnitSettings by mutableStateOf(false)
     private var showAbout by mutableStateOf(false)
     private var unitPreferences by mutableStateOf(UnitPreferences())
+    private var displayPreferences by mutableStateOf(DisplayPreferences())
     private var lastRouteSearchQuery = ""
     private val mapRules = MapSessionRules()
     private var mapLoadToken = 0L
@@ -115,6 +118,8 @@ class MainActivity : ComponentActivity() {
         }
         refreshPermissionState()
         unitPreferences = unitPreferencesStore.read()
+        displayPreferences = displayPreferencesStore.read()
+        applyDisplayPreferences()
         setContent {
             SmartFlightTheme {
                 BackHandler(enabled = showUnitSettings) { showUnitSettings = false }
@@ -138,6 +143,12 @@ class MainActivity : ComponentActivity() {
                                         unitPreferencesStore.write(value)
                                         unitPreferences = value
                                     },
+                                    displayPreferences = displayPreferences,
+                                    onDisplayPreferenceChange = { value ->
+                                        displayPreferencesStore.write(value)
+                                        displayPreferences = value
+                                        applyDisplayPreferences()
+                                    },
                                     onBack = { showUnitSettings = false },
                                     modifier = Modifier.padding(innerPadding).safeDrawingPadding(),
                                 )
@@ -154,6 +165,7 @@ class MainActivity : ComponentActivity() {
                                     onNearbyCityRetry = { nearbyCityController.retry() },
                                     mapState = mapState,
                                     mapRules = mapRules,
+                                    largerMapZoom = displayPreferences.largerMapZoom,
                                     mapPositionVersion = mapPositionVersion,
                                     onMapRetry = { startMapLoad() },
                                     onMapUnavailable = { mapState = MapCardState.Unavailable },
@@ -299,6 +311,8 @@ class MainActivity : ComponentActivity() {
         isForeground = true
         refreshPermissionState()
         unitPreferences = unitPreferencesStore.read()
+        displayPreferences = displayPreferencesStore.read()
+        applyDisplayPreferences()
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
@@ -389,6 +403,10 @@ class MainActivity : ComponentActivity() {
         )
     }
 
+    private val displayPreferencesStore by lazy {
+        DisplayPreferencesStore(getSharedPreferences("display_behavior", MODE_PRIVATE))
+    }
+
     private val unitPreferencesStore by lazy {
         UnitPreferencesStore(getSharedPreferences("display_units", MODE_PRIVATE))
     }
@@ -469,6 +487,21 @@ class MainActivity : ComponentActivity() {
 
     private val courseObservationCoordinator by lazy {
         ForegroundCourseObservationCoordinator(flightParametersController, courseController, nearbyCityController)
+    }
+
+    private fun applyDisplayPreferences() {
+        if (displayPreferences.keepScreenAlwaysOn) {
+            window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        } else {
+            window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+        val requested =
+            if (displayPreferences.portraitOrientation) {
+                android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+            } else {
+                android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR
+            }
+        if (requestedOrientation != requested) requestedOrientation = requested
     }
 
     private fun startObservation() {

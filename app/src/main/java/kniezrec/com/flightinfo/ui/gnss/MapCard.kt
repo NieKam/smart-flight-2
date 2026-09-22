@@ -66,7 +66,7 @@ sealed interface MapCardState {
     data object Inactive : MapCardState
 }
 
-private val mapSource = XYTileSource("MapquestOSM", 1, 6, 256, ".jpg", arrayOf())
+private val mapSource = XYTileSource("MapquestOSM", 1, 9, 256, ".jpg", arrayOf())
 
 @Composable
 fun MapCard(
@@ -98,6 +98,7 @@ fun MapCard(
                             rules = rules,
                             instance = instance,
                             routeOverlay = routeOverlay,
+                            largerMapZoom = largerMapZoom,
                             onOpenFailure = onUnavailable,
                             modifier = Modifier.fillMaxSize(),
                         )
@@ -212,6 +213,7 @@ private fun OfflineMap(
     rules: MapSessionRules,
     instance: MapInstance,
     routeOverlay: RouteOverlay?,
+    largerMapZoom: Boolean = false,
     onOpenFailure: () -> Unit,
     modifier: Modifier,
 ) {
@@ -245,7 +247,7 @@ private fun OfflineMap(
                     setUseDataConnection(false)
                     setMultiTouchControls(true)
                     minZoomLevel = 1.0
-                    maxZoomLevel = 6.0
+                    maxZoomLevel = MapSessionRules.maxZoom(largerMapZoom)
                     controller.setZoom(MapSessionRules.DEFAULT_ZOOM)
                     controller.setCenter(GeoPoint(MapSessionRules.DEFAULT_CENTER.latitude, MapSessionRules.DEFAULT_CENTER.longitude))
                     instance.map = this
@@ -259,6 +261,12 @@ private fun OfflineMap(
             }
         },
         update = { map ->
+            val maxZoom = MapSessionRules.maxZoom(largerMapZoom)
+            if (map.maxZoomLevel != maxZoom) {
+                if (!largerMapZoom && map.zoomLevel > maxZoom) map.controller.setZoom(maxZoom)
+                map.maxZoomLevel = maxZoom
+                map.invalidate()
+            }
             val firstFix = rules.consumeFirstFixCenter()
             if (firstFix != null) map.controller.setCenter(GeoPoint(firstFix.latitude, firstFix.longitude))
             val position = rules.latestPosition

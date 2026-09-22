@@ -133,7 +133,12 @@
     <string name="route_destination_marker">Destination: %1$s</string>
     <string name="route_departure_marker_description">Departure endpoint marker</string>
     <string name="route_destination_marker_description">Destination endpoint marker</string>
-    <string name="settings_title">Settings</string><string name="navigate_up">Navigate up</string><string name="units_section">Units</string>
+    <string name="settings_title">Settings</string><string name="navigate_up">Navigate up</string><string name="display_section">Display</string><string name="units_section">Units</string>
+    <string name="keep_screen_always_on">Keep screen always on</string><string name="portrait_orientation">Portrait orientation</string><string name="larger_map_zoom">Larger map zoom</string>
+    <string name="settings_on">On</string><string name="settings_off">Off</string><string name="orientation_portrait">Portrait</string><string name="orientation_sensor">Sensor</string>
+    <string name="larger_map_zoom_warning">Extra zoom may show unavailable or grey map areas because offline tiles may not be available at those levels.</string>
+    <string name="display_setting_description">%1$s, current value %2$s</string>
+    <string name="display_setting_warning_description">%1$s, current value %2$s. %3$s</string>
     <string name="about_title">About</string>
     <string name="about_version">Version</string>
     <string name="about_version_unavailable">Version unavailable</string>
