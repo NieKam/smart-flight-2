@@ -72,6 +72,7 @@ fun GnssStatusScreen(
     onOpenLocationSettings: () -> Unit,
     onRetry: () -> Unit,
     onOpenSettings: () -> Unit = {},
+    onOpenAbout: () -> Unit = {},
     unitPreferences: UnitPreferences = UnitPreferences(),
     courseState: CourseState = CourseState.Waiting,
     onCourseRetry: () -> Unit = {},
@@ -110,11 +111,19 @@ fun GnssStatusScreen(
         Column(Modifier.fillMaxSize()) {
             Box(Modifier.fillMaxWidth().heightIn(min = 56.dp), contentAlignment = Alignment.Center) {
                 Text(stringResource(R.string.app_name), color = textColor, fontSize = 20.sp, fontWeight = FontWeight.Medium)
-                androidx.compose.material3.TextButton(
-                    onClick = onOpenSettings,
-                    modifier = Modifier.align(Alignment.CenterEnd).heightIn(min = 48.dp),
-                ) {
-                    Text(stringResource(R.string.settings_title), color = actionCyan)
+                androidx.compose.foundation.layout.Row(Modifier.align(Alignment.CenterEnd)) {
+                    androidx.compose.material3.TextButton(
+                        onClick = onOpenSettings,
+                        modifier = Modifier.heightIn(min = 48.dp),
+                    ) {
+                        Text(stringResource(R.string.settings_title), color = actionCyan)
+                    }
+                    androidx.compose.material3.TextButton(
+                        onClick = onOpenAbout,
+                        modifier = Modifier.heightIn(min = 48.dp),
+                    ) {
+                        Text(stringResource(R.string.about_title), color = actionCyan)
+                    }
                 }
             }
             Column(
