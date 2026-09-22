@@ -38,7 +38,7 @@ class DisplayPreferencesTest {
         assertEquals(expected, store.read())
     }
 
-    @Test fun effectsApplyFlagAndOrientationOnlyWhenNeeded() {
+    @Test fun effectsApplyBothToggleDirectionsAndAvoidUnnecessaryOrientationRequests() {
         val calls = mutableListOf<String>()
         val applier =
             DisplayPreferencesApplier(
@@ -62,5 +62,24 @@ class DisplayPreferencesTest {
         calls.clear()
         applier.apply(DisplayPreferences(), currentOrientation = 1)
         assertEquals(listOf("keep:false"), calls)
+
+        calls.clear()
+        applier.apply(DisplayPreferences(portraitOrientation = true), currentOrientation = 4)
+        assertEquals(listOf("keep:false", "orientation:1"), calls)
+
+        calls.clear()
+        applier.apply(DisplayPreferences(portraitOrientation = false), currentOrientation = 4)
+        assertEquals(listOf("keep:false"), calls)
+    }
+
+    @Test fun orientationPreferenceIsRereadAfterRecreation() {
+        val store = DisplayPreferencesStore(preferences)
+        store.write(DisplayPreferences(portraitOrientation = false))
+
+        val recreatedStore = DisplayPreferencesStore(preferences)
+        assertEquals(false, recreatedStore.read().portraitOrientation)
+
+        store.write(recreatedStore.read().copy(portraitOrientation = true))
+        assertEquals(true, DisplayPreferencesStore(preferences).read().portraitOrientation)
     }
 }

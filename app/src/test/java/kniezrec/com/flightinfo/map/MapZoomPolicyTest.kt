@@ -25,4 +25,42 @@ class MapZoomPolicyTest {
         assertEquals(6.0, MapSessionRules.reconcileZoom(8.0, false), 0.0)
         assertEquals(8.0, MapSessionRules.reconcileZoom(8.0, true), 0.0)
     }
+
+    @Test fun inPlaceUpdateClampsBeforeRestoringStandardMaximum() {
+        val target = FakeMapZoomTarget(maxZoomLevel = 9.0, zoom = 8.0)
+
+        assertEquals(true, applyMapZoomPolicy(target, largerMapZoom = false))
+        assertEquals(6.0, target.zoomLevel, 0.0)
+        assertEquals(6.0, target.maxZoomLevel, 0.0)
+        assertEquals(1, target.invalidateCount)
+    }
+
+    @Test fun enablingInPlaceUpdatePreservesViewportAndWarningRestoresWhenDisabled() {
+        val target = FakeMapZoomTarget(maxZoomLevel = 6.0, zoom = 6.0)
+
+        assertEquals(true, applyMapZoomPolicy(target, largerMapZoom = true))
+        assertEquals(6.0, target.zoomLevel, 0.0)
+        assertEquals(9.0, target.maxZoomLevel, 0.0)
+        assertEquals(1, target.invalidateCount)
+        assertEquals(false, MapSessionRules.shouldShowMaximumZoomWarning(target.zoomLevel, true))
+
+        assertEquals(true, applyMapZoomPolicy(target, largerMapZoom = false))
+        assertEquals(true, MapSessionRules.shouldShowMaximumZoomWarning(target.zoomLevel, false))
+    }
+
+    private class FakeMapZoomTarget(
+        override var maxZoomLevel: Double,
+        private var zoom: Double,
+    ) : MapZoomTarget {
+        var invalidateCount = 0
+        override val zoomLevel: Double get() = zoom
+
+        override fun setZoom(zoom: Double) {
+            this.zoom = zoom
+        }
+
+        override fun invalidate() {
+            invalidateCount++
+        }
+    }
 }

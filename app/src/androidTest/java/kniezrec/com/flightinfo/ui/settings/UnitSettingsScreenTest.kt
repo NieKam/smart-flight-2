@@ -4,8 +4,10 @@ import androidx.activity.ComponentActivity
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.assertDoesNotExist
 import androidx.compose.ui.test.assertExists
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasRole
@@ -79,6 +81,30 @@ class UnitSettingsScreenTest {
                     androidx.compose.ui.semantics.Role.Switch,
                 ) and hasContentDescription("Portrait orientation, current value Portrait"),
             ).assertExists()
+    }
+
+    @Test fun togglingEachDisplayRowUpdatesStateAndDisablingZoomRemovesWarning() {
+        var selected by mutableStateOf(DisplayPreferences())
+        composeRule.setContent {
+            UnitSettingsScreen(UnitPreferences(), {}, {}, selected) { selected = it }
+        }
+        composeRule.onNode(hasContentDescription("Keep screen always on, current value Off")).performClick()
+        composeRule.onNode(hasContentDescription("Keep screen always on, current value On")).assertIsOn()
+        composeRule.onNode(hasContentDescription("Portrait orientation, current value Portrait")).performClick()
+        composeRule.onNode(hasContentDescription("Portrait orientation, current value Sensor")).assertIsOff()
+        composeRule.onNode(hasContentDescription("Larger map zoom, current value Off")).performClick()
+        composeRule
+            .onNodeWithText(
+                "Extra zoom may show unavailable or grey map areas because offline tiles may not be available at those levels.",
+            ).assertIsDisplayed()
+        composeRule.onNode(hasContentDescription("Larger map zoom, current value On")).performClick()
+        composeRule
+            .onNodeWithText(
+                "Extra zoom may show unavailable or grey map areas because offline tiles may not be available at those levels.",
+            ).assertDoesNotExist()
+        composeRule.runOnIdle {
+            assertEquals(DisplayPreferences(keepScreenAlwaysOn = true, portraitOrientation = false), selected)
+        }
     }
 
     @Test fun everySelectorShowsItsExactOptionsAndUpdatesItsSummary() {

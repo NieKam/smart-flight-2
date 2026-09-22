@@ -41,6 +41,8 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import kniezrec.com.flightinfo.R
 import kniezrec.com.flightinfo.map.MapSessionRules
+import kniezrec.com.flightinfo.map.MapZoomTarget
+import kniezrec.com.flightinfo.map.applyMapZoomPolicy
 import kniezrec.com.flightinfo.route.RouteOverlay
 import kniezrec.com.flightinfo.ui.permission.actionCyan
 import kniezrec.com.flightinfo.ui.permission.cardPurple
@@ -292,14 +294,26 @@ private fun OfflineMap(
             }
         },
         update = { map ->
-            val maxZoom = MapSessionRules.maxZoom(largerMapZoom)
-            if (map.maxZoomLevel != maxZoom) {
-                if (!largerMapZoom && map.zoomLevel > maxZoom) {
-                    map.controller.setZoom(MapSessionRules.reconcileZoom(map.zoomLevel, largerMapZoom))
-                }
-                map.maxZoomLevel = maxZoom
-                map.invalidate()
-            }
+            applyMapZoomPolicy(
+                target =
+                    object : MapZoomTarget {
+                        override var maxZoomLevel: Double
+                            get() = map.maxZoomLevel
+                            set(value) {
+                                map.maxZoomLevel = value
+                            }
+                        override val zoomLevel: Double get() = map.zoomLevel
+
+                        override fun setZoom(zoom: Double) {
+                            map.controller.setZoom(zoom)
+                        }
+
+                        override fun invalidate() {
+                            map.invalidate()
+                        }
+                    },
+                largerMapZoom = largerMapZoom,
+            )
             onMaximumZoomWarningChanged(MapSessionRules.shouldShowMaximumZoomWarning(map.zoomLevel, largerMapZoom))
             val firstFix = rules.consumeFirstFixCenter()
             if (firstFix != null) map.controller.setCenter(GeoPoint(firstFix.latitude, firstFix.longitude))

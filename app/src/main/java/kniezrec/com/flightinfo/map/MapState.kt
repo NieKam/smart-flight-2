@@ -88,3 +88,26 @@ class MapSessionRules {
         ): Double = currentZoom.coerceAtMost(maxZoom(largerMapZoom))
     }
 }
+
+fun applyMapZoomPolicy(
+    target: MapZoomTarget,
+    largerMapZoom: Boolean,
+): Boolean {
+    val maxZoom = MapSessionRules.maxZoom(largerMapZoom)
+    if (target.maxZoomLevel == maxZoom) return false
+    if (!largerMapZoom && target.zoomLevel > maxZoom) {
+        target.setZoom(MapSessionRules.reconcileZoom(target.zoomLevel, largerMapZoom))
+    }
+    target.maxZoomLevel = maxZoom
+    target.invalidate()
+    return true
+}
+
+interface MapZoomTarget {
+    var maxZoomLevel: Double
+    val zoomLevel: Double
+
+    fun setZoom(zoom: Double)
+
+    fun invalidate()
+}
