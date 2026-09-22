@@ -14,6 +14,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -29,6 +30,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.zIndex
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import kniezrec.com.flightinfo.about.AboutIntentFactory
@@ -37,6 +39,10 @@ import kniezrec.com.flightinfo.about.AndroidExternalIntentLauncher
 import kniezrec.com.flightinfo.course.CourseController
 import kniezrec.com.flightinfo.course.CourseState
 import kniezrec.com.flightinfo.course.ForegroundCourseObservationCoordinator
+import kniezrec.com.flightinfo.display.DisplayEffectSink
+import kniezrec.com.flightinfo.display.DisplayPreferences
+import kniezrec.com.flightinfo.display.DisplayPreferencesApplier
+import kniezrec.com.flightinfo.display.DisplayPreferencesStore
 import kniezrec.com.flightinfo.displayunits.UnitPreferences
 import kniezrec.com.flightinfo.displayunits.UnitPreferencesStore
 import kniezrec.com.flightinfo.flight.AndroidFlightLocationPlatform
@@ -96,6 +102,27 @@ class MainActivity : ComponentActivity() {
     private var showUnitSettings by mutableStateOf(false)
     private var showAbout by mutableStateOf(false)
     private var unitPreferences by mutableStateOf(UnitPreferences())
+    private var displayPreferences by mutableStateOf(DisplayPreferences())
+    private val displayPreferencesApplier by lazy {
+        DisplayPreferencesApplier(
+            sink =
+                object : DisplayEffectSink {
+                    override fun setKeepScreenAlwaysOn(enabled: Boolean) {
+                        if (enabled) {
+                            window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                        } else {
+                            window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                        }
+                    }
+
+                    override fun requestOrientation(orientation: Int) {
+                        requestedOrientation = orientation
+                    }
+                },
+            portraitOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT,
+            sensorOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR,
+        )
+    }
     private var lastRouteSearchQuery = ""
     private val mapRules = MapSessionRules()
     private var mapLoadToken = 0L
@@ -115,6 +142,8 @@ class MainActivity : ComponentActivity() {
         }
         refreshPermissionState()
         unitPreferences = unitPreferencesStore.read()
+        displayPreferences = displayPreferencesStore.read()
+        applyDisplayPreferences()
         setContent {
             SmartFlightTheme {
                 BackHandler(enabled = showUnitSettings) { showUnitSettings = false }
@@ -131,17 +160,26 @@ class MainActivity : ComponentActivity() {
                         snackbarHost = { SnackbarHost(snackbarHostState) },
                     ) { innerPadding ->
                         if (permissionState == LocationPermissionState.Granted) {
-                            if (showUnitSettings) {
-                                UnitSettingsScreen(
-                                    preferences = unitPreferences,
-                                    onPreferenceChange = { value ->
-                                        unitPreferencesStore.write(value)
-                                        unitPreferences = value
-                                    },
-                                    onBack = { showUnitSettings = false },
-                                    modifier = Modifier.padding(innerPadding).safeDrawingPadding(),
-                                )
-                            } else {
+                            // Settings is an overlay so the dashboard's AndroidView-backed map remains
+                            // composed. This preserves its viewport, overlays, and in-place zoom policy.
+                            Box(Modifier.fillMaxSize()) {
+                                if (showUnitSettings) {
+                                    UnitSettingsScreen(
+                                        preferences = unitPreferences,
+                                        onPreferenceChange = { value ->
+                                            unitPreferencesStore.write(value)
+                                            unitPreferences = value
+                                        },
+                                        displayPreferences = displayPreferences,
+                                        onDisplayPreferenceChange = { value ->
+                                            displayPreferencesStore.write(value)
+                                            displayPreferences = value
+                                            applyDisplayPreferences()
+                                        },
+                                        onBack = { showUnitSettings = false },
+                                        modifier = Modifier.padding(innerPadding).safeDrawingPadding().zIndex(1f),
+                                    )
+                                }
                                 GnssStatusScreen(
                                     state = gnssState,
                                     flightParametersState = flightParametersState,
@@ -154,6 +192,7 @@ class MainActivity : ComponentActivity() {
                                     onNearbyCityRetry = { nearbyCityController.retry() },
                                     mapState = mapState,
                                     mapRules = mapRules,
+                                    largerMapZoom = displayPreferences.largerMapZoom,
                                     mapPositionVersion = mapPositionVersion,
                                     onMapRetry = { startMapLoad() },
                                     onMapUnavailable = { mapState = MapCardState.Unavailable },
@@ -185,7 +224,10 @@ class MainActivity : ComponentActivity() {
                                         routeSearchError = null
                                         routeController.search(query) { result ->
                                             routeSearchLoading = false
-                                            result.fold({ routeResults = it }, { routeSearchError = getString(R.string.route_error) })
+                                            result.fold(
+                                                { routeResults = it },
+                                                { routeSearchError = getString(R.string.route_error) },
+                                            )
                                         }
                                     },
                                     onRouteConfirm = { city ->
@@ -299,6 +341,8 @@ class MainActivity : ComponentActivity() {
         isForeground = true
         refreshPermissionState()
         unitPreferences = unitPreferencesStore.read()
+        displayPreferences = displayPreferencesStore.read()
+        applyDisplayPreferences()
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
@@ -389,6 +433,10 @@ class MainActivity : ComponentActivity() {
         )
     }
 
+    private val displayPreferencesStore by lazy {
+        DisplayPreferencesStore(getSharedPreferences("display_behavior", MODE_PRIVATE))
+    }
+
     private val unitPreferencesStore by lazy {
         UnitPreferencesStore(getSharedPreferences("display_units", MODE_PRIVATE))
     }
@@ -469,6 +517,10 @@ class MainActivity : ComponentActivity() {
 
     private val courseObservationCoordinator by lazy {
         ForegroundCourseObservationCoordinator(flightParametersController, courseController, nearbyCityController)
+    }
+
+    private fun applyDisplayPreferences() {
+        displayPreferencesApplier.apply(displayPreferences, requestedOrientation)
     }
 
     private fun startObservation() {

@@ -35,8 +35,11 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.toggleableState
 import androidx.compose.ui.unit.dp
 import kniezrec.com.flightinfo.R
+import kniezrec.com.flightinfo.display.DisplayPreferences
 import kniezrec.com.flightinfo.displayunits.AltitudeUnit
 import kniezrec.com.flightinfo.displayunits.DistanceUnit
 import kniezrec.com.flightinfo.displayunits.PressureUnit
@@ -65,6 +68,8 @@ fun UnitSettingsScreen(
     preferences: UnitPreferences,
     onPreferenceChange: (UnitPreferences) -> Unit,
     onBack: () -> Unit,
+    displayPreferences: DisplayPreferences = DisplayPreferences(),
+    onDisplayPreferenceChange: (DisplayPreferences) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     var selector by remember { mutableStateOf<Selector<*>?>(null) }
@@ -93,16 +98,41 @@ fun UnitSettingsScreen(
                 Modifier.fillMaxWidth().widthIn(max = 600.dp),
                 verticalArrangement = Arrangement.spacedBy(0.dp),
             ) {
-                Text(stringResource(R.string.units_section), style = MaterialTheme.typography.titleLarge)
+                Text(stringResource(R.string.display_section), style = MaterialTheme.typography.titleLarge)
                 Column(Modifier.padding(top = 8.dp)) {
-                    SettingRow(stringResource(R.string.unit_speed), unitText(preferences.speed)) { selector = Selector.Speed() }
-                    SettingRow(stringResource(R.string.unit_altitude), unitText(preferences.altitude)) { selector = Selector.Altitude() }
-                    SettingRow(stringResource(R.string.unit_distance), unitText(preferences.distance)) { selector = Selector.Distance() }
-                    SettingRow(stringResource(R.string.unit_vertical_speed), unitText(preferences.verticalSpeed)) {
+                    displaysettingRow(
+                        R.string.keep_screen_always_on,
+                        if (displayPreferences.keepScreenAlwaysOn) R.string.settings_on else R.string.settings_off,
+                        displayPreferences.keepScreenAlwaysOn,
+                    ) {
+                        onDisplayPreferenceChange(displayPreferences.copy(keepScreenAlwaysOn = !displayPreferences.keepScreenAlwaysOn))
+                    }
+                    displaysettingRow(
+                        R.string.portrait_orientation,
+                        if (displayPreferences.portraitOrientation) R.string.orientation_portrait else R.string.orientation_sensor,
+                        displayPreferences.portraitOrientation,
+                    ) {
+                        onDisplayPreferenceChange(displayPreferences.copy(portraitOrientation = !displayPreferences.portraitOrientation))
+                    }
+                    displaysettingRow(
+                        R.string.larger_map_zoom,
+                        if (displayPreferences.largerMapZoom) R.string.settings_on else R.string.settings_off,
+                        displayPreferences.largerMapZoom,
+                        if (displayPreferences.largerMapZoom) R.string.larger_map_zoom_warning else null,
+                    ) {
+                        onDisplayPreferenceChange(displayPreferences.copy(largerMapZoom = !displayPreferences.largerMapZoom))
+                    }
+                }
+                Text(stringResource(R.string.units_section), Modifier.padding(top = 24.dp), style = MaterialTheme.typography.titleLarge)
+                Column(Modifier.padding(top = 8.dp)) {
+                    settingRow(stringResource(R.string.unit_speed), unitText(preferences.speed)) { selector = Selector.Speed() }
+                    settingRow(stringResource(R.string.unit_altitude), unitText(preferences.altitude)) { selector = Selector.Altitude() }
+                    settingRow(stringResource(R.string.unit_distance), unitText(preferences.distance)) { selector = Selector.Distance() }
+                    settingRow(stringResource(R.string.unit_vertical_speed), unitText(preferences.verticalSpeed)) {
                         selector =
                             Selector.VerticalSpeed()
                     }
-                    SettingRow(stringResource(R.string.unit_pressure), unitText(preferences.pressure)) { selector = Selector.Pressure() }
+                    settingRow(stringResource(R.string.unit_pressure), unitText(preferences.pressure)) { selector = Selector.Pressure() }
                 }
             }
         }
@@ -111,7 +141,57 @@ fun UnitSettingsScreen(
 }
 
 @Composable
-private fun SettingRow(
+private fun displaysettingRow(
+    label: Int,
+    summary: Int,
+    checked: Boolean,
+    warning: Int? = null,
+    onClick: () -> Unit,
+) {
+    val labelText = stringResource(label)
+    val summaryText = stringResource(summary)
+    val warningText = warning?.let { stringResource(it) }
+    val descriptionText =
+        if (warningText == null) {
+            stringResource(R.string.display_setting_description, labelText, summaryText)
+        } else {
+            stringResource(R.string.display_setting_warning_description, labelText, summaryText, warningText)
+        }
+    Column {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .heightIn(min = 64.dp)
+                .clickable(onClick = onClick)
+                .semantics(mergeDescendants = true) {
+                    contentDescription = descriptionText
+                    role = Role.Switch
+                    stateDescription = summaryText
+                    toggleableState =
+                        androidx.compose.ui.state
+                            .ToggleableState(checked)
+                }.padding(vertical = 12.dp),
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(labelText, style = MaterialTheme.typography.bodyLarge)
+                Text(summaryText, style = MaterialTheme.typography.bodyMedium)
+            }
+            androidx.compose.material3.Switch(checked = checked, onCheckedChange = null, modifier = Modifier.padding(start = 12.dp))
+        }
+        warning?.let {
+            Text(
+                stringResource(it),
+                Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        }
+        HorizontalDivider()
+    }
+}
+
+@Composable
+private fun settingRow(
     label: String,
     value: String,
     onClick: () -> Unit,

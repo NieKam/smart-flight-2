@@ -72,5 +72,42 @@ class MapSessionRules {
         val DEFAULT_CENTER = MapCoordinate(32.0, -32.0)
         const val DEFAULT_ZOOM = 3.0
         const val FOLLOW_ZOOM = 6.0
+        const val STANDARD_MAX_ZOOM = 6.0
+        const val LARGER_MAX_ZOOM = 9.0
+
+        fun maxZoom(largerMapZoom: Boolean): Double = if (largerMapZoom) LARGER_MAX_ZOOM else STANDARD_MAX_ZOOM
+
+        fun shouldShowMaximumZoomWarning(
+            currentZoom: Double,
+            largerMapZoom: Boolean,
+        ): Boolean = !largerMapZoom && currentZoom >= STANDARD_MAX_ZOOM
+
+        fun reconcileZoom(
+            currentZoom: Double,
+            largerMapZoom: Boolean,
+        ): Double = currentZoom.coerceAtMost(maxZoom(largerMapZoom))
     }
+}
+
+fun applyMapZoomPolicy(
+    target: MapZoomTarget,
+    largerMapZoom: Boolean,
+): Boolean {
+    val maxZoom = MapSessionRules.maxZoom(largerMapZoom)
+    if (target.maxZoomLevel == maxZoom) return false
+    if (!largerMapZoom && target.zoomLevel > maxZoom) {
+        target.setZoom(MapSessionRules.reconcileZoom(target.zoomLevel, largerMapZoom))
+    }
+    target.maxZoomLevel = maxZoom
+    target.invalidate()
+    return true
+}
+
+interface MapZoomTarget {
+    var maxZoomLevel: Double
+    val zoomLevel: Double
+
+    fun setZoom(zoom: Double)
+
+    fun invalidate()
 }

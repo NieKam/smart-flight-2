@@ -41,10 +41,15 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import kniezrec.com.flightinfo.R
 import kniezrec.com.flightinfo.map.MapSessionRules
+import kniezrec.com.flightinfo.map.MapZoomTarget
+import kniezrec.com.flightinfo.map.applyMapZoomPolicy
 import kniezrec.com.flightinfo.route.RouteOverlay
 import kniezrec.com.flightinfo.ui.permission.actionCyan
 import kniezrec.com.flightinfo.ui.permission.cardPurple
 import org.osmdroid.config.Configuration
+import org.osmdroid.events.MapListener
+import org.osmdroid.events.ScrollEvent
+import org.osmdroid.events.ZoomEvent
 import org.osmdroid.tileprovider.modules.OfflineTileProvider
 import org.osmdroid.tileprovider.tilesource.XYTileSource
 import org.osmdroid.tileprovider.util.SimpleRegisterReceiver
@@ -66,7 +71,7 @@ sealed interface MapCardState {
     data object Inactive : MapCardState
 }
 
-private val mapSource = XYTileSource("MapquestOSM", 1, 6, 256, ".jpg", arrayOf())
+private val mapSource = XYTileSource("MapquestOSM", 1, 9, 256, ".jpg", arrayOf())
 
 @Composable
 fun MapCard(
@@ -74,10 +79,12 @@ fun MapCard(
     rules: MapSessionRules,
     onRetry: () -> Unit,
     onUnavailable: () -> Unit = {},
+    largerMapZoom: Boolean = false,
     routeOverlay: RouteOverlay? = null,
     modifier: Modifier = Modifier,
 ) {
     var expanded by remember { mutableStateOf(false) }
+    var showMaximumZoomWarning by remember { mutableStateOf(false) }
     Card(
         modifier = modifier.fillMaxWidth().heightIn(min = 240.dp),
         shape = RoundedCornerShape(10.dp),
@@ -98,9 +105,19 @@ fun MapCard(
                             rules = rules,
                             instance = instance,
                             routeOverlay = routeOverlay,
+                            largerMapZoom = largerMapZoom,
                             onOpenFailure = onUnavailable,
+                            onMaximumZoomWarningChanged = { showMaximumZoomWarning = it },
                             modifier = Modifier.fillMaxSize(),
                         )
+                        if (showMaximumZoomWarning) {
+                            Text(
+                                stringResource(R.string.map_maximum_zoom_warning),
+                                Modifier.align(Alignment.BottomStart).padding(12.dp),
+                                color = Color.White,
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                        }
                         MapButton(
                             description = stringResource(R.string.map_recenter),
                             modifier = Modifier.align(Alignment.TopEnd).padding(12.dp),
@@ -183,6 +200,7 @@ private fun MapButton(
 
 private class MapInstance {
     var map: MapView? = null
+    var largerMapZoom: Boolean = false
     var marker: Marker? = null
     var routeLine: Polyline? = null
     var departureMarker: Marker? = null
@@ -202,6 +220,7 @@ private class MapInstance {
         routeLine = null
         departureMarker = null
         destinationMarker = null
+        largerMapZoom = false
         map = null
     }
 }
@@ -212,10 +231,13 @@ private fun OfflineMap(
     rules: MapSessionRules,
     instance: MapInstance,
     routeOverlay: RouteOverlay?,
+    largerMapZoom: Boolean,
     onOpenFailure: () -> Unit,
+    onMaximumZoomWarningChanged: (Boolean) -> Unit,
     modifier: Modifier,
 ) {
     val context = LocalContext.current
+    instance.largerMapZoom = largerMapZoom
     DisposableEffect(instance) {
         onDispose {
             instance.dispose()
@@ -245,10 +267,27 @@ private fun OfflineMap(
                     setUseDataConnection(false)
                     setMultiTouchControls(true)
                     minZoomLevel = 1.0
-                    maxZoomLevel = 6.0
+                    maxZoomLevel = MapSessionRules.maxZoom(largerMapZoom)
                     controller.setZoom(MapSessionRules.DEFAULT_ZOOM)
                     controller.setCenter(GeoPoint(MapSessionRules.DEFAULT_CENTER.latitude, MapSessionRules.DEFAULT_CENTER.longitude))
                     instance.map = this
+                    addMapListener(
+                        object : MapListener {
+                            override fun onScroll(event: ScrollEvent): Boolean {
+                                onMaximumZoomWarningChanged(
+                                    MapSessionRules.shouldShowMaximumZoomWarning(zoomLevel.toDouble(), instance.largerMapZoom),
+                                )
+                                return true
+                            }
+
+                            override fun onZoom(event: ZoomEvent): Boolean {
+                                onMaximumZoomWarningChanged(
+                                    MapSessionRules.shouldShowMaximumZoomWarning(zoomLevel.toDouble(), instance.largerMapZoom),
+                                )
+                                return true
+                            }
+                        },
+                    )
                 }
             } catch (_: Exception) {
                 onOpenFailure()
@@ -259,6 +298,27 @@ private fun OfflineMap(
             }
         },
         update = { map ->
+            applyMapZoomPolicy(
+                target =
+                    object : MapZoomTarget {
+                        override var maxZoomLevel: Double
+                            get() = map.maxZoomLevel.toDouble()
+                            set(value) {
+                                map.maxZoomLevel = value
+                            }
+                        override val zoomLevel: Double get() = map.zoomLevel.toDouble()
+
+                        override fun setZoom(zoom: Double) {
+                            map.controller.setZoom(zoom)
+                        }
+
+                        override fun invalidate() {
+                            map.invalidate()
+                        }
+                    },
+                largerMapZoom = largerMapZoom,
+            )
+            onMaximumZoomWarningChanged(MapSessionRules.shouldShowMaximumZoomWarning(map.zoomLevel.toDouble(), largerMapZoom))
             val firstFix = rules.consumeFirstFixCenter()
             if (firstFix != null) map.controller.setCenter(GeoPoint(firstFix.latitude, firstFix.longitude))
             val position = rules.latestPosition
