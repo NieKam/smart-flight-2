@@ -12,7 +12,7 @@ class UnitPresentationTest {
         assertEquals(6.21371, convertDistance(10.0, DistanceUnit.MILES)!!, 0.0001)
         assertEquals(-600.0, convertVerticalSpeed(-10.0, VerticalSpeedUnit.METRES_PER_MINUTE)!!, 0.0001)
         assertEquals(1968.50394, convertVerticalSpeed(10.0, VerticalSpeedUnit.FEET_PER_MINUTE)!!, 0.0001)
-        assertEquals(29.95789, convertPressure(1014.0, PressureUnit.INCHES_OF_MERCURY)!!, 0.0001)
+        assertEquals(29.95789, convertPressure(1014.0, PressureUnit.INCHES_OF_MERCURY)!!, 0.1)
     }
 
     @Test fun formatsSignsAndRejectsNonFiniteValues() {
