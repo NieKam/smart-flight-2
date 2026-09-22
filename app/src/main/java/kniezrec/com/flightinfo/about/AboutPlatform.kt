@@ -47,8 +47,7 @@ class AndroidAppVersionProvider(
 }
 
 object AboutIntentFactory {
-    fun feedback(address: String) =
-        Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:${URLEncoder.encode(address, "UTF-8")}"))
+    fun feedback(address: String) = Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:${URLEncoder.encode(address, "UTF-8")}"))
 
     fun market(packageName: String) = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=$packageName"))
 
