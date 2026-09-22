@@ -31,13 +31,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kniezrec.com.flightinfo.R
-import kniezrec.com.flightinfo.nearby.NearbyCityState
 import kniezrec.com.flightinfo.displayunits.DistanceUnit
 import kniezrec.com.flightinfo.displayunits.convertDistance
 import kniezrec.com.flightinfo.displayunits.formatUnitNumber
+import kniezrec.com.flightinfo.nearby.NearbyCityState
 import kniezrec.com.flightinfo.ui.permission.cardPurple
-import java.text.NumberFormat
-import java.util.Locale
 
 private val nearbyTextColor =
     androidx.compose.ui.graphics
@@ -85,25 +83,51 @@ internal fun NearbyCityCard(
     retry?.let { RetryButton(it) }
 }
 
-@Composable private fun Available(state: NearbyCityState.Available, distanceUnit: DistanceUnit) =
-    Column(Modifier.fillMaxWidth().padding(24.dp, 20.dp)) {
-        Title(R.string.nearby_city_title)
-        Spacer(Modifier.height(16.dp))
-        val number = formatUnitNumber(convertDistance(state.distanceKilometres, distanceUnit)) ?: "—"
-        Row(R.string.nearby_city_closest, state.cityName)
-        Row(R.string.nearby_city_country, state.country)
-        Row(
-            R.string.nearby_city_distance,
-            stringResource(R.string.distance_value, number, stringResource(if (distanceUnit == DistanceUnit.MILES) R.string.unit_mi else R.string.unit_km)),
-            stringResource(R.string.distance_spoken_value, number, stringResource(if (distanceUnit == DistanceUnit.MILES) R.string.unit_mi_accessibility else R.string.unit_km_accessibility)),
-        )
-        val offset = utcOffsetPresentation(state.utcOffsetSeconds)
-        Row(
-            R.string.nearby_city_time,
-            stringResource(R.string.nearby_city_time_value, state.localTime, offset.visible),
-            stringResource(R.string.nearby_city_time_spoken, state.localTime, offset.spoken),
-        )
-    }
+@Composable private fun Available(
+    state: NearbyCityState.Available,
+    distanceUnit: DistanceUnit,
+) = Column(Modifier.fillMaxWidth().padding(24.dp, 20.dp)) {
+    Title(R.string.nearby_city_title)
+    Spacer(Modifier.height(16.dp))
+    val number = formatUnitNumber(convertDistance(state.distanceKilometres, distanceUnit)) ?: "—"
+    Row(R.string.nearby_city_closest, state.cityName)
+    Row(R.string.nearby_city_country, state.country)
+    Row(
+        R.string.nearby_city_distance,
+        stringResource(
+            R.string.distance_value,
+            number,
+            stringResource(
+                if (distanceUnit ==
+                    DistanceUnit.MILES
+                ) {
+                    R.string.unit_mi
+                } else {
+                    R.string.unit_km
+                },
+            ),
+        ),
+        stringResource(
+            R.string.distance_spoken_value,
+            number,
+            stringResource(
+                if (distanceUnit ==
+                    DistanceUnit.MILES
+                ) {
+                    R.string.unit_mi_accessibility
+                } else {
+                    R.string.unit_km_accessibility
+                },
+            ),
+        ),
+    )
+    val offset = utcOffsetPresentation(state.utcOffsetSeconds)
+    Row(
+        R.string.nearby_city_time,
+        stringResource(R.string.nearby_city_time_value, state.localTime, offset.visible),
+        stringResource(R.string.nearby_city_time_spoken, state.localTime, offset.spoken),
+    )
+}
 
 @Composable private fun RetryButton(onRetry: () -> Unit) {
     val interactionSource = remember { MutableInteractionSource() }

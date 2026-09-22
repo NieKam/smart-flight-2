@@ -14,20 +14,15 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.res.stringResource
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.ui.res.stringResource
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.res.stringResource
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.ui.res.stringResource
 import androidx.compose.runtime.remember
-import androidx.compose.ui.res.stringResource
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
@@ -37,16 +32,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kniezrec.com.flightinfo.R
-import kniezrec.com.flightinfo.flight.FlightParametersState
 import kniezrec.com.flightinfo.displayunits.UnitPreferences
 import kniezrec.com.flightinfo.displayunits.convertAltitude
 import kniezrec.com.flightinfo.displayunits.convertPressure
 import kniezrec.com.flightinfo.displayunits.convertSpeed
 import kniezrec.com.flightinfo.displayunits.convertVerticalSpeed
 import kniezrec.com.flightinfo.displayunits.formatUnitNumber
+import kniezrec.com.flightinfo.flight.FlightParametersState
 import kniezrec.com.flightinfo.ui.permission.cardPurple
-import java.text.NumberFormat
-import java.util.Locale
 
 private val textColor = Color(0xFFD9D9ED)
 
@@ -140,7 +133,10 @@ private fun FlightParametersWaiting() {
 }
 
 @Composable
-private fun FlightParametersReadings(state: FlightParametersState.Readings, preferences: UnitPreferences) {
+private fun FlightParametersReadings(
+    state: FlightParametersState.Readings,
+    preferences: UnitPreferences,
+) {
     Column(
         Modifier
             .fillMaxWidth()
@@ -153,10 +149,26 @@ private fun FlightParametersReadings(state: FlightParametersState.Readings, pref
         ParameterRow(
             R.string.flight_speed,
             state.speedKilometresPerHour?.let {
-                format(convertSpeed(it, preferences.speed), R.string.flight_speed_value, false, stringResource(when (preferences.speed) { kniezrec.com.flightinfo.displayunits.SpeedUnit.KILOMETRES_PER_HOUR -> R.string.unit_kmh; kniezrec.com.flightinfo.displayunits.SpeedUnit.MILES_PER_HOUR -> R.string.unit_mph; kniezrec.com.flightinfo.displayunits.SpeedUnit.KNOTS -> R.string.unit_kt }))
+                format(
+                    convertSpeed(it, preferences.speed),
+                    R.string.flight_speed_value,
+                    false,
+                    stringResource(
+                        when (preferences.speed) {
+                            kniezrec.com.flightinfo.displayunits.SpeedUnit.KILOMETRES_PER_HOUR -> R.string.unit_kmh
+                            kniezrec.com.flightinfo.displayunits.SpeedUnit.MILES_PER_HOUR -> R.string.unit_mph
+                            kniezrec.com.flightinfo.displayunits.SpeedUnit.KNOTS -> R.string.unit_kt
+                        },
+                    ),
+                )
             },
             state.speedKilometresPerHour?.let {
-                format(convertSpeed(it, preferences.speed), R.string.flight_value_accessibility, false, stringResource(speedAccessibilityUnit(preferences.speed)))
+                format(
+                    convertSpeed(it, preferences.speed),
+                    R.string.flight_value_accessibility,
+                    false,
+                    stringResource(speedAccessibilityUnit(preferences.speed)),
+                )
             },
         )
 
@@ -165,10 +177,26 @@ private fun FlightParametersReadings(state: FlightParametersState.Readings, pref
         ParameterRow(
             R.string.flight_vertical_speed,
             state.verticalSpeedMetresPerSecond?.let {
-                format(convertVerticalSpeed(it, preferences.verticalSpeed), R.string.flight_vertical_speed_value, true, stringResource(when (preferences.verticalSpeed) { kniezrec.com.flightinfo.displayunits.VerticalSpeedUnit.METRES_PER_SECOND -> R.string.unit_ms; kniezrec.com.flightinfo.displayunits.VerticalSpeedUnit.METRES_PER_MINUTE -> R.string.unit_mmin; kniezrec.com.flightinfo.displayunits.VerticalSpeedUnit.FEET_PER_MINUTE -> R.string.unit_ftmin }))
+                format(
+                    convertVerticalSpeed(it, preferences.verticalSpeed),
+                    R.string.flight_vertical_speed_value,
+                    true,
+                    stringResource(
+                        when (preferences.verticalSpeed) {
+                            kniezrec.com.flightinfo.displayunits.VerticalSpeedUnit.METRES_PER_SECOND -> R.string.unit_ms
+                            kniezrec.com.flightinfo.displayunits.VerticalSpeedUnit.METRES_PER_MINUTE -> R.string.unit_mmin
+                            kniezrec.com.flightinfo.displayunits.VerticalSpeedUnit.FEET_PER_MINUTE -> R.string.unit_ftmin
+                        },
+                    ),
+                )
             },
             state.verticalSpeedMetresPerSecond?.let {
-                format(convertVerticalSpeed(it, preferences.verticalSpeed), R.string.flight_value_accessibility, true, stringResource(verticalSpeedAccessibilityUnit(preferences.verticalSpeed)))
+                format(
+                    convertVerticalSpeed(it, preferences.verticalSpeed),
+                    R.string.flight_value_accessibility,
+                    true,
+                    stringResource(verticalSpeedAccessibilityUnit(preferences.verticalSpeed)),
+                )
             },
         )
 
@@ -177,10 +205,36 @@ private fun FlightParametersReadings(state: FlightParametersState.Readings, pref
         ParameterRow(
             R.string.flight_altitude,
             state.altitudeMetres?.let {
-                format(convertAltitude(it, preferences.altitude), R.string.flight_altitude_value, false, stringResource(if (preferences.altitude == kniezrec.com.flightinfo.displayunits.AltitudeUnit.FEET) R.string.unit_ft else R.string.unit_m))
+                format(
+                    convertAltitude(it, preferences.altitude),
+                    R.string.flight_altitude_value,
+                    false,
+                    stringResource(
+                        if (preferences.altitude ==
+                            kniezrec.com.flightinfo.displayunits.AltitudeUnit.FEET
+                        ) {
+                            R.string.unit_ft
+                        } else {
+                            R.string.unit_m
+                        },
+                    ),
+                )
             },
             state.altitudeMetres?.let {
-                format(convertAltitude(it, preferences.altitude), R.string.flight_value_accessibility, false, stringResource(if (preferences.altitude == kniezrec.com.flightinfo.displayunits.AltitudeUnit.FEET) R.string.unit_ft_accessibility else R.string.unit_m_accessibility))
+                format(
+                    convertAltitude(it, preferences.altitude),
+                    R.string.flight_value_accessibility,
+                    false,
+                    stringResource(
+                        if (preferences.altitude ==
+                            kniezrec.com.flightinfo.displayunits.AltitudeUnit.FEET
+                        ) {
+                            R.string.unit_ft_accessibility
+                        } else {
+                            R.string.unit_m_accessibility
+                        },
+                    ),
+                )
             },
         )
 
@@ -189,21 +243,57 @@ private fun FlightParametersReadings(state: FlightParametersState.Readings, pref
         ParameterRow(
             R.string.flight_pressure,
             state.pressureMillibars?.let {
-                format(convertPressure(it, preferences.pressure), R.string.flight_pressure_value, false, stringResource(if (preferences.pressure == kniezrec.com.flightinfo.displayunits.PressureUnit.INCHES_OF_MERCURY) R.string.unit_inhg else R.string.unit_mbar))
+                format(
+                    convertPressure(it, preferences.pressure),
+                    R.string.flight_pressure_value,
+                    false,
+                    stringResource(
+                        if (preferences.pressure ==
+                            kniezrec.com.flightinfo.displayunits.PressureUnit.INCHES_OF_MERCURY
+                        ) {
+                            R.string.unit_inhg
+                        } else {
+                            R.string.unit_mbar
+                        },
+                    ),
+                )
             },
             accessibilityValue =
                 state.pressureMillibars?.let {
-                    format(convertPressure(it, preferences.pressure), R.string.flight_value_accessibility, false, stringResource(if (preferences.pressure == kniezrec.com.flightinfo.displayunits.PressureUnit.INCHES_OF_MERCURY) R.string.unit_inhg_accessibility else R.string.unit_mbar_accessibility))
+                    format(
+                        convertPressure(it, preferences.pressure),
+                        R.string.flight_value_accessibility,
+                        false,
+                        stringResource(
+                            if (preferences.pressure ==
+                                kniezrec.com.flightinfo.displayunits.PressureUnit.INCHES_OF_MERCURY
+                            ) {
+                                R.string.unit_inhg_accessibility
+                            } else {
+                                R.string.unit_mbar_accessibility
+                            },
+                        ),
+                    )
                 },
         )
     }
 }
 
 @Composable
-private fun speedAccessibilityUnit(unit: kniezrec.com.flightinfo.displayunits.SpeedUnit): Int = when (unit) { kniezrec.com.flightinfo.displayunits.SpeedUnit.KILOMETRES_PER_HOUR -> R.string.unit_kmh_accessibility; kniezrec.com.flightinfo.displayunits.SpeedUnit.MILES_PER_HOUR -> R.string.unit_mph_accessibility; kniezrec.com.flightinfo.displayunits.SpeedUnit.KNOTS -> R.string.unit_kt_accessibility }
+private fun speedAccessibilityUnit(unit: kniezrec.com.flightinfo.displayunits.SpeedUnit): Int =
+    when (unit) {
+        kniezrec.com.flightinfo.displayunits.SpeedUnit.KILOMETRES_PER_HOUR -> R.string.unit_kmh_accessibility
+        kniezrec.com.flightinfo.displayunits.SpeedUnit.MILES_PER_HOUR -> R.string.unit_mph_accessibility
+        kniezrec.com.flightinfo.displayunits.SpeedUnit.KNOTS -> R.string.unit_kt_accessibility
+    }
 
 @Composable
-private fun verticalSpeedAccessibilityUnit(unit: kniezrec.com.flightinfo.displayunits.VerticalSpeedUnit): Int = when (unit) { kniezrec.com.flightinfo.displayunits.VerticalSpeedUnit.METRES_PER_SECOND -> R.string.unit_ms_accessibility; kniezrec.com.flightinfo.displayunits.VerticalSpeedUnit.METRES_PER_MINUTE -> R.string.unit_mmin_accessibility; kniezrec.com.flightinfo.displayunits.VerticalSpeedUnit.FEET_PER_MINUTE -> R.string.unit_ftmin_accessibility }
+private fun verticalSpeedAccessibilityUnit(unit: kniezrec.com.flightinfo.displayunits.VerticalSpeedUnit): Int =
+    when (unit) {
+        kniezrec.com.flightinfo.displayunits.VerticalSpeedUnit.METRES_PER_SECOND -> R.string.unit_ms_accessibility
+        kniezrec.com.flightinfo.displayunits.VerticalSpeedUnit.METRES_PER_MINUTE -> R.string.unit_mmin_accessibility
+        kniezrec.com.flightinfo.displayunits.VerticalSpeedUnit.FEET_PER_MINUTE -> R.string.unit_ftmin_accessibility
+    }
 
 @Composable
 private fun FlightParametersTitle(textAlign: TextAlign = TextAlign.Start) {
@@ -243,7 +333,9 @@ private fun ParameterRow(
             .fillMaxWidth()
             .heightIn(min = 48.dp)
             .semantics(mergeDescendants = true) {
-                contentDescription = androidx.compose.ui.res.stringResource(R.string.flight_value_accessibility, labelText, spokenValue)
+                contentDescription =
+                    androidx.compose.ui.res
+                        .stringResource(R.string.flight_value_accessibility, labelText, spokenValue)
             },
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -279,6 +371,9 @@ private fun format(
     signed: Boolean,
     unit: String,
 ): String {
-    val number = formatUnitNumber(value, signed) ?: return androidx.compose.ui.res.stringResource(R.string.flight_unavailable)
-    return androidx.compose.ui.res.stringResource(template, number, unit)
+    val number =
+        formatUnitNumber(value, signed) ?: return androidx.compose.ui.res
+            .stringResource(R.string.flight_unavailable)
+    return androidx.compose.ui.res
+        .stringResource(template, number, unit)
 }

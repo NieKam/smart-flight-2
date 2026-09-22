@@ -110,7 +110,12 @@ fun GnssStatusScreen(
         Column(Modifier.fillMaxSize()) {
             Box(Modifier.fillMaxWidth().heightIn(min = 56.dp), contentAlignment = Alignment.Center) {
                 Text(stringResource(R.string.app_name), color = textColor, fontSize = 20.sp, fontWeight = FontWeight.Medium)
-                androidx.compose.material3.TextButton(onClick = onOpenSettings, modifier = Modifier.align(Alignment.CenterEnd).heightIn(min = 48.dp)) { Text(stringResource(R.string.settings_title), color = actionCyan) }
+                androidx.compose.material3.TextButton(
+                    onClick = onOpenSettings,
+                    modifier = Modifier.align(Alignment.CenterEnd).heightIn(min = 48.dp),
+                ) {
+                    Text(stringResource(R.string.settings_title), color = actionCyan)
+                }
             }
             Column(
                 Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 12.dp),
@@ -132,7 +137,12 @@ fun GnssStatusScreen(
                     HorizonCard(horizonState, onHorizonCalibrate, onHorizonRetry, Modifier.padding(bottom = 12.dp).widthIn(max = 600.dp))
                 }
                 Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
-                    NearbyCityCard(nearbyCityState, onNearbyCityRetry, unitPreferences.distance, Modifier.padding(bottom = 12.dp).widthIn(max = 600.dp))
+                    NearbyCityCard(
+                        nearbyCityState,
+                        onNearbyCityRetry,
+                        unitPreferences.distance,
+                        Modifier.padding(bottom = 12.dp).widthIn(max = 600.dp),
+                    )
                 }
                 Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
                     RouteCard(

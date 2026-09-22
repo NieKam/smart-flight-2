@@ -10,8 +10,8 @@ import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.WindowInsets
@@ -32,10 +32,10 @@ import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import kniezrec.com.flightinfo.course.CourseController
-import kniezrec.com.flightinfo.displayunits.UnitPreferences
-import kniezrec.com.flightinfo.displayunits.UnitPreferencesStore
 import kniezrec.com.flightinfo.course.CourseState
 import kniezrec.com.flightinfo.course.ForegroundCourseObservationCoordinator
+import kniezrec.com.flightinfo.displayunits.UnitPreferences
+import kniezrec.com.flightinfo.displayunits.UnitPreferencesStore
 import kniezrec.com.flightinfo.flight.AndroidFlightLocationPlatform
 import kniezrec.com.flightinfo.flight.AndroidPressurePlatform
 import kniezrec.com.flightinfo.flight.FlightParametersController
@@ -133,121 +133,123 @@ class MainActivity : ComponentActivity() {
                                     onBack = { showUnitSettings = false },
                                     modifier = Modifier.padding(innerPadding).safeDrawingPadding(),
                                 )
-                            } else GnssStatusScreen(
-                                state = gnssState,
-                                flightParametersState = flightParametersState,
-                                courseState = courseState,
-                                onCourseRetry = { courseController.retry(isForeground) },
-                                horizonState = horizonState,
-                                onHorizonCalibrate = { horizonController.calibrate() },
-                                onHorizonRetry = { horizonController.retry(isForeground) },
-                                nearbyCityState = nearbyCityState,
-                                onNearbyCityRetry = { nearbyCityController.retry() },
-                                mapState = mapState,
-                                mapRules = mapRules,
-                                mapPositionVersion = mapPositionVersion,
-                                onMapRetry = { startMapLoad() },
-                                onMapUnavailable = { mapState = MapCardState.Unavailable },
-                                routeState = routeState,
-                                onRouteChoose = {
-                                    routePicker = it
-                                    routeResults = emptyList()
-                                    routeSearchError = null
-                                    routeNearestDraft = null
-                                    lastRouteSearchQuery = ""
-                                },
-                                onRouteClear = { routeController.clear(it) },
-                                onRouteClearAll = { routeController.clearRoute() },
-                                routePicker = routePicker,
-                                routePickerInitial =
-                                    if (routePicker ==
-                                        RouteEndpoint.DEPARTURE
-                                    ) {
-                                        routeState.departure
-                                    } else {
-                                        routeState.destination
+                            } else {
+                                GnssStatusScreen(
+                                    state = gnssState,
+                                    flightParametersState = flightParametersState,
+                                    courseState = courseState,
+                                    onCourseRetry = { courseController.retry(isForeground) },
+                                    horizonState = horizonState,
+                                    onHorizonCalibrate = { horizonController.calibrate() },
+                                    onHorizonRetry = { horizonController.retry(isForeground) },
+                                    nearbyCityState = nearbyCityState,
+                                    onNearbyCityRetry = { nearbyCityController.retry() },
+                                    mapState = mapState,
+                                    mapRules = mapRules,
+                                    mapPositionVersion = mapPositionVersion,
+                                    onMapRetry = { startMapLoad() },
+                                    onMapUnavailable = { mapState = MapCardState.Unavailable },
+                                    routeState = routeState,
+                                    onRouteChoose = {
+                                        routePicker = it
+                                        routeResults = emptyList()
+                                        routeSearchError = null
+                                        routeNearestDraft = null
+                                        lastRouteSearchQuery = ""
                                     },
-                                routeSearchResults = routeResults,
-                                routeSearchLoading = routeSearchLoading,
-                                routeSearchError = routeSearchError,
-                                onRouteSearch = { query ->
-                                    lastRouteSearchQuery = query
-                                    routeSearchLoading = true
-                                    routeSearchError = null
-                                    routeController.search(query) { result ->
-                                        routeSearchLoading = false
-                                        result.fold({ routeResults = it }, { routeSearchError = getString(R.string.route_error) })
-                                    }
-                                },
-                                onRouteConfirm = { city ->
-                                    routePicker?.let { endpoint ->
-                                        if (routeController.choose(endpoint, city)) {
-                                            routeNearestDraft = null
-                                            routePicker = null
-                                            true
+                                    onRouteClear = { routeController.clear(it) },
+                                    onRouteClearAll = { routeController.clearRoute() },
+                                    routePicker = routePicker,
+                                    routePickerInitial =
+                                        if (routePicker ==
+                                            RouteEndpoint.DEPARTURE
+                                        ) {
+                                            routeState.departure
                                         } else {
-                                            false
-                                        }
-                                    } ?: false
-                                },
-                                onRouteCancel = {
-                                    routeNearestDraft = null
-                                    routePicker = null
-                                },
-                                onRouteRetry = {
-                                    routePicker?.let {
+                                            routeState.destination
+                                        },
+                                    routeSearchResults = routeResults,
+                                    routeSearchLoading = routeSearchLoading,
+                                    routeSearchError = routeSearchError,
+                                    onRouteSearch = { query ->
+                                        lastRouteSearchQuery = query
                                         routeSearchLoading = true
                                         routeSearchError = null
-                                        routeController.search(lastRouteSearchQuery, reload = true) { result ->
+                                        routeController.search(query) { result ->
+                                            routeSearchLoading = false
+                                            result.fold({ routeResults = it }, { routeSearchError = getString(R.string.route_error) })
+                                        }
+                                    },
+                                    onRouteConfirm = { city ->
+                                        routePicker?.let { endpoint ->
+                                            if (routeController.choose(endpoint, city)) {
+                                                routeNearestDraft = null
+                                                routePicker = null
+                                                true
+                                            } else {
+                                                false
+                                            }
+                                        } ?: false
+                                    },
+                                    onRouteCancel = {
+                                        routeNearestDraft = null
+                                        routePicker = null
+                                    },
+                                    onRouteRetry = {
+                                        routePicker?.let {
+                                            routeSearchLoading = true
+                                            routeSearchError = null
+                                            routeController.search(lastRouteSearchQuery, reload = true) { result ->
+                                                routeSearchLoading = false
+                                                result.fold(
+                                                    { routeResults = it },
+                                                    { routeSearchError = getString(R.string.route_error) },
+                                                )
+                                            }
+                                        }
+                                    },
+                                    onRouteRestoreRetry = { routeController.retryRestore() },
+                                    onRouteNearest = { coordinate ->
+                                        routeSearchLoading = true
+                                        routeSearchError = null
+                                        routeController.nearest(coordinate) { result ->
                                             routeSearchLoading = false
                                             result.fold(
-                                                { routeResults = it },
+                                                { city ->
+                                                    if (city == null) {
+                                                        routeNearestDraft = null
+                                                        routeResults = emptyList()
+                                                        routeSearchError = getString(R.string.route_no_city_at_location)
+                                                    } else if (!validCity(city)) {
+                                                        routeNearestDraft = null
+                                                        routeResults = emptyList()
+                                                        routeSearchError = getString(R.string.route_invalid_city)
+                                                    } else {
+                                                        routeNearestDraft = city
+                                                        routeResults = listOf(city)
+                                                    }
+                                                },
                                                 { routeSearchError = getString(R.string.route_error) },
                                             )
                                         }
-                                    }
-                                },
-                                onRouteRestoreRetry = { routeController.retryRestore() },
-                                onRouteNearest = { coordinate ->
-                                    routeSearchLoading = true
-                                    routeSearchError = null
-                                    routeController.nearest(coordinate) { result ->
-                                        routeSearchLoading = false
-                                        result.fold(
-                                            { city ->
-                                                if (city == null) {
-                                                    routeNearestDraft = null
-                                                    routeResults = emptyList()
-                                                    routeSearchError = getString(R.string.route_no_city_at_location)
-                                                } else if (!validCity(city)) {
-                                                    routeNearestDraft = null
-                                                    routeResults = emptyList()
-                                                    routeSearchError = getString(R.string.route_invalid_city)
-                                                } else {
-                                                    routeNearestDraft = city
-                                                    routeResults = listOf(city)
-                                                }
-                                            },
-                                            { routeSearchError = getString(R.string.route_error) },
-                                        )
-                                    }
-                                },
-                                routeNearestLoading = routeSearchLoading,
-                                routePickerMapArchive = (mapState as? MapCardState.Ready)?.archive,
-                                onOpenSettings = { showUnitSettings = true },
-                                unitPreferences = unitPreferences,
-                                onOpenLocationSettings = {
-                                    if (!openLocationSettings()) {
-                                        scope.launch {
-                                            snackbarHostState.showSnackbar(
-                                                getString(R.string.location_settings_unavailable),
-                                            )
+                                    },
+                                    routeNearestLoading = routeSearchLoading,
+                                    routePickerMapArchive = (mapState as? MapCardState.Ready)?.archive,
+                                    onOpenSettings = { showUnitSettings = true },
+                                    unitPreferences = unitPreferences,
+                                    onOpenLocationSettings = {
+                                        if (!openLocationSettings()) {
+                                            scope.launch {
+                                                snackbarHostState.showSnackbar(
+                                                    getString(R.string.location_settings_unavailable),
+                                                )
+                                            }
                                         }
-                                    }
-                                },
-                                onRetry = { if (isForeground) startObservation() },
-                                modifier = Modifier.padding(innerPadding).safeDrawingPadding(),
-                            )
+                                    },
+                                    onRetry = { if (isForeground) startObservation() },
+                                    modifier = Modifier.padding(innerPadding).safeDrawingPadding(),
+                                )
+                            }
                         } else {
                             PermissionOnboardingScreen(
                                 state = permissionState,
