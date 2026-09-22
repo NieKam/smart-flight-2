@@ -10,42 +10,46 @@ internal class LocationGnssMonitoringSession(
     private val gnssPlatform: GnssStatusPlatform,
     private val onLocation: (FlightLocationFix) -> Unit,
     private val onGnssStatus: (List<GnssSatellite>) -> Unit,
-) {
+) : MonitoringSession {
     private var generation = 0L
     private var locationRegistered = false
     private var gnssRegistered = false
 
-    fun start(): Boolean {
+    override fun start(): Boolean {
         stop()
         if (!locationPlatform.areLocationServicesEnabled() || !locationPlatform.hasGnssHardware()) return false
         val currentGeneration = ++generation
-        locationRegistered =
+        // Mark ownership before calling into the platform. Android registration may install
+        // the callback and then throw (or return false), so stop() must still unregister it.
+        locationRegistered = true
+        val locationRegistrationSucceeded =
             runCatching {
                 locationPlatform.registerLocationListener { fix ->
                     if (locationRegistered && generation == currentGeneration) onLocation(fix)
                 }
             }.getOrDefault(false)
-        if (!locationRegistered) {
+        if (!locationRegistrationSucceeded) {
             stop()
             return false
         }
-        gnssRegistered =
+        gnssRegistered = true
+        val gnssRegistrationSucceeded =
             runCatching {
                 gnssPlatform.registerGnssStatusCallback { satellites ->
                     if (gnssRegistered && generation == currentGeneration) onGnssStatus(satellites)
                 }
             }.getOrDefault(false)
-        if (!gnssRegistered) {
+        if (!gnssRegistrationSucceeded) {
             stop()
             return false
         }
         return true
     }
 
-    fun stop() {
+    override fun stop() {
         generation++
-        if (locationRegistered) locationPlatform.unregisterLocationListener()
-        if (gnssRegistered) gnssPlatform.unregisterGnssStatusCallback()
+        if (locationRegistered) runCatching { locationPlatform.unregisterLocationListener() }
+        if (gnssRegistered) runCatching { gnssPlatform.unregisterGnssStatusCallback() }
         locationRegistered = false
         gnssRegistered = false
     }

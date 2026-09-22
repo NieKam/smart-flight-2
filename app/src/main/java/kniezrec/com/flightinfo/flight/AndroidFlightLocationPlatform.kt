@@ -35,12 +35,18 @@ internal class AndroidFlightLocationPlatform(
                 }
             }
         listener = newListener
-        locationManager.requestLocationUpdates(
-            LocationManager.GPS_PROVIDER,
-            LocationRequest.Builder(1_000L).build(),
-            callbackExecutor,
-            newListener,
-        )
+        try {
+            locationManager.requestLocationUpdates(
+                LocationManager.GPS_PROVIDER,
+                LocationRequest.Builder(1_000L).build(),
+                callbackExecutor,
+                newListener,
+            )
+        } catch (_: RuntimeException) {
+            runCatching { locationManager.removeUpdates(newListener) }
+            listener = null
+            return false
+        }
         return true
     }
 

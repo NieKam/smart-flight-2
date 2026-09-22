@@ -195,7 +195,10 @@ class MainActivity : ComponentActivity() {
                                             val value = BackgroundNotificationPreferences(enabled)
                                             backgroundNotificationPreferencesStore.write(value)
                                             backgroundNotificationPreferences = value
-                                            if (!enabled) stopBackgroundMonitoring()
+                                            BackgroundMonitoringBridge.setNotificationEnabled(enabled)
+                                            if (enabled && isForeground && permissionState == LocationPermissionState.Granted) {
+                                                startBackgroundMonitoring()
+                                            }
                                         },
                                         onBack = { showUnitSettings = false },
                                         modifier = Modifier.padding(innerPadding).safeDrawingPadding().zIndex(1f),
@@ -367,7 +370,7 @@ class MainActivity : ComponentActivity() {
         displayPreferences = displayPreferencesStore.read()
         backgroundNotificationPreferences = backgroundNotificationPreferencesStore.read()
         applyDisplayPreferences()
-        if (permissionState == LocationPermissionState.Granted && backgroundNotificationPreferences.showBackgroundNotification) {
+        if (permissionState == LocationPermissionState.Granted) {
             startBackgroundMonitoring()
         } else {
             stopBackgroundMonitoring()
@@ -396,8 +399,11 @@ class MainActivity : ComponentActivity() {
         pressureController.stop()
         cityLookupExecutor.shutdownNow()
         mapArchiveRepository.close()
-        BackgroundMonitoringBridge.clear()
-        stopBackgroundMonitoring()
+        if (!isChangingConfigurations) {
+            BackgroundMonitoringBridge.clear()
+            BackgroundMonitoringBridge.clearEventHandlers()
+            stopBackgroundMonitoring()
+        }
         super.onDestroy()
     }
 
@@ -405,7 +411,7 @@ class MainActivity : ComponentActivity() {
         permissionState = permissionStateController.currentState()
         if (isForeground && permissionState == LocationPermissionState.Granted) {
             startObservation()
-        } else {
+        } else if (permissionState != LocationPermissionState.Granted || isForeground) {
             gnssStatusController.stop()
             pressureController.stop()
             courseObservationCoordinator.stop()

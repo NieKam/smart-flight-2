@@ -3,9 +3,21 @@ package kniezrec.com.flightinfo.monitoring
 import kniezrec.com.flightinfo.flight.FlightLocationFix
 import kniezrec.com.flightinfo.gnss.GnssSatellite
 
+internal interface BackgroundMonitoringService {
+    fun reconcile(
+        activityVisible: Boolean,
+        hasUsableFix: Boolean,
+    )
+
+    fun onUsableFix()
+
+    fun stopForPreferenceDisabled()
+}
+
 /** Process-local handoff; the service owns platform callbacks and the activity consumes events. */
 internal object BackgroundMonitoringBridge {
-    private var service: LocationForegroundService? = null
+    private var service: BackgroundMonitoringService? = null
+    private var serviceGeneration = 0L
     private var activityVisible = false
     private var hasUsableFix = false
     private var onEligibilityLost: (() -> Unit)? = null
@@ -13,16 +25,42 @@ internal object BackgroundMonitoringBridge {
     private var onGnssStatus: ((List<GnssSatellite>) -> Unit)? = null
 
     fun beginSession() {
-        hasUsableFix = false
+        if (service == null) hasUsableFix = false
     }
 
-    fun attach(service: LocationForegroundService) {
+    /** Attaches the current service and returns a token for its callback closures. */
+    fun attach(service: BackgroundMonitoringService): Long {
+        serviceGeneration++
         this.service = service
-        service.reconcile(activityVisible, hasUsableFix)
+        return serviceGeneration
     }
 
-    fun detach(service: LocationForegroundService) {
-        if (this.service === service) this.service = null
+    fun reconcile() {
+        service?.reconcile(activityVisible, hasUsableFix)
+    }
+
+    fun detach(
+        service: BackgroundMonitoringService,
+        generation: Long,
+    ) {
+        if (this.service === service && generation == serviceGeneration) {
+            this.service = null
+            serviceGeneration++
+        }
+    }
+
+    fun forwardLocation(
+        generation: Long,
+        fix: FlightLocationFix,
+    ) {
+        if (generation == serviceGeneration) forwardLocation(fix)
+    }
+
+    fun forwardGnssStatus(
+        generation: Long,
+        satellites: List<GnssSatellite>,
+    ) {
+        if (generation == serviceGeneration) forwardGnssStatus(satellites)
     }
 
     fun setActivityVisible(visible: Boolean) {
@@ -31,6 +69,14 @@ internal object BackgroundMonitoringBridge {
             service?.onUsableFix()
         } else {
             service?.reconcile(activityVisible, hasUsableFix)
+        }
+    }
+
+    fun setNotificationEnabled(enabled: Boolean) {
+        if (enabled) {
+            service?.reconcile(activityVisible, hasUsableFix)
+        } else if (!activityVisible) {
+            service?.stopForPreferenceDisabled()
         }
     }
 
@@ -43,8 +89,10 @@ internal object BackgroundMonitoringBridge {
     }
 
     fun onUsableLocationFix(_fix: FlightLocationFix) {
-        hasUsableFix = true
-        if (!activityVisible) service?.onUsableFix()
+        if (!hasUsableFix) {
+            hasUsableFix = true
+            if (!activityVisible) service?.onUsableFix()
+        }
     }
 
     fun setEventHandlers(
@@ -68,7 +116,11 @@ internal object BackgroundMonitoringBridge {
         activityVisible = false
         hasUsableFix = false
         service = null
+        serviceGeneration++
         onEligibilityLost = null
+    }
+
+    fun clearEventHandlers() {
         onLocation = null
         onGnssStatus = null
     }
