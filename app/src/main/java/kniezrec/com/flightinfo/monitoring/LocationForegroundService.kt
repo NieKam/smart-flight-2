@@ -29,7 +29,7 @@ internal interface MonitoringSession {
     fun stop()
 }
 
-internal class LocationForegroundService :
+internal open class LocationForegroundService :
     Service(),
     BackgroundMonitoringService {
     private val handler = Handler(Looper.getMainLooper())

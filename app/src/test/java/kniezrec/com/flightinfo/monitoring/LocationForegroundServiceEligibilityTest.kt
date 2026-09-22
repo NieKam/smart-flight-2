@@ -38,7 +38,7 @@ class LocationForegroundServiceEligibilityTest {
     @After
     fun tearDown() {
         controller.destroy()
-        permissions.revokePermissions(
+        permissions.denyPermissions(
             Manifest.permission.ACCESS_FINE_LOCATION,
             Manifest.permission.ACCESS_COARSE_LOCATION,
             Manifest.permission.POST_NOTIFICATIONS,
@@ -51,7 +51,7 @@ class LocationForegroundServiceEligibilityTest {
         locationManager.setProviderEnabled(LocationManager.GPS_PROVIDER, true)
         assertTrue(controller.get().isEligibleForTest())
 
-        permissions.revokePermissions(Manifest.permission.ACCESS_FINE_LOCATION)
+        permissions.denyPermissions(Manifest.permission.ACCESS_FINE_LOCATION)
         permissions.grantPermissions(Manifest.permission.ACCESS_COARSE_LOCATION)
         assertFalse(controller.get().isEligibleForTest())
 
@@ -68,7 +68,7 @@ class LocationForegroundServiceEligibilityTest {
         assertFalse(controller.get().canPostNotificationsForTest())
         permissions.grantPermissions(Manifest.permission.POST_NOTIFICATIONS)
         assertTrue(controller.get().canPostNotificationsForTest())
-        permissions.revokePermissions(Manifest.permission.POST_NOTIFICATIONS)
+        permissions.denyPermissions(Manifest.permission.POST_NOTIFICATIONS)
         assertFalse(controller.get().canPostNotificationsForTest())
     }
 }
