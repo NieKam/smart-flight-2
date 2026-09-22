@@ -86,6 +86,19 @@ Use the available local tooling for static analysis, formatting and tests that c
 
 GitHub Actions is responsible for the authoritative Android build/CI environment.
 
+Before committing the implementation or review fixes:
+
+1. Run the project's Ktlint formatting task:
+   ./gradlew ktlintFormat --console=plain --no-daemon
+
+2. Review the changes introduced by formatting.
+3. Run relevant tests and verification.
+4. Inspect git status.
+5. Inspect git diff.
+6. Commit all intended implementation changes, including formatting changes.
+
+Do not commit unrelated changes.
+
 REVIEW FEEDBACK
 
 When a review exists for the task, read the latest review artifact:
