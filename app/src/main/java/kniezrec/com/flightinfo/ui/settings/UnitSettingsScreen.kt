@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -59,6 +60,7 @@ private sealed class Selector<T>(
 }
 
 @Composable
+@OptIn(ExperimentalMaterial3Api::class)
 fun UnitSettingsScreen(
     preferences: UnitPreferences,
     onPreferenceChange: (UnitPreferences) -> Unit,
@@ -114,6 +116,7 @@ private fun SettingRow(
     value: String,
     onClick: () -> Unit,
 ) {
+    val rowDescription = stringResource(R.string.settings_row_description, label, value)
     Column {
         Row(
             Modifier
@@ -121,7 +124,7 @@ private fun SettingRow(
                 .heightIn(min = 64.dp)
                 .clickable(onClick = onClick)
                 .semantics(mergeDescendants = true) {
-                    contentDescription = stringResource(R.string.settings_row_description, label, value)
+                    contentDescription = rowDescription
                     role = Role.Button
                 }.padding(vertical = 12.dp),
         ) {
@@ -164,7 +167,7 @@ private fun <T> UnitChoiceDialog(
                                 onDismiss()
                             }.semantics {
                                 role = Role.RadioButton
-                                selected = isSelected
+                                this.selected = isSelected
                             },
                     ) {
                         RadioButton(selected = isSelected, onClick = null)

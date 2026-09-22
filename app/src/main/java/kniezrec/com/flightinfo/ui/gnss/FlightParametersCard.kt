@@ -327,15 +327,16 @@ private fun ParameterRow(
     val spokenValue =
         (accessibilityValue ?: value) ?: androidx.compose.ui.res
             .stringResource(R.string.flight_unavailable_accessibility)
+    val rowDescription =
+        androidx.compose.ui.res
+            .stringResource(R.string.flight_value_accessibility, labelText, spokenValue)
 
     Row(
         Modifier
             .fillMaxWidth()
             .heightIn(min = 48.dp)
             .semantics(mergeDescendants = true) {
-                contentDescription =
-                    androidx.compose.ui.res
-                        .stringResource(R.string.flight_value_accessibility, labelText, spokenValue)
+                contentDescription = rowDescription
             },
         verticalAlignment = Alignment.CenterVertically,
     ) {

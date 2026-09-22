@@ -144,10 +144,10 @@ fun RouteCard(
     value: String,
     spoken: String = value,
 ) {
+    val detailDescription = stringResource(R.string.route_detail_description, stringResource(label), spoken)
     Column(
         Modifier.fillMaxWidth().padding(top = 8.dp).semantics {
-            contentDescription =
-                stringResource(R.string.route_detail_description, stringResource(label), spoken)
+            contentDescription = detailDescription
         },
     ) {
         Text(
