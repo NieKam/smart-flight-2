@@ -57,6 +57,9 @@ import kniezrec.com.flightinfo.horizon.HorizonController
 import kniezrec.com.flightinfo.horizon.HorizonState
 import kniezrec.com.flightinfo.map.MapArchiveRepository
 import kniezrec.com.flightinfo.map.MapSessionRules
+import kniezrec.com.flightinfo.monitoring.BackgroundNotificationPreferences
+import kniezrec.com.flightinfo.monitoring.BackgroundNotificationPreferencesStore
+import kniezrec.com.flightinfo.monitoring.LocationForegroundService
 import kniezrec.com.flightinfo.nearby.AndroidNearbyCityRepository
 import kniezrec.com.flightinfo.nearby.NearbyCityController
 import kniezrec.com.flightinfo.nearby.NearbyCityRecord
@@ -103,6 +106,7 @@ class MainActivity : ComponentActivity() {
     private var showAbout by mutableStateOf(false)
     private var unitPreferences by mutableStateOf(UnitPreferences())
     private var displayPreferences by mutableStateOf(DisplayPreferences())
+    private var backgroundNotificationPreferences by mutableStateOf(BackgroundNotificationPreferences())
     private val displayPreferencesApplier by lazy {
         DisplayPreferencesApplier(
             sink =
@@ -143,6 +147,7 @@ class MainActivity : ComponentActivity() {
         refreshPermissionState()
         unitPreferences = unitPreferencesStore.read()
         displayPreferences = displayPreferencesStore.read()
+        backgroundNotificationPreferences = backgroundNotificationPreferencesStore.read()
         applyDisplayPreferences()
         setContent {
             SmartFlightTheme {
@@ -175,6 +180,13 @@ class MainActivity : ComponentActivity() {
                                             displayPreferencesStore.write(value)
                                             displayPreferences = value
                                             applyDisplayPreferences()
+                                        },
+                                        showBackgroundNotification = backgroundNotificationPreferences.showBackgroundNotification,
+                                        onBackgroundNotificationChange = { enabled ->
+                                            val value = BackgroundNotificationPreferences(enabled)
+                                            backgroundNotificationPreferencesStore.write(value)
+                                            backgroundNotificationPreferences = value
+                                            if (!enabled) stopBackgroundMonitoring()
                                         },
                                         onBack = { showUnitSettings = false },
                                         modifier = Modifier.padding(innerPadding).safeDrawingPadding().zIndex(1f),
@@ -342,7 +354,9 @@ class MainActivity : ComponentActivity() {
         refreshPermissionState()
         unitPreferences = unitPreferencesStore.read()
         displayPreferences = displayPreferencesStore.read()
+        backgroundNotificationPreferences = backgroundNotificationPreferencesStore.read()
         applyDisplayPreferences()
+        stopBackgroundMonitoring()
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
@@ -360,6 +374,9 @@ class MainActivity : ComponentActivity() {
         courseObservationCoordinator.stop()
         routeController.stop()
         horizonController.stop()
+        if (permissionState == LocationPermissionState.Granted && backgroundNotificationPreferences.showBackgroundNotification) {
+            startBackgroundMonitoring()
+        }
         super.onPause()
     }
 
@@ -367,6 +384,7 @@ class MainActivity : ComponentActivity() {
         pressureController.stop()
         cityLookupExecutor.shutdownNow()
         mapArchiveRepository.close()
+        stopBackgroundMonitoring()
         super.onDestroy()
     }
 
@@ -435,6 +453,10 @@ class MainActivity : ComponentActivity() {
 
     private val displayPreferencesStore by lazy {
         DisplayPreferencesStore(getSharedPreferences("display_behavior", MODE_PRIVATE))
+    }
+
+    private val backgroundNotificationPreferencesStore by lazy {
+        BackgroundNotificationPreferencesStore(getSharedPreferences(BackgroundNotificationPreferencesStore.PREFERENCES_NAME, MODE_PRIVATE))
     }
 
     private val unitPreferencesStore by lazy {
@@ -521,6 +543,16 @@ class MainActivity : ComponentActivity() {
 
     private fun applyDisplayPreferences() {
         displayPreferencesApplier.apply(displayPreferences, requestedOrientation)
+    }
+
+    private fun startBackgroundMonitoring() {
+        runCatching {
+            ContextCompat.startForegroundService(this, Intent(this, LocationForegroundService::class.java))
+        }
+    }
+
+    private fun stopBackgroundMonitoring() {
+        stopService(Intent(this, LocationForegroundService::class.java))
     }
 
     private fun startObservation() {

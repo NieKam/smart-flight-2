@@ -134,8 +134,8 @@
     <string name="route_destination_marker">Destination: %1$s</string>
     <string name="route_departure_marker_description">Departure endpoint marker</string>
     <string name="route_destination_marker_description">Destination endpoint marker</string>
-    <string name="settings_title">Settings</string><string name="navigate_up">Navigate up</string><string name="display_section">Display</string><string name="units_section">Units</string>
-    <string name="keep_screen_always_on">Keep screen always on</string><string name="portrait_orientation">Portrait orientation</string><string name="larger_map_zoom">Larger map zoom</string>
+    <string name="settings_title">Settings</string><string name="navigate_up">Navigate up</string><string name="display_section">Display</string><string name="monitoring_section">Monitoring</string><string name="units_section">Units</string>
+    <string name="show_background_notification">Show background notification</string><string name="background_notification_settings_description">Shows a notification while Smart Flight is waiting for a GPS position after the app leaves the foreground.</string><string name="background_notification_channel">Location</string><string name="background_notification_title">Smart Flight is waiting for GPS signal</string><string name="background_notification_content">Tap to return to Smart Flight</string><string name="keep_screen_always_on">Keep screen always on</string><string name="portrait_orientation">Portrait orientation</string><string name="larger_map_zoom">Larger map zoom</string>
     <string name="settings_on">On</string><string name="settings_off">Off</string><string name="orientation_portrait">Portrait</string><string name="orientation_sensor">Sensor</string>
     <string name="larger_map_zoom_warning">Extra zoom may show unavailable or grey map areas because offline tiles may not be available at those levels.</string>
     <string name="display_setting_description">%1$s, current value %2$s</string>
