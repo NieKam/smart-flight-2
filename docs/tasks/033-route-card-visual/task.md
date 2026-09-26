@@ -9,7 +9,7 @@ Restore the original route card look (two large city slots side by side with tak
 - TASK-021 made details available with destination only.
 
 ## Dependencies
-- TASK-021, TASK-017.
+- TASK-021, TASK-018 (palette tokens).
 
 ## Original app reference
 - `layout/route_card_layout.xml`, `res/drawable/take_off_icon.xml`, `landing_icon.xml`, `delete_icon.xml`, `cards/route/RouteCardView.kt`, `promo/screen-2.png`.
@@ -17,7 +17,7 @@ Restore the original route card look (two large city slots side by side with tak
 ## Scope
 - Two tappable slots (departure with take-off icon, destination with landing icon); empty slot shows the icon with "Pick departure"/"Pick destination"; filled slot shows the city name (22sp, ellipsized) and country.
 - Clearing one endpoint: long-press on a slot (as original) PLUS an accessibility custom action "Clear departure/destination" (keep the rewrite's discoverability for TalkBack; a visible small clear icon on a filled slot is acceptable).
-- Detail rows as label/value (muted/light tokens); trash icon button clears the whole route (with content description).
+- Detail rows as label/value (`labelText` / `valueText` tokens from TASK-018); city names `valueText`; take-off/landing/trash icons `valueText` (the original drawables are filled #D9D9ED); trash icon button clears the whole route (with content description). Remove the ad-hoc #D9D9ED/#FFB4AB literals if any survived (errors use the `error` token).
 - Keep restore-error state with retry.
 
 ## Out of scope

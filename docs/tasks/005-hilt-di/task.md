@@ -9,12 +9,18 @@ Add Hilt with KSP, an `Application` class, entry points on the Activity and the 
 - Architecture review section 3 "DI inventory" lists every construction site and a suggested scope (S = singleton, A = activity-bound, VM = ViewModel later).
 - Architecture review F9: `AndroidNearbyCityRepository` is instantiated twice (`MainActivity.kt:536,548`).
 - Architecture review K8: keep clock injection (`clock: () -> Instant` in `NearbyCityController.kt:76`, `RouteController.kt:17`); it maps to a Hilt-provided clock.
-- TASK-001 recorded the verified KSP and Hilt versions and AGP 9 compatibility evidence in its PR. Re-check here that the Hilt Gradle plugin works with AGP 9 built-in Kotlin (no `org.jetbrains.kotlin.android` plugin).
+- Architecture review "Not verified" item 1: KSP and Hilt compatibility with AGP 9 built-in Kotlin was not checked. Observed: `app/build.gradle.kts:1-5` applies only `com.android.application`, `org.jetbrains.kotlin.plugin.compose` and ktlint (AGP `9.4.0`, Kotlin `2.2.10`); there is no `org.jetbrains.kotlin.android` plugin, i.e. the project uses AGP 9 built-in Kotlin. The catalog has no `ksp` plugin yet (TASK-001 deliberately left KSP to this task).
+- Human decision: this task first verifies Hilt + KSP with AGP 9 in CI. If that fails with built-in Kotlin, adding the `org.jetbrains.kotlin.android` plugin is allowed (kapt is still not allowed).
 
 ## Dependencies
 - TASK-001, TASK-004.
 
 ## Scope
+- Step 1 — compatibility check (first commit(s) of the PR, pushed and checked in CI before the rest of the work):
+  - Look up current stable versions of KSP (`com.google.devtools.ksp`), Dagger/Hilt (`com.google.dagger:hilt-android`, Hilt Gradle plugin) and `androidx.hilt`. Record versions, source links and any statement about AGP 9 / built-in Kotlin support from the release notes in the PR description. Do not assume versions.
+  - Add the KSP plugin (catalog + `apply false` in the root `build.gradle.kts` if that is the project convention + applied in `app/build.gradle.kts`), the Hilt Gradle plugin, `hilt-android` and `ksp(hilt-compiler)`, plus an empty `@HiltAndroidApp` `SmartFlightApplication` registered in the manifest. Push and check that CI (`assembleDebug`, `testDebugUnitTest`) is green.
+  - If CI fails because KSP or Hilt does not support AGP 9 built-in Kotlin: apply `org.jetbrains.kotlin.android` (via the catalog), plus whatever AGP 9 requires to opt out of built-in Kotlin (assumption: a Gradle property such as `android.builtInKotlin=false`; check the AGP 9 release notes). Record the failure log excerpt, the fix and the source in the PR description, and add a line to the README "Planner decisions" section stating the Kotlin plugin setup. Do not use kapt.
+  - Only when step 1 is green, continue with the rest of the scope.
 - Catalog + build: Hilt Gradle plugin, `hilt-android`, `hilt-compiler` via `ksp(...)`; `androidx.hilt:hilt-lifecycle-viewmodel-compose` (or the current artifact providing `hiltViewModel()` for Compose; verify name and version) so later tasks can call `hiltViewModel()`. Optional: `hilt-android-testing` + `kspTest` if you convert any test to `@HiltAndroidTest`.
 - `SmartFlightApplication` annotated `@HiltAndroidApp`, registered in the manifest (`android:name`).
 - `@AndroidEntryPoint` on `MainActivity` and `LocationForegroundService`.
@@ -41,12 +47,13 @@ Required:
 - Preference file names and keys unchanged.
 - One `AndroidNearbyCityRepository` instance in the process.
 - No `kapt`. The Hilt compiler runs through KSP.
-- If Hilt does not work with AGP 9 built-in Kotlin at the verified versions, stop and report in the PR / README open questions. Do not add `org.jetbrains.kotlin.android` or kapt as a workaround without human approval.
+- Prefer AGP 9 built-in Kotlin. Adding `org.jetbrains.kotlin.android` is approved by the human only as the fallback described in step 1, and only if CI shows built-in Kotlin does not work; the PR must show the evidence.
 
 Recommendations:
 - Keep modules small and close to the feature they serve; avoid one giant `AppModule`.
 
 ## Acceptance criteria
+- [ ] PR description records KSP/Hilt/androidx.hilt versions with sources, the CI result of step 1 and, if used, why `org.jetbrains.kotlin.android` was needed — verified by: code review
 - [ ] `@HiltAndroidApp` Application registered; Activity and service are `@AndroidEntryPoint` — verified by: code review
 - [ ] Build uses KSP for Hilt; no kapt anywhere — verified by: CI build + code review
 - [ ] Single shared instances of the preference stores and city repository — verified by: CI unit test (Robolectric test obtaining the Hilt component or an `EntryPoint` and asserting same instance) or code review of `@Singleton` scoping
@@ -61,3 +68,5 @@ Recommendations:
 - `@AndroidEntryPoint` on an `open` service subclassed by tests: Hilt generates `Hilt_LocationForegroundService`; the test subclass inherits injection. Verify under Robolectric.
 - Robolectric + `@HiltAndroidApp`: the real application is used unless configured otherwise; it must not start heavy work in `onCreate`.
 - DI-bound `SharedPreferences` read on first injection happen on the main thread, same as today.
+- KSP applied with the Kotlin 2.2.x compiler: pick the KSP release whose compatibility table lists Kotlin 2.2.x (KSP 2.x releases are no longer tied one-to-one to a Kotlin version; check).
+- Switching to `org.jetbrains.kotlin.android` (fallback) changes how Kotlin is configured for the whole module (e.g. `kotlin { jvmToolchain / compilerOptions }` blocks); keep `compileOptions` Java 11 and the Compose compiler plugin unchanged.

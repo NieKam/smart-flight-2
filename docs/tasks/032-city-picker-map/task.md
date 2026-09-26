@@ -17,7 +17,7 @@ Make the city picker match the original: search field + Search button, the resul
 
 ## Scope
 - Layout: `Column` (not `LazyColumn` with the map inside): row with text field + Search button; result/selection text; results list (bounded height, scrollable) when > 1 result; map with `weight(1f)` taking remaining height (min ~240dp); full-width Confirm; Cancel via back/top bar.
-- Map: on selection change, animate camera to the city (`controller.animateTo`) at a zoom showing the region (original used the current zoom; choose zoom 5 if at world zoom) and perform haptic feedback (`LocalHapticFeedback`). Marker: `ic_city_found_marker` tinted purple.
+- Map: on selection change, animate camera to the city (`controller.animateTo`) at a zoom showing the region (original used the current zoom; choose zoom 5 if at world zoom) and perform haptic feedback (`LocalHapticFeedback`). Marker: `ic_city_found_marker` tinted `page` #484685 (the original tinted it `purple_dark` via `setCustomMarker`). All picker colors come from the TASK-018 palette tokens (page background, `valueText` input and result text, `accent` underline, `card` buttons).
 - `RoutePickerViewModel.search`: exactly one result → select it.
 - Long-press on map (nearest city) keeps working (TASK-013) and also centers.
 

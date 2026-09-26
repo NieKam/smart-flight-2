@@ -1,53 +1,51 @@
-# TASK-001 — Build foundation: coroutines, lifecycle-compose, coroutine tests and KSP in the version catalog
+# TASK-001 — Build foundation: coroutines, lifecycle-compose and coroutine tests in the version catalog
 
 ## Goal
-Add the libraries and plugins that every later migration task needs, at verified current versions, without changing any application code or behavior.
+Add the libraries every later migration task needs, at verified current versions, without changing any application code or behavior. Record the release identity decided by the human (versionCode 1, versionName "1.0.0").
 
 ## Context
 - Architecture review `docs/review/architecture.md`, F13 (GAP, MEDIUM): the catalog (`gradle/libs.versions.toml`) has no `ksp` plugin, no `hilt`, no `androidx-lifecycle-viewmodel-compose`, no `androidx-lifecycle-runtime-compose`, no `kotlinx-coroutines-android` / `kotlinx-coroutines-test`. Coroutines arrive only transitively (`MainActivity.kt:87` uses `kotlinx.coroutines.launch`).
-- Architecture review "Not verified" item 1: KSP and Hilt compatibility with AGP 9 built-in Kotlin was not checked.
 - Observed: `app/build.gradle.kts:1-5` applies only `com.android.application`, `org.jetbrains.kotlin.plugin.compose` and ktlint. There is no `org.jetbrains.kotlin.android` plugin: the project uses AGP 9 built-in Kotlin (AGP `9.4.0`, Kotlin `2.2.10` in the catalog).
-- Hilt itself is added in TASK-005 as a dedicated step. This task only prepares the build so TASK-005 is a pure DI change.
+- KSP and Hilt (architecture review "Not verified" item 1: compatibility with AGP 9 built-in Kotlin) are deliberately NOT part of this task. Human decision: TASK-005 adds KSP and Hilt together, verifies them first in CI, and may add the `org.jetbrains.kotlin.android` plugin if built-in Kotlin does not work. Keeping KSP out of this task means this task can never block on that question and the compatibility evidence is gathered once, in TASK-005.
+- Human decision (no Play Store release): the app keeps `versionCode = 1`; `versionName` is `"1.0.0"`. Observed today: `app/build.gradle.kts:17-18` has `versionCode = 1`, `versionName = "1.0"`.
 
 ## Dependencies
 none
 
 ## Scope
-- `gradle/libs.versions.toml`: add versions, libraries and plugins:
+- `gradle/libs.versions.toml`: add versions and libraries:
   - `kotlinx-coroutines-core`, `kotlinx-coroutines-android` (implementation) and `kotlinx-coroutines-test` (testImplementation), one shared version ref.
   - `androidx-lifecycle-viewmodel-compose`, `androidx-lifecycle-runtime-compose` (use the existing `lifecycleRuntimeKtx` version ref if the artifacts share the version; they are in the same `androidx.lifecycle` release train).
-  - Plugin `ksp` (`com.google.devtools.ksp`).
-  - Optional: `app.cash.turbine:turbine` (testImplementation) for Flow tests. Add it only if you plan to use it in this task's sample test; otherwise leave it to the first task that needs it.
-- `app/build.gradle.kts`: apply the KSP plugin (no processors yet) and add the dependencies above.
-- `build.gradle.kts` (root): declare the KSP plugin with `apply false` if that is the project convention (check the root file).
+  - Optional: `app.cash.turbine:turbine` (testImplementation) for Flow tests. Add it only if you use it in this task's smoke test; otherwise leave it to the first task that needs it.
+- `app/build.gradle.kts`: add the dependencies above; change `versionName` to `"1.0.0"` (keep `versionCode = 1`).
 - One trivial JVM test proving `kotlinx-coroutines-test` is wired (for example `runTest` with a `StandardTestDispatcher` in `app/src/test/.../BuildSmokeTest.kt`). Delete `ExampleUnitTest.kt` only in TASK-003, not here.
 
 ## Out of scope
-- Hilt / Dagger (TASK-005).
+- KSP, Hilt / Dagger and their compatibility research (TASK-005).
 - Any production code change.
 - Changing `compileOptions` from Java 11 (see README "Deferred": not blocking).
+- Any other version bump (no Play Store release; see README "Deferred / rejected").
 
 ## Requirements
 Required:
-- Look up current stable versions (Maven Central / Google Maven / GitHub releases) for: kotlinx-coroutines, androidx.lifecycle, KSP, and — for information only, to unblock TASK-005 — Hilt/Dagger and `androidx.hilt`. Record the versions found and their source links in the PR description.
-- Confirm from KSP release notes that the chosen KSP version supports AGP 9 built-in Kotlin with Kotlin 2.2.x (KSP 2.x versions are no longer tied to the Kotlin version; check the compatibility table). Record the evidence in the PR description.
-- Also record whether the Hilt Gradle plugin release notes state AGP 9 / built-in Kotlin support, and which minimum version. If no Hilt version supports it, write that in the PR description and in `docs/tasks/README.md` "Open questions" so the human can decide before TASK-005 starts.
+- Look up current stable versions (Maven Central / Google Maven / GitHub releases) for kotlinx-coroutines and androidx.lifecycle. Record the versions found and their source links in the PR description. Do not assume versions.
 - The app still builds and all existing tests pass. No source file under `app/src/main` changes.
+- `versionCode` stays 1; `versionName` becomes `"1.0.0"` (listed as the only user-visible change: About shows "1.0.0 (1)").
 
 Recommendations:
 - Keep catalog naming consistent with existing entries (`androidx-...` kebab-case keys).
 
 ## Acceptance criteria
-- [ ] Catalog contains coroutines (core, android, test), lifecycle-viewmodel-compose, lifecycle-runtime-compose and the KSP plugin — verified by: code review
-- [ ] KSP plugin applied in `app/build.gradle.kts` and `assembleDebug` succeeds — verified by: CI (build step)
+- [ ] Catalog contains coroutines (core, android, test), lifecycle-viewmodel-compose and lifecycle-runtime-compose — verified by: code review
+- [ ] `assembleDebug` succeeds with the new dependencies — verified by: CI (build step)
 - [ ] Smoke test using `runTest` passes — verified by: CI unit test
-- [ ] PR description lists versions, sources, and the KSP/Hilt AGP 9 compatibility evidence — verified by: code review
+- [ ] `versionCode = 1`, `versionName = "1.0.0"` — verified by: code review
+- [ ] PR description lists versions and sources — verified by: code review
 - [ ] `./gradlew ktlintCheck` passes — verified by: ktlint
 
 ## Tests to add or update
 - `app/src/test/java/kniezrec/com/flightinfo/BuildSmokeTest.kt` (or similar): one `runTest` test.
 
 ## Risks and edge cases
-- KSP applied without processors may print a warning; that is acceptable.
-- If the KSP plugin fails with AGP 9 built-in Kotlin in CI, do not work around it by adding `org.jetbrains.kotlin.android`; stop, document the failure in the PR and ask the human (it changes the Kotlin setup of the whole project).
 - Local environment has no Android SDK: only `./gradlew ktlintCheck` may be run locally; everything else is verified in CI.
+- If a Compose test pins the About version text from `BuildConfig`, update it; the existing `AboutDialogTest` passes its own `AppVersion("1.0", 1)` and is unaffected.

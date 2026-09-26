@@ -12,7 +12,8 @@ Replace the synchronous `read()`/`write()` preference stores with repositories t
   - Permission-request history written through an anonymous object in the Activity (`MainActivity.kt:463-470,486-488`).
 - Architecture review F16: `DisplayPreferencesApplier` + `DisplayEffectSink` (`display/DisplayPreferences.kt:11-30`) is a 3-line applier with an anonymous sink in the Activity (`MainActivity.kt:111-130`). Direction: a small Activity-level effect driven by settings state.
 - Architecture review F12: four hand-written `SharedPreferences` fakes (`RouteControllerTest.kt:194`, `DisplayPreferencesTest.kt:79`, `UnitPreferencesTest.kt:35`, `BackgroundMonitoringTest.kt:43`). Direction: in-memory repository fakes.
-- Planner decision (backing store): keep SharedPreferences, not DataStore. Reasons: no new dependency; the same files and keys keep working for existing installs; TASK-036 migrates the original app's `LocalPrefs` into these keys and needs synchronous-friendly access; window flags (keep screen on, orientation) must be applied before first frame, which a synchronous initial value makes simple.
+- Planner decision (backing store): keep SharedPreferences, not DataStore. Reasons: no new dependency; the same files and keys keep working for existing installs of the rewrite; window flags (keep screen on, orientation) must be applied before first frame, which a synchronous initial value makes simple.
+- Human decision: the rewrite is not released as a Play Store update of the original app, so there is no migration of the original app's `LocalPrefs` settings (see README "Deferred / rejected").
 
 ## Dependencies
 - TASK-005.
@@ -34,7 +35,7 @@ Package by feature with layer sub-packages (`<feature>/data`, `<feature>/ui`); r
 - Tests: replace SharedPreferences fakes in `DisplayPreferencesTest`, `UnitPreferencesTest`, `BackgroundMonitoringTest` with Robolectric real SharedPreferences for the repository implementation tests, and add a small in-memory fake of each repository interface in `app/src/test/.../testutil/` for consumers.
 
 ## Out of scope
-- Route persistence (TASK-012), legacy `LocalPrefs` migration (TASK-036).
+- Route persistence (TASK-012). Importing the original app's `LocalPrefs` (deferred, not planned).
 - Settings screen ViewModel (TASK-015). The Activity may still pass values/callbacks into `UnitSettingsScreen` in this task.
 
 ## Requirements

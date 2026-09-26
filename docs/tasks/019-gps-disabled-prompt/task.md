@@ -21,7 +21,7 @@ Restore the original "Enable GPS" prompt and make the GNSS card show the correct
 - Flight parameters, nearby and route cards: when location turns off, show their waiting state (as today's `stop()` did) — do not show stale values.
 - Dialog: an `AlertDialog` (brand theme) "Enable GPS" with Yes → open location settings (existing `openLocationSettings()` with snackbar fallback), No → dismiss. Shown once per Activity start (`ON_START`) when location is off and permission is granted; not re-shown on rotation (saveable flag); not shown if location becomes disabled while already visible (card state covers that, as in the original which only checked on attach).
 - Returning from settings with location enabled resumes data automatically (repository reacts to `PROVIDERS_CHANGED`).
-- Add dialog strings to `res/values/strings.xml` (Polish in TASK-037).
+- Add dialog strings to `res/values/strings.xml` (Polish in TASK-036).
 
 ## Out of scope
 - Satellite chart (TASK-022), searching animation (TASK-023).

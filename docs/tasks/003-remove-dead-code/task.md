@@ -12,7 +12,7 @@ Delete production code that nothing uses, so later migration tasks (DI, Flow, Vi
   - Unused constructor parameter `callbackExecutor` in `flight/AndroidPressurePlatform.kt:11`.
   - Unreachable pre-API-28 branch in `about/AboutPlatform.kt:38-43` (minSdk is 31).
   - `LocationGnssMonitoringSession.isActive` (`monitoring/LocationGnssMonitoringSession.kt:57`) is test-only. It is deleted together with the whole class in TASK-007; leave it here.
-- Architecture review F12: template leftovers `app/src/test/.../ExampleUnitTest.kt` and `app/src/androidTest/.../ExampleInstrumentedTest.kt`.
+- Architecture review F12: template leftovers `app/src/test/.../ExampleUnitTest.kt` and `app/src/androidTest/.../ExampleInstrumentedTest.kt` (the latter is deleted with the whole `androidTest` source set in TASK-002).
 
 ## Dependencies
 - TASK-002 (tests were moved; avoids conflicts in test directories).
@@ -24,7 +24,7 @@ Delete production code that nothing uses, so later migration tasks (DI, Flow, Vi
 - Keep `normalizeCourse` behavior for the map marker, which needs a fractional `Float` in [0, 360): do NOT replace it with `normalizeCourseDegrees` (that floors to `Int`, which would change marker rotation). Instead, rename or document so the difference is explicit, or implement `normalizeCourseDegrees` on top of a shared `normalizeDegrees(Double): Double?` helper used by both. Pick one; behavior of both call sites must be unchanged.
 - Remove the unused `callbackExecutor` parameter from `AndroidPressurePlatform` and its call site in `MainActivity.kt:517`.
 - Remove the pre-API-28 branch in `AndroidAppVersionProvider.read()`; use `info.longVersionCode` directly.
-- Delete `ExampleUnitTest.kt` and `ExampleInstrumentedTest.kt` (if TASK-002 left the `androidTest` source set empty, it may be removed; keep `androidTestImplementation` dependencies only if tests remain).
+- Delete `ExampleUnitTest.kt`. (`ExampleInstrumentedTest.kt` and the `androidTest` source set are already removed by TASK-002; if TASK-002 left anything there, remove what is dead here.)
 
 ## Out of scope
 - `LocationGnssMonitoringSession` (TASK-007), `BackgroundMonitoringBridge` (TASK-008).

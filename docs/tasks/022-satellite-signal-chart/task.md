@@ -18,7 +18,8 @@ Restore the GNSS card's main visualization: one bar per satellite showing its C/
 - `cards/satellites/SatellitesCardView.kt`, `SatellitesCardViewPresenter.kt`, `layout/satellites_card_layout.xml`, `res/values/colors.xml` (`satellite_green`, `satellite_red`), `promo/screen-1.png`.
 
 ## Scope
-- Compose `Canvas` bar chart (no chart library): bars in satellite list order, height ∝ C/N0, Y axis 8 evenly spaced integer labels from 1 to a rounded max (max C/N0 + ~15% headroom), X axis index labels at a readable step (every 3 as in the screenshot, adaptive to count), light label color from theme, horizontal grid lines.
+- Compose `Canvas` bar chart (no chart library): bars in satellite list order, height ∝ C/N0, Y axis 8 evenly spaced integer labels from 1 to a rounded max (max C/N0 + ~15% headroom), X axis index labels at a readable step (every 3 as in the screenshot, adaptive to count), horizontal grid lines.
+- Colors (palette tokens from TASK-018 only; compare with `promo/screen-1.png`): card container `card`; title "Connected to N satellites" `labelText`; axis labels `valueText`; grid lines and axis lines `labelText` at reduced alpha; bars `satelliteUsed` / `satelliteUnused`.
 - Pure function `satelliteChartModel(satellites, …)` computing bars, colors (used/unused) and axis ticks — unit tested.
 - Accessibility: one content description summarizing "N satellites visible, M used, strongest X dB-Hz"; the chart is not a list of focusable items.
 - Keep the card title and the used-count text.
@@ -39,7 +40,8 @@ Recommendations:
 ## Acceptance criteria
 - [ ] `satelliteChartModel` tests: colors by `usedInFix`, tick generation, max scaling, empty and non-finite input — verified by: CI unit test
 - [ ] Compose test: 40 satellites → card height unchanged vs. 5 satellites; content description contains counts — verified by: CI unit test
-- [ ] Visual match with `promo/screen-1.png` (bars, colors, axes) — verified by: HUMAN on device
+- [ ] Pixel check: Robolectric `@GraphicsMode(NATIVE)` `captureToImage()` of a chart with one used and one unused satellite contains #4CAF50 and #F44336 pixels on a #5B5999 background — verified by: CI unit test
+- [ ] Visual match with `promo/screen-1.png` (bars, colors, axes, muted title) — verified by: HUMAN on device
 - [ ] Remove `satellite_used`/`satellite_not_used`/`satellite_number` strings if unused — verified by: code review
 
 ## Tests to add or update

@@ -48,4 +48,4 @@ Required:
 
 ## Risks and edge cases
 - Endpoint set while restore is in flight: the latest write must win (`flatMapLatest` on endpoints).
-- City IDs stored as `Long`; the original app stored `Int` in another file (`LocalPrefs`) — migration is TASK-036.
+- City IDs stored as `Long`; the original app stored `Int` in another file (`LocalPrefs`). Importing the original app's route is deferred (no Play Store update release; see README "Deferred / rejected").
