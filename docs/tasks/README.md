@@ -30,7 +30,7 @@ The order follows four phases. Every task leaves the app building, tests green a
 
 | NNN | Title | Depends on | Status |
 |---|---|---|---|
-| 001 | [Build foundation: coroutines, lifecycle-compose, coroutine tests, versionName 1.0.0](001-build-foundation/task.md) | none | TODO |
+| 001 | [Build foundation: coroutines, lifecycle-compose, coroutine tests, versionName 1.0.0](001-build-foundation/task.md) | none | DONE |
 | 002 | [Run Compose UI tests on the JVM (Robolectric), retire androidTest](002-compose-tests-on-jvm/task.md) | 001 | TODO |
 | 003 | [Remove dead and test-only production code](003-remove-dead-code/task.md) | 002 | TODO |
 | 004 | [Characterization tests pinning dashboard orchestration](004-characterization-tests/task.md) | 002, 003 | TODO |
