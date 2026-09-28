@@ -35,7 +35,7 @@ The order follows four phases. Every task leaves the app building, tests green a
 | 003 | [Remove dead and test-only production code](003-remove-dead-code/task.md) | 002 | DONE |
 | 004 | [Characterization tests pinning dashboard orchestration](004-characterization-tests/task.md) | 002, 003 | DONE |
 | 005 | [Introduce KSP + Hilt as a dedicated DI step (CI compatibility check first)](005-hilt-di/task.md) | 001, 004 | DONE |
-| 006 | [Observable settings repositories](006-settings-repositories/task.md) | 005 | TODO |
+| 006 | [Observable settings repositories](006-settings-repositories/task.md) | 005 | DONE |
 | 007 | [Location and GNSS repository (callbackFlow); service collects it](007-location-repository/task.md) | 005 | TODO |
 | 008 | [Remove BackgroundMonitoringBridge and dead foreground paths](008-remove-monitoring-bridge/task.md) | 007 | TODO |
 | 009 | [GNSS status and flight parameters ViewModels](009-gnss-flight-viewmodels/task.md) | 008 | TODO |
