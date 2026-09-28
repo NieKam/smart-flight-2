@@ -33,6 +33,7 @@ ViewModel with one `StateFlow<UiState>`; repositories `suspend`; injected dispat
 - Application class: `Configuration.getInstance().load(context, getSharedPreferences("osmdroid", 0))` once in `onCreate` (keep the same preferences file name); remove the two calls in composables.
 - Route overlay still comes from the route state (TASK-012) as a parameter.
 - `RoutePicker` map uses the archive from `MapUiState.Ready` as today.
+- Unreadable offline archive (follow-up F1 from TASK-002 review): osmdroid's `ArchiveFileFactory.getArchiveFile` swallows the `ZipException` and returns null, so `MapCard` never reports an open failure and a corrupt `osmdroid.zip` shows a blank map. Detect an unreadable archive before building the tile provider (e.g. open it with `ZipFile` in `MapArchiveRepository`, or check the provider's archives) and report `Unavailable`.
 
 ## Out of scope
 - Great-circle line, plane marker, controls, zoom tip (TASK-030/031); picker map centering (TASK-032).
@@ -40,6 +41,7 @@ ViewModel with one `StateFlow<UiState>`; repositories `suspend`; injected dispat
 ## Requirements
 Required:
 - Same visible map behavior (default center 32,-32 zoom 3; first fix centers; recenter button uses latest position or default; zoom limits by setting; maximum-zoom caption), except the bug fix below.
+- Bug fix (list in the PR as a behavior change): an unreadable offline archive shows "Map unavailable" with "Try again" instead of a blank map (F1).
 - Bug fix (list in the PR as a behavior change): the plane marker appears on the first fix and follows every later fix, even when the map became Ready before the first fix.
 - Button glyphs are correct regardless of locale.
 - Map load is cancelled when observation stops (scope cancellation), no token counters.
@@ -49,6 +51,7 @@ Required:
 - [ ] `MapViewModelTest`: loading → ready, failure → unavailable → retry, first fix centering once, marker course from bearing (0 when absent) — verified by: CI unit test
 - [ ] `MapArchiveRepository` suspend tests (usable existing archive reused, corrupt archive re-extracted, failure cleans temporary) — verified by: CI unit test
 - [ ] Compose test: expand/collapse and recenter buttons show the correct glyph under a non-English locale (`@Config(qualifiers = "pl")`) — verified by: CI unit test
+- [ ] `GnssStatusScreenTest.invalidOfflineArchiveReportsOpenFailureWithoutUsingNetworkFallback` has its `@Ignore` removed and passes (F1) — verified by: CI unit test
 - [ ] `MapStateTest`, `MapZoomPolicyTest` pass — verified by: CI unit test
 - [ ] Overlay sync test: state Ready without position → no plane marker; then position A → exactly one plane marker at A; then position B → same marker moved to B (no duplicate); course applied — verified by: CI unit test (Robolectric, constructing an osmdroid `MapView`; if `MapView` cannot be constructed under Robolectric, test the sync logic through a minimal interface over the overlay list and state that in the PR)
 - [ ] Compose test: `MapCard` with Ready state recomposes with a new position (e.g. the `update` path is invoked / semantics `stateDescription` switches from "no position" to "position shown") — verified by: CI unit test

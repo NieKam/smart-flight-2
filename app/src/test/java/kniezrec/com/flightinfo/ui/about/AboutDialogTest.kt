@@ -6,13 +6,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.test.assertDoesNotExist
-import androidx.compose.ui.test.assertExists
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasStateDescription
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import androidx.compose.ui.test.onNode
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
@@ -60,7 +57,7 @@ class AboutDialogTest {
         composeRule.onNodeWithText("Send feedback").assertIsDisplayed()
         composeRule.onNodeWithText("Rate in Google Play").assertIsDisplayed()
         composeRule.onNodeWithText("Safety information").assertIsDisplayed()
-        composeRule.onNode(hasStateDescription("Sends feedback using an email app.")).assertExists()
+        composeRule.onNode(hasStateDescription("Opens an email addressed to Smart Flight feedback")).assertExists()
         composeRule.onNodeWithText("OK").assertIsDisplayed().performClick()
         composeRule.onNodeWithText("Smart Flight").assertDoesNotExist()
     }

@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.test.assertExists
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.Density
@@ -36,7 +35,7 @@ class PermissionOnboardingScreenTest {
             }
         }
 
-        val card = composeRule.onNodeWithTag(permissionStateCardTestTag)
+        val card = composeRule.onNodeWithTag(PERMISSION_STATE_CARD_TEST_TAG)
         card.assertExists()
         composeRule.runOnIdle {
             assertEquals(600f, card.fetchSemanticsNode().boundsInRoot.width, 0.5f)

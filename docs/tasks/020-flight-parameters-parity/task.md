@@ -19,6 +19,8 @@ Show barometric pressure as soon as the sensor reports it, independent of GPS, a
 - `FlightParametersState`: allow pressure without GPS readings (e.g. `Readings` with nullable speed/altitude/vertical speed, or a separate `pressureMillibars` field alongside the GPS part). Card layout: rows for speed, vertical speed, altitude show "—" until GPS; the pressure row shows the value as soon as available. Keep the current rendering of the pressure row when no value exists (today `FlightParametersCard` renders the row from `state.pressureMillibars?.let { … }`; check and keep whatever it shows for `null`).
 - Also: the card must show the readings layout (not the "Waiting for GPS position…" layout) as soon as either a GPS reading or a pressure value exists.
 - Vertical speed: moving average over the last 3 computed deltas (same window as original); reset on observation restart and on non-monotonic timestamps (as today).
+- Pressure formatting (follow-up F2 from TASK-002 review): the rewrite shows "1,013.2 mbar" (`formatUnitNumber`: grouping separator, HALF_EVEN), the original shows "1013.3 mbar" (`"%.1f mbar"`, `~/smart-flight/.../avionic/calculators/Pressure.kt:21`: no grouping, half-up). Restore the original rounding and no grouping for pressure; check whether other unit values share the same deviation and list any change in the PR.
+- Accessibility (follow-up F3 from TASK-002 review): flight-row content descriptions have no separator between label and value ("Pressure 1,013.2 millibars", from `flight_value_accessibility = "%1$s %2$s"`). Add a pause (e.g. "Pressure, 1013.3 millibars") via a dedicated label+value string.
 - First value decision (planner): keep "—" until a first delta exists (the rewrite's behavior). Reason: showing "+0.0" claims a measurement that does not exist; this is a presentation detail, not a feature. List in PR.
 
 ## Out of scope
@@ -34,6 +36,7 @@ Required:
 - [ ] ViewModel test: pressure emitted before any fix is in state — verified by: CI unit test
 - [ ] Pure function tests: moving average of 3, window reset, first value null, non-monotonic reset — verified by: CI unit test
 - [ ] Compose test: card with only pressure shows pressure row and "—" for GPS rows — verified by: CI unit test
+- [ ] Pressure 1013.25 is shown as "1013.3 mbar" and its row description has a separator between label and value; `GnssStatusScreenTest` pressure expectations updated (F2, F3) — verified by: CI unit test
 - [ ] TASK-004 scenario 5 updated to the new behavior — verified by: CI unit test
 - [ ] On a device with a barometer indoors, pressure shows before GPS fix — verified by: HUMAN on device
 
