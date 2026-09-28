@@ -7,7 +7,14 @@ import android.hardware.Sensor
 import android.hardware.SensorManager
 import android.location.Location
 import android.location.LocationManager
+import android.os.Looper
+import android.view.View
+import android.view.ViewGroup
 import androidx.annotation.StringRes
+import androidx.compose.runtime.snapshots.Snapshot
+import androidx.compose.ui.platform.ViewRootForTest
+import androidx.compose.ui.semantics.SemanticsNode
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
@@ -41,6 +48,7 @@ import org.robolectric.shadows.SensorEventBuilder
 import org.robolectric.shadows.ShadowSensor
 import java.io.File
 import java.io.FileOutputStream
+import java.time.Duration
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
@@ -259,8 +267,11 @@ class MainActivityCharacterizationTest {
         composeRule.onNodeWithText(speedKmh("36.0")).assertExists()
 
         activity.moveToState(Lifecycle.State.STARTED)
-        forward(flightFix(speedMetresPerSecond = 20.0, elapsedSeconds = 2L))
-        composeRule.onNodeWithText(speedKmh("72.0")).assertExists()
+        // The Compose test finders only see roots whose lifecycle is RESUMED (ComposeRootRegistry),
+        // so while paused the card is read straight from the activity's semantics tree instead.
+        BackgroundMonitoringBridge.forwardLocation(flightFix(speedMetresPerSecond = 20.0, elapsedSeconds = 2L))
+        val shownWhilePaused = pumpFramesUntil { pausedScreenTexts(activity).contains(speedKmh("72.0")) }
+        assertTrue("A fix forwarded while paused should update the flight card", shownWhilePaused)
 
         activity.moveToState(Lifecycle.State.RESUMED)
         composeRule.onAllNodesWithText(speedKmh("72.0")).assertCountEquals(0)
@@ -312,6 +323,49 @@ class MainActivityCharacterizationTest {
         composeRule.runOnIdle { BackgroundMonitoringBridge.forwardLocation(fix) }
     }
 
+    /**
+     * Produces frames without the Compose test idling machinery (which needs a RESUMED root): the
+     * test clock drives the test recomposer, and the looper time drives Choreographer frames.
+     */
+    private fun pumpFramesUntil(condition: () -> Boolean): Boolean {
+        repeat(PAUSED_FRAME_ATTEMPTS) {
+            if (condition()) return true
+            Snapshot.sendApplyNotifications()
+            composeRule.mainClock.advanceTimeByFrame()
+            shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(FRAME_MILLIS))
+        }
+        return condition()
+    }
+
+    /** All texts in the activity's unmerged Compose semantics tree, readable in any lifecycle state. */
+    private fun pausedScreenTexts(activity: ActivityScenario<MainActivity>): List<String> {
+        val texts = mutableListOf<String>()
+        activity.onActivity { current -> collectComposeTexts(current.window.decorView, texts) }
+        return texts
+    }
+
+    private fun collectComposeTexts(
+        view: View,
+        into: MutableList<String>,
+    ) {
+        when (view) {
+            is ViewRootForTest -> collectSemanticsTexts(view.semanticsOwner.unmergedRootSemanticsNode, into)
+            is ViewGroup -> {
+                for (index in 0 until view.childCount) collectComposeTexts(view.getChildAt(index), into)
+            }
+        }
+    }
+
+    private fun collectSemanticsTexts(
+        node: SemanticsNode,
+        into: MutableList<String>,
+    ) {
+        if (SemanticsProperties.Text in node.config) {
+            node.config[SemanticsProperties.Text].mapTo(into) { it.text }
+        }
+        node.children.forEach { collectSemanticsTexts(it, into) }
+    }
+
     /** Waits for work posted from the activity's background executors back to the main looper. */
     private fun waitUntil(condition: () -> Boolean) {
         composeRule.waitUntil(ASYNC_TIMEOUT_MILLIS) {
@@ -345,6 +399,8 @@ class MainActivityCharacterizationTest {
     private companion object {
         const val CREATE_ACTIVITY_CONTEXTS = "robolectric.createActivityContexts"
         const val ASYNC_TIMEOUT_MILLIS = 20_000L
+        const val PAUSED_FRAME_ATTEMPTS = 50
+        const val FRAME_MILLIS = 16L
         const val WARSAW_ID = 31395L
         const val BERLIN_ID = 10409L
         const val WARSAW_LATITUDE = 52.22977
