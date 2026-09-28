@@ -4,13 +4,10 @@ import androidx.activity.ComponentActivity
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.test.assertDoesNotExist
-import androidx.compose.ui.test.assertExists
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasStateDescription
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import androidx.compose.ui.test.onNode
 import androidx.compose.ui.test.onNodeWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kniezrec.com.flightinfo.horizon.HorizonState
@@ -40,12 +37,14 @@ class HorizonCardTest {
     }
 
     @Test fun waitingAndUnavailableDoNotOfferAttitudeActions() {
-        composeRule.setContent { HorizonCard(HorizonState.Waiting, {}, {}) }
+        // The rule allows one setContent per test, so the state is switched in place.
+        var state by mutableStateOf<HorizonState>(HorizonState.Waiting)
+        composeRule.setContent { HorizonCard(state, {}, {}) }
         composeRule.onNodeWithText("Horizon").assertIsDisplayed()
         composeRule.onNodeWithText("Waiting for attitude data…").assertIsDisplayed()
         composeRule.onNodeWithText("Calibrate").assertDoesNotExist()
 
-        composeRule.setContent { HorizonCard(HorizonState.Unavailable, {}, {}) }
+        composeRule.runOnIdle { state = HorizonState.Unavailable }
         composeRule.onNodeWithText("Horizon unavailable").assertIsDisplayed()
         composeRule.onNodeWithText("Try again").assertDoesNotExist()
     }

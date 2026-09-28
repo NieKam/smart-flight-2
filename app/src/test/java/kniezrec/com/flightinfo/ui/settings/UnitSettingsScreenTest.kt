@@ -9,15 +9,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.test.assertDoesNotExist
-import androidx.compose.ui.test.assertExists
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.hasContentDescription
-import androidx.compose.ui.test.hasRole
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import androidx.compose.ui.test.onNode
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -75,11 +74,11 @@ class UnitSettingsScreenTest {
     @Test fun displaySwitchesExposeStateAndEnabledZoomWarning() {
         var selected by mutableStateOf(DisplayPreferences(largerMapZoom = true))
         composeRule.setContent {
-            UnitSettingsScreen(UnitPreferences(), {}, {}, selected) { selected = it }
+            UnitSettingsScreen(UnitPreferences(), {}, {}, selected, onDisplayPreferenceChange = { selected = it })
         }
         composeRule
             .onNode(
-                hasRole(androidx.compose.ui.semantics.Role.Switch) and
+                hasRole(Role.Switch) and
                     hasContentDescription(
                         "Larger map zoom, current value On. Extra zoom may show unavailable or grey map areas " +
                             "because offline tiles may not be available at those levels.",
@@ -92,7 +91,7 @@ class UnitSettingsScreenTest {
         composeRule
             .onNode(
                 hasRole(
-                    androidx.compose.ui.semantics.Role.Switch,
+                    Role.Switch,
                 ) and hasContentDescription("Portrait orientation, current value Portrait"),
             ).assertExists()
     }
@@ -100,7 +99,7 @@ class UnitSettingsScreenTest {
     @Test fun togglingEachDisplayRowUpdatesStateAndDisablingZoomRemovesWarning() {
         var selected by mutableStateOf(DisplayPreferences())
         composeRule.setContent {
-            UnitSettingsScreen(UnitPreferences(), {}, {}, selected) { selected = it }
+            UnitSettingsScreen(UnitPreferences(), {}, {}, selected, onDisplayPreferenceChange = { selected = it })
         }
         composeRule.onNode(hasContentDescription("Keep screen always on, current value Off")).performClick()
         composeRule.onNode(hasContentDescription("Keep screen always on, current value On")).assertIsOn()
@@ -226,7 +225,7 @@ class UnitSettingsScreenTest {
             composeRule.runOnIdle {
                 assertSame(initialMap, findMapView(composeRule.activity.window.decorView))
                 assertEquals(6.0, initialMap.maxZoomLevel, 0.0)
-                assertEquals(6.0, initialMap.zoomLevel, 0.0)
+                assertEquals(6.0, initialMap.zoomLevelDouble, 0.0)
                 assertEquals(48.8566, initialMap.mapCenter.latitude, 0.0)
                 assertEquals(2.3522, initialMap.mapCenter.longitude, 0.0)
             }
@@ -242,6 +241,8 @@ class UnitSettingsScreenTest {
             archive.delete()
         }
     }
+
+    private fun hasRole(role: Role): SemanticsMatcher = SemanticsMatcher.expectValue(SemanticsProperties.Role, role)
 
     private fun findMapView(view: View): MapView? =
         when (view) {
