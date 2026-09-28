@@ -7,7 +7,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -46,7 +45,10 @@ class RegisterUntilClosedTest {
             val failure = runCatching { registration { throw cause }.collect() }.exceptionOrNull()
 
             assertTrue(failure is LocationRegistrationException)
-            assertSame(cause, failure?.cause)
+            assertEquals("test registration failed", failure?.message)
+            // Coroutine stack-trace recovery may rethrow a copy whose cause is the original
+            // LocationRegistrationException, so the SecurityException can sit one level deeper.
+            assertTrue(generateSequence(failure) { it.cause }.any { it === cause })
             assertEquals(1, unregisterCount)
         }
 
