@@ -22,6 +22,7 @@ import kniezrec.com.flightinfo.MainActivity
 import kniezrec.com.flightinfo.R
 import kniezrec.com.flightinfo.flight.AndroidFlightLocationPlatform
 import kniezrec.com.flightinfo.gnss.AndroidGnssStatusPlatform
+import kniezrec.com.flightinfo.monitoring.data.BackgroundNotificationSettingsRepository
 import javax.inject.Inject
 
 /** Foreground lifetime for the service-owned location/GNSS monitoring session. */
@@ -36,7 +37,7 @@ internal open class LocationForegroundService :
     Service(),
     BackgroundMonitoringService {
     // Injected in super.onCreate() (Hilt_LocationForegroundService); test subclasses inherit it.
-    @Inject lateinit var backgroundNotificationPreferencesStore: BackgroundNotificationPreferencesStore
+    @Inject lateinit var backgroundNotificationSettingsRepository: BackgroundNotificationSettingsRepository
 
     @Inject lateinit var locationManager: LocationManager
 
@@ -145,7 +146,8 @@ internal open class LocationForegroundService :
                     locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
             )
 
-    protected open fun showBackgroundNotification(): Boolean = backgroundNotificationPreferencesStore.read().showBackgroundNotification
+    protected open fun showBackgroundNotification(): Boolean =
+        backgroundNotificationSettingsRepository.settings.value.showBackgroundNotification
 
     private fun registerProviderReceiver() {
         if (providerReceiver != null) return
