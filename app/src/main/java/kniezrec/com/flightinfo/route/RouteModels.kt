@@ -3,7 +3,6 @@ package kniezrec.com.flightinfo.route
 import kniezrec.com.flightinfo.nearby.NearbyCityRecord
 import kniezrec.com.flightinfo.nearby.NearbyCoordinate
 import kniezrec.com.flightinfo.nearby.distanceKilometres
-import java.text.NumberFormat
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
@@ -107,11 +106,3 @@ fun routeDetails(
         }
     return RouteDetails(fixed, remaining, arrival, duration)
 }
-
-fun formatKilometres(value: Double): String =
-    NumberFormat
-        .getNumberInstance(Locale.getDefault())
-        .apply {
-            minimumFractionDigits = 1
-            maximumFractionDigits = 1
-        }.format(value) + " km"

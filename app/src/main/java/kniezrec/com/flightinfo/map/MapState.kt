@@ -25,7 +25,14 @@ data class MapViewport(
     val zoom: Double,
 )
 
-fun normalizeCourse(course: Double?): Float? {
+/**
+ * Normalizes a course for the map marker rotation into [0, 360) degrees, keeping the fractional
+ * part (e.g. 10.5 stays 10.5). Returns null for null, NaN or infinite input.
+ *
+ * Intentionally differs from [kniezrec.com.flightinfo.course.normalizeCourseDegrees], which floors
+ * to whole degrees for the course card text; do not replace one with the other.
+ */
+fun normalizeMarkerCourse(course: Double?): Float? {
     if (course == null || !course.isFinite()) return null
     val normalized = ((course % 360.0) + 360.0) % 360.0
     return normalized.toFloat()
@@ -47,7 +54,7 @@ class MapSessionRules {
             hasCenteredOnFirstFix = true
             firstFixCenterPending = true
         }
-        markerCourse = normalizeCourse(fix.bearingDegrees) ?: 0f
+        markerCourse = normalizeMarkerCourse(fix.bearingDegrees) ?: 0f
         return true
     }
 

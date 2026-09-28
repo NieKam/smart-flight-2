@@ -514,7 +514,7 @@ class MainActivity : ComponentActivity() {
 
     private val pressureController by lazy {
         PressureController(
-            platform = AndroidPressurePlatform(getSystemService(SensorManager::class.java), mainExecutor),
+            platform = AndroidPressurePlatform(getSystemService(SensorManager::class.java)),
             onPressureChanged = { pressure ->
                 pressureMillibars = pressure
                 flightParametersState =
