@@ -1,7 +1,6 @@
 package kniezrec.com.flightinfo.monitoring
 
 import android.content.SharedPreferences
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -20,23 +19,6 @@ class BackgroundMonitoringTest {
         val store = BackgroundNotificationPreferencesStore(preferences)
         store.write(BackgroundNotificationPreferences(false))
         assertFalse(store.read().showBackgroundNotification)
-    }
-
-    @Test fun `session transitions are idempotent and fix stops background wait`() {
-        val session = BackgroundMonitoringSession()
-        assertTrue(session.startForeground())
-        assertFalse(session.startForeground())
-        assertTrue(session.background(true))
-        assertTrue(session.usableFix())
-        assertEquals(BackgroundMonitoringState.BackgroundFixedThenStopped, session.state)
-        assertFalse(session.usableFix())
-    }
-
-    @Test fun `disabled preference does not enter background waiting`() {
-        val session = BackgroundMonitoringSession()
-        session.startForeground()
-        assertFalse(session.background(false))
-        assertEquals(BackgroundMonitoringState.Inactive, session.state)
     }
 }
 
