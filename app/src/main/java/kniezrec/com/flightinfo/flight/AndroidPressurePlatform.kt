@@ -4,11 +4,9 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
-import java.util.concurrent.Executor
 
 internal class AndroidPressurePlatform(
     private val sensorManager: SensorManager,
-    private val callbackExecutor: Executor,
 ) : PressurePlatform {
     private var listener: SensorEventListener? = null
 
