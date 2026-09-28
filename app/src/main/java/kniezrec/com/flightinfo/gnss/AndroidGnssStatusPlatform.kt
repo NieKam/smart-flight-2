@@ -3,6 +3,7 @@ package kniezrec.com.flightinfo.gnss
 import android.content.pm.PackageManager
 import android.location.GnssStatus
 import android.location.LocationManager
+import kniezrec.com.flightinfo.location.data.toGnssSatellites
 import java.util.concurrent.Executor
 
 internal class AndroidGnssStatusPlatform(
@@ -20,11 +21,7 @@ internal class AndroidGnssStatusPlatform(
         val newCallback =
             object : GnssStatus.Callback() {
                 override fun onSatelliteStatusChanged(status: GnssStatus) {
-                    onStatus(
-                        List(status.satelliteCount) { index ->
-                            GnssSatellite(status.usedInFix(index), status.getCn0DbHz(index))
-                        },
-                    )
+                    onStatus(status.toGnssSatellites())
                 }
             }
         callback = newCallback
