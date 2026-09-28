@@ -84,5 +84,5 @@ private fun <T> Flow<T>.shareRethrowingIn(
                 failure.value = null
             }
         }.shareIn(scope, SharingStarted.WhileSubscribed(replayExpirationMillis = 0), replay)
-    return merge(shared, failure.filterNotNull().map { throw it })
+    return merge(shared, failure.filterNotNull().map<Throwable, T> { throw it })
 }

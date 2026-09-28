@@ -43,7 +43,8 @@ class FakeLocationDataSource(
 
     fun emitSatellites(satellites: List<GnssSatellite>) = satelliteRegistrations.emit(satellites)
 
-    fun setLocationEnabled(enabled: Boolean) {
+    /** Changes the location switch and notifies [locationEnabledChanges] collectors. */
+    fun switchLocation(enabled: Boolean) {
         locationEnabled = enabled
         enabledRegistrations.emit(enabled)
     }

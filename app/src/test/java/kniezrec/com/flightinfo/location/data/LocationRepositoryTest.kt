@@ -186,7 +186,7 @@ class LocationRepositoryTest {
             val states = mutableListOf<Boolean>()
             backgroundScope.launch { repository.locationEnabled.toList(states) }
             runCurrent()
-            source.setLocationEnabled(false)
+            source.switchLocation(false)
             runCurrent()
 
             assertFalse(repository.locationEnabled.value)
