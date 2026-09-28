@@ -20,17 +20,17 @@ import androidx.core.content.ContextCompat
 import dagger.hilt.android.AndroidEntryPoint
 import kniezrec.com.flightinfo.MainActivity
 import kniezrec.com.flightinfo.R
-import kniezrec.com.flightinfo.flight.AndroidFlightLocationPlatform
-import kniezrec.com.flightinfo.gnss.AndroidGnssStatusPlatform
+import kniezrec.com.flightinfo.di.MainDispatcher
+import kniezrec.com.flightinfo.location.data.LocationRegistrationException
+import kniezrec.com.flightinfo.location.data.LocationRepository
 import kniezrec.com.flightinfo.monitoring.data.BackgroundNotificationSettingsRepository
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import javax.inject.Inject
-
-/** Foreground lifetime for the service-owned location/GNSS monitoring session. */
-internal interface MonitoringSession {
-    fun start(): Boolean
-
-    fun stop()
-}
 
 @AndroidEntryPoint
 internal open class LocationForegroundService :
@@ -41,10 +41,17 @@ internal open class LocationForegroundService :
 
     @Inject lateinit var locationManager: LocationManager
 
+    // Replaced by tests after onCreate() (before onStartCommand) with a repository over a fake source.
+    @Inject lateinit var locationRepository: LocationRepository
+
+    @MainDispatcher
+    @Inject
+    lateinit var mainDispatcher: CoroutineDispatcher
+
     private val handler = Handler(Looper.getMainLooper())
     private var providerReceiver: BroadcastReceiver? = null
     private var started = false
-    private var monitoringSession: MonitoringSession? = null
+    private var monitoringScope: CoroutineScope? = null
     private var bridgeGeneration: Long? = null
 
     private val eligibilityCheck =
@@ -82,14 +89,12 @@ internal open class LocationForegroundService :
             started = true
             val generation = BackgroundMonitoringBridge.attach(this)
             bridgeGeneration = generation
-            createMonitoringSession(generation).also { session ->
-                monitoringSession = session
-                if (!session.start()) {
-                    stopMonitoring()
-                    stopSelf()
-                    return START_NOT_STICKY
-                }
+            if (!locationRepository.isLocationEnabled() || !locationRepository.hasGnssHardware()) {
+                stopMonitoring()
+                stopSelf()
+                return START_NOT_STICKY
             }
+            collectLocation(generation)
             registerProviderReceiver()
             handler.post(eligibilityCheck)
         }
@@ -173,8 +178,9 @@ internal open class LocationForegroundService :
 
     private fun stopMonitoring() {
         handler.removeCallbacks(eligibilityCheck)
-        monitoringSession?.stop()
-        monitoringSession = null
+        // Cancelling the last collectors releases the repository's platform registrations.
+        monitoringScope?.cancel()
+        monitoringScope = null
         providerReceiver?.let { unregisterReceiver(it) }
         providerReceiver = null
         getSystemService(NotificationManager::class.java).cancel(NOTIFICATION_ID)
@@ -204,23 +210,32 @@ internal open class LocationForegroundService :
         if (started) getSystemService(NotificationManager::class.java).notify(NOTIFICATION_ID, notification(showWaiting))
     }
 
-    protected open fun createMonitoringSession(generation: Long): MonitoringSession =
-        LocationGnssMonitoringSession(
-            locationPlatform =
-                AndroidFlightLocationPlatform(
-                    locationManager,
-                    packageManager,
-                    mainExecutor,
-                ),
-            gnssPlatform =
-                AndroidGnssStatusPlatform(
-                    locationManager,
-                    packageManager,
-                    mainExecutor,
-                ),
-            onLocation = { fix -> BackgroundMonitoringBridge.forwardLocation(generation, fix) },
-            onGnssStatus = { status -> BackgroundMonitoringBridge.forwardGnssStatus(generation, status) },
-        )
+    /**
+     * Forwards fixes and satellites to the bridge until [stopMonitoring]. A registration failure
+     * (reported asynchronously, after the first collection starts) stops the service, as a failed
+     * registration in [onStartCommand] did before.
+     */
+    private fun collectLocation(generation: Long) {
+        val scope = CoroutineScope(SupervisorJob() + mainDispatcher)
+        monitoringScope = scope
+        scope.launch {
+            try {
+                coroutineScope {
+                    launch {
+                        locationRepository.fixes.collect { fix -> BackgroundMonitoringBridge.forwardLocation(generation, fix) }
+                    }
+                    launch {
+                        locationRepository.satellites.collect { status -> BackgroundMonitoringBridge.forwardGnssStatus(generation, status) }
+                    }
+                }
+            } catch (_: LocationRegistrationException) {
+                if (monitoringScope === scope) {
+                    stopMonitoring()
+                    stopSelf()
+                }
+            }
+        }
+    }
 
     private fun notification(showWaiting: Boolean): Notification {
         val openApp =

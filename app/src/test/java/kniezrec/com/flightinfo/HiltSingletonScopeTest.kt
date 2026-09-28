@@ -83,6 +83,18 @@ class HiltSingletonScopeTest {
         }
     }
 
+    @Test
+    fun serviceInstancesShareOneLocationRepository() {
+        val first = Robolectric.buildService(LocationForegroundService::class.java).create()
+        val second = Robolectric.buildService(LocationForegroundService::class.java).create()
+        try {
+            assertSame(first.get().locationRepository, second.get().locationRepository)
+        } finally {
+            first.destroy()
+            second.destroy()
+        }
+    }
+
     private fun ActivityScenario<MainActivity>.injected(): Injected {
         var result: Injected? = null
         onActivity {

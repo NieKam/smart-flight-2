@@ -6,7 +6,14 @@ import android.content.Intent
 import androidx.test.core.app.ApplicationProvider
 import kniezrec.com.flightinfo.flight.FlightLocationFix
 import kniezrec.com.flightinfo.gnss.GnssSatellite
+import kniezrec.com.flightinfo.location.data.LocationRepository
 import kniezrec.com.flightinfo.testutil.FakeBackgroundNotificationSettingsRepository
+import kniezrec.com.flightinfo.testutil.FakeLocationDataSource
+import kniezrec.com.flightinfo.testutil.idleMainLooper
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -23,26 +30,38 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class LocationForegroundServiceTest {
-    private val sessions = mutableListOf<FakeMonitoringSession>()
+    private val source = FakeLocationDataSource()
+    private val fixRegistrations = source.fixRegistrations
+    private val satelliteRegistrations = source.satelliteRegistrations
+
+    // The main looper runs the repository's sharing, as the service's collection; idleMainLooper() drives both.
+    private val repositoryScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private val repository = LocationRepository(source, repositoryScope)
     private lateinit var service: TestLocationForegroundService
     private lateinit var controller: ServiceController<TestLocationForegroundService>
 
     @After
     fun tearDown() {
         if (::controller.isInitialized) controller.destroy()
+        idleMainLooper()
+        repositoryScope.cancel()
         BackgroundMonitoringBridge.clear()
+        BackgroundMonitoringBridge.clearEventHandlers()
     }
 
     @Test
-    fun `repeated starts keep one session and stable waiting notification`() {
+    fun `repeated starts keep one registration and stable waiting notification`() {
         service = startService()
 
         service.onStartCommand(null, 0, 1)
         service.onStartCommand(null, 0, 2)
+        idleMainLooper()
         BackgroundMonitoringBridge.setActivityVisible(false)
 
-        assertEquals(1, sessions.size)
-        assertEquals(1, sessions.single().startCount)
+        assertEquals(1, fixRegistrations.registerCount)
+        assertEquals(1, satelliteRegistrations.registerCount)
+        assertEquals(1, fixRegistrations.activeCount)
+        assertEquals(1, satelliteRegistrations.activeCount)
         assertEquals(1, notifications().size)
         assertNotNull(notificationAtStableId())
         assertTrue(notificationTitle().contains("waiting", true))
@@ -52,47 +71,69 @@ class LocationForegroundServiceTest {
     fun `foreground return replaces waiting copy without duplicating notification`() {
         service = startService()
         service.onStartCommand(null, 0, 1)
+        idleMainLooper()
         BackgroundMonitoringBridge.setActivityVisible(false)
         BackgroundMonitoringBridge.setActivityVisible(true)
 
-        assertEquals(1, sessions.size)
+        assertEquals(1, fixRegistrations.registerCount)
         assertEquals(1, notifications().size)
         assertFalse(notificationTitle().contains("waiting", true))
     }
 
     @Test
-    fun `service forwards one gnss status through the attached session`() {
-        var statuses = 0
-        BackgroundMonitoringBridge.setEventHandlers({}, { statuses++ })
+    fun `service forwards one gnss status from the repository through the bridge`() {
+        val statuses = mutableListOf<List<GnssSatellite>>()
+        BackgroundMonitoringBridge.setEventHandlers({}, { statuses += it })
         service = startService()
         service.onStartCommand(null, 0, 1)
-        sessions.single().emitGnssStatus(listOf(GnssSatellite(true, 20f)))
+        idleMainLooper()
 
-        assertEquals(1, statuses)
+        source.emitSatellites(listOf(GnssSatellite(true, 20f)))
+        idleMainLooper()
+
+        assertEquals(listOf(listOf(GnssSatellite(true, 20f))), statuses)
     }
 
     @Test
-    fun `usable fix cancels notification and stops current session`() {
+    fun `service forwards fixes from the repository through the bridge`() {
+        val fixes = mutableListOf<FlightLocationFix>()
+        BackgroundMonitoringBridge.setEventHandlers({ fixes += it }, {})
+        service = startService()
+        service.onStartCommand(null, 0, 1)
+        idleMainLooper()
+
+        source.emitFix(FIX)
+        idleMainLooper()
+
+        assertEquals(listOf(FIX), fixes)
+    }
+
+    @Test
+    fun `usable fix cancels notification and releases the registrations`() {
         BackgroundMonitoringBridge.setEventHandlers(
             onLocation = BackgroundMonitoringBridge::onUsableLocationFix,
             onGnssStatus = {},
         )
         service = startService()
         service.onStartCommand(null, 0, 1)
+        idleMainLooper()
         BackgroundMonitoringBridge.setActivityVisible(false)
-        sessions.single().emitLocation(FIX)
+        source.emitFix(FIX)
+        idleMainLooper()
 
-        assertEquals(1, sessions.single().stopCount)
+        assertReleased()
         assertTrue(notifications().isEmpty())
+        assertTrue(shadowOf(service).isStoppedBySelf)
     }
 
     @Test
     fun `notification permission denial keeps degraded service without waiting notification`() {
         service = startService(canPostNotifications = false)
         service.onStartCommand(null, 0, 1)
+        idleMainLooper()
         BackgroundMonitoringBridge.setActivityVisible(false)
 
-        assertEquals(1, sessions.size)
+        assertEquals(1, fixRegistrations.activeCount)
         assertEquals(1, notifications().size)
         assertFalse(notificationTitle().contains("waiting", true))
     }
@@ -117,50 +158,60 @@ class LocationForegroundServiceTest {
     fun `notification dismissal stops only the current run`() {
         service = startService()
         service.onStartCommand(null, 0, 1)
+        idleMainLooper()
         service.onStartCommand(
             Intent(service, LocationForegroundService::class.java).setAction(LocationForegroundService.ACTION_STOP),
             0,
             2,
         )
+        idleMainLooper()
 
-        assertEquals(1, sessions.single().stopCount)
+        assertReleased()
         assertTrue(notifications().isEmpty())
         assertTrue(service.backgroundNotificationSettingsRepository.settings.value.showBackgroundNotification)
     }
 
     @Test
-    fun `preference off stops session and leaves preference unchanged`() {
+    fun `preference off while visible keeps the registrations and leaves preference unchanged`() {
         service = startService()
         val settings = FakeBackgroundNotificationSettingsRepository(showBackgroundNotification = false)
         service.backgroundNotificationSettingsRepository = settings
         service.onStartCommand(null, 0, 1)
+        idleMainLooper()
         BackgroundMonitoringBridge.setActivityVisible(true)
         BackgroundMonitoringBridge.setNotificationEnabled(false)
+        idleMainLooper()
 
-        assertEquals(0, sessions.single().stopCount)
+        assertEquals(1, fixRegistrations.activeCount)
+        assertEquals(1, satelliteRegistrations.activeCount)
+        assertEquals(0, fixRegistrations.unregisterCount)
         assertEquals(1, notifications().size)
         assertFalse(settings.settings.value.showBackgroundNotification)
     }
 
     @Test
-    fun `preference off read from the repository releases the session when the activity hides`() {
+    fun `preference off read from the repository releases the registrations when the activity hides`() {
         service = startService()
         service.backgroundNotificationSettingsRepository = FakeBackgroundNotificationSettingsRepository(showBackgroundNotification = false)
         service.onStartCommand(null, 0, 1)
+        idleMainLooper()
         BackgroundMonitoringBridge.setActivityVisible(false)
+        idleMainLooper()
 
-        assertEquals(1, sessions.single().stopCount)
+        assertReleased()
         assertTrue(notifications().isEmpty())
     }
 
     @Test
-    fun `preference off releases a background session but keeps preference off`() {
+    fun `preference off releases background registrations but keeps preference off`() {
         service = startService()
         service.onStartCommand(null, 0, 1)
+        idleMainLooper()
         BackgroundMonitoringBridge.setActivityVisible(false)
         BackgroundMonitoringBridge.setNotificationEnabled(false)
+        idleMainLooper()
 
-        assertEquals(1, sessions.single().stopCount)
+        assertReleased()
         assertTrue(notifications().isEmpty())
     }
 
@@ -168,10 +219,12 @@ class LocationForegroundServiceTest {
     fun `eligibility loss releases callbacks and stable notification`() {
         service = startService()
         service.onStartCommand(null, 0, 1)
+        idleMainLooper()
         service.eligible = false
         service.reconcile(activityVisible = false, hasUsableFix = false)
+        idleMainLooper()
 
-        assertEquals(1, sessions.single().stopCount)
+        assertReleased()
         assertTrue(notifications().isEmpty())
     }
 
@@ -179,59 +232,112 @@ class LocationForegroundServiceTest {
     fun `running service eligibility check cleans up after provider loss`() {
         service = startService()
         service.onStartCommand(null, 0, 1)
+        idleMainLooper()
         service.eligible = false
         service.checkEligibilityForTest()
+        idleMainLooper()
 
-        assertEquals(1, sessions.single().stopCount)
+        assertReleased()
         assertTrue(notifications().isEmpty())
     }
 
     @Test
-    fun `registration failure cleans up foreground notification`() {
-        service = startService(sessionStarts = false)
+    fun `location registration failure releases gnss and cleans up foreground notification`() {
+        source.failFixRegistration = true
+        service = startService()
         service.onStartCommand(null, 0, 1)
+        idleMainLooper()
 
-        assertEquals(1, sessions.single().startCount)
-        assertEquals(1, sessions.single().stopCount)
+        assertEquals(1, fixRegistrations.registerCount)
+        assertEquals(0, satelliteRegistrations.activeCount)
         assertTrue(notifications().isEmpty())
+        assertTrue(shadowOf(service).isStoppedBySelf)
     }
 
     @Test
-    fun `foreground startup failure cleans up without creating a session`() {
+    fun `gnss registration failure releases location and cleans up foreground notification`() {
+        source.failSatelliteRegistration = true
+        service = startService()
+        service.onStartCommand(null, 0, 1)
+        idleMainLooper()
+
+        assertEquals(1, satelliteRegistrations.registerCount)
+        assertEquals(0, fixRegistrations.activeCount)
+        assertTrue(notifications().isEmpty())
+        assertTrue(shadowOf(service).isStoppedBySelf)
+    }
+
+    @Test
+    fun `disabled location services stop the service without registering`() {
+        source.locationEnabled = false
+        service = startService()
+        service.onStartCommand(null, 0, 1)
+        idleMainLooper()
+
+        assertEquals(0, fixRegistrations.registerCount)
+        assertEquals(0, satelliteRegistrations.registerCount)
+        assertTrue(notifications().isEmpty())
+        assertTrue(shadowOf(service).isStoppedBySelf)
+    }
+
+    @Test
+    fun `missing gnss hardware stops the service without registering`() {
+        source.gnssHardware = false
+        service = startService()
+        service.onStartCommand(null, 0, 1)
+        idleMainLooper()
+
+        assertEquals(0, fixRegistrations.registerCount)
+        assertEquals(0, satelliteRegistrations.registerCount)
+        assertTrue(notifications().isEmpty())
+        assertTrue(shadowOf(service).isStoppedBySelf)
+    }
+
+    @Test
+    fun `foreground startup failure cleans up without registering`() {
         service = startService()
         service.failForegroundStart = true
         service.onStartCommand(null, 0, 1)
+        idleMainLooper()
 
-        assertTrue(sessions.isEmpty())
+        assertEquals(0, fixRegistrations.registerCount)
+        assertEquals(0, satelliteRegistrations.registerCount)
         assertTrue(notifications().isEmpty())
     }
 
     @Test
-    fun `service destruction unregisters session and notification`() {
+    fun `service destruction releases registrations and notification`() {
         service = startService()
         service.onStartCommand(null, 0, 1)
+        idleMainLooper()
         controller.destroy()
+        idleMainLooper()
 
-        assertEquals(1, sessions.single().stopCount)
+        assertReleased()
         assertTrue(notifications().isEmpty())
     }
 
     @Test
-    fun `old session callbacks are ignored after recreation`() {
+    fun `old registration callbacks are ignored after recreation`() {
         var fixes = 0
         BackgroundMonitoringBridge.setEventHandlers({ fixes++ }, {})
         service = startService()
         service.onStartCommand(null, 0, 1)
-        val oldSession = sessions.single()
+        idleMainLooper()
+        val oldCallback = fixRegistrations.all.single()
         controller.destroy()
         BackgroundMonitoringBridge.clear()
+        idleMainLooper()
 
         service = startService()
         service.onStartCommand(null, 0, 2)
-        val newSession = sessions.last()
-        oldSession.emitLocation(FIX)
-        newSession.emitLocation(FIX)
+        idleMainLooper()
+        val newCallback = fixRegistrations.all.last()
+        oldCallback(FIX)
+        newCallback(FIX)
+        idleMainLooper()
 
+        assertEquals(2, fixRegistrations.registerCount)
         assertEquals(1, fixes)
     }
 
@@ -239,41 +345,49 @@ class LocationForegroundServiceTest {
     fun `notification tap reconciles the existing service-owned session`() {
         service = startService()
         service.onStartCommand(null, 0, 1)
+        idleMainLooper()
         BackgroundMonitoringBridge.setActivityVisible(false)
         val intent = shadowOf(notificationAtStableId()!!.contentIntent).savedIntent
 
         assertEquals(kniezrec.com.flightinfo.MainActivity::class.java.name, intent.component!!.className)
         BackgroundMonitoringBridge.setActivityVisible(true)
 
-        assertEquals(1, sessions.size)
+        assertEquals(1, fixRegistrations.registerCount)
+        assertEquals(1, fixRegistrations.activeCount)
         assertFalse(notificationTitle().contains("waiting", true))
     }
 
     @Test
-    fun `activity recreation and repeated handoff retain one service session`() {
+    fun `activity recreation and repeated handoff retain one registration`() {
         service = startService()
         service.onStartCommand(null, 0, 1)
+        idleMainLooper()
         BackgroundMonitoringBridge.setActivityVisible(false)
         service.onStartCommand(null, 0, 2)
         BackgroundMonitoringBridge.setActivityVisible(true)
         BackgroundMonitoringBridge.setActivityVisible(false)
         BackgroundMonitoringBridge.setActivityVisible(true)
+        idleMainLooper()
 
-        assertEquals(1, sessions.size)
-        assertEquals(1, sessions.single().startCount)
+        assertEquals(1, fixRegistrations.registerCount)
+        assertEquals(1, satelliteRegistrations.registerCount)
+        assertEquals(1, fixRegistrations.activeCount)
     }
 
-    private fun startService(
-        canPostNotifications: Boolean = true,
-        sessionStarts: Boolean = true,
-    ): TestLocationForegroundService {
+    private fun startService(canPostNotifications: Boolean = true): TestLocationForegroundService {
         controller = Robolectric.buildService(TestLocationForegroundService::class.java).create()
         service = controller.get()
         service.canPost = canPostNotifications
-        service.sessionFactory = { generation ->
-            FakeMonitoringSession(generation, sessionStarts).also(sessions::add)
-        }
+        service.locationRepository = repository
         return service
+    }
+
+    /** Both platform registrations were made once and have been released. */
+    private fun assertReleased() {
+        assertEquals(1, fixRegistrations.unregisterCount)
+        assertEquals(1, satelliteRegistrations.unregisterCount)
+        assertEquals(0, fixRegistrations.activeCount)
+        assertEquals(0, satelliteRegistrations.activeCount)
     }
 
     private fun notificationAtStableId(): Notification? =
@@ -302,36 +416,12 @@ internal class TestLocationForegroundService : LocationForegroundService() {
     var eligible = true
     var canPost = true
     var failForegroundStart = false
-    var sessionFactory: (Long) -> MonitoringSession = { FakeMonitoringSession(it, true) }
 
     override fun isMonitoringEligible(): Boolean = eligible
 
     override fun canPostNotifications(): Boolean = canPost
 
     override fun startForegroundServiceNotification(): Boolean = !failForegroundStart
-
-    override fun createMonitoringSession(generation: Long): MonitoringSession = sessionFactory(generation)
-}
-
-private class FakeMonitoringSession(
-    private val generation: Long,
-    private val startResult: Boolean,
-) : MonitoringSession {
-    var startCount = 0
-    var stopCount = 0
-
-    override fun start(): Boolean {
-        startCount++
-        return startResult
-    }
-
-    override fun stop() {
-        stopCount++
-    }
-
-    fun emitLocation(fix: FlightLocationFix) = BackgroundMonitoringBridge.forwardLocation(generation, fix)
-
-    fun emitGnssStatus(status: List<GnssSatellite>) = BackgroundMonitoringBridge.forwardGnssStatus(generation, status)
 }
 
 private val FIX = FlightLocationFix(1.0, 100.0, 1L)
