@@ -53,5 +53,6 @@ Required:
 - Delete after porting: `GnssStatusControllerTest`, `FlightParametersControllerTest`, `PressureControllerTest`.
 
 ## Risks and edge cases
+- Follow-up from TASK-004 review: characterization scenario 8 pins the ACTUAL pause behavior, which differs from the TASK-004 task text. `onPause` does not stop the flight controller, so fixes forwarded while paused still update the card; this matches the original app's `onStart`/`onStop` scope. Every `onResume` resets the card to "Waiting" until the next fix, which is questionable against the original. With `WhileSubscribed(5_000)` a short pause no longer resets the card, so scenario 8 will change. Decide which behavior to keep, update scenario 8 and list the change in the PR.
 - `WhileSubscribed(5_000)`: after rotation (< 5 s) the upstream is not restarted, so readings persist — intended. After a real pause > 5 s the upstream restarts and history resets — matches today's pause behavior closely enough; document the 5 s window.
 - Non-finite values: keep the existing `isFinite` filters.

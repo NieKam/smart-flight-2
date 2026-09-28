@@ -33,7 +33,7 @@ The order follows four phases. Every task leaves the app building, tests green a
 | 001 | [Build foundation: coroutines, lifecycle-compose, coroutine tests, versionName 1.0.0](001-build-foundation/task.md) | none | DONE |
 | 002 | [Run Compose UI tests on the JVM (Robolectric), retire androidTest](002-compose-tests-on-jvm/task.md) | 001 | DONE |
 | 003 | [Remove dead and test-only production code](003-remove-dead-code/task.md) | 002 | DONE |
-| 004 | [Characterization tests pinning dashboard orchestration](004-characterization-tests/task.md) | 002, 003 | TODO |
+| 004 | [Characterization tests pinning dashboard orchestration](004-characterization-tests/task.md) | 002, 003 | DONE |
 | 005 | [Introduce KSP + Hilt as a dedicated DI step (CI compatibility check first)](005-hilt-di/task.md) | 001, 004 | TODO |
 | 006 | [Observable settings repositories](006-settings-repositories/task.md) | 005 | TODO |
 | 007 | [Location and GNSS repository (callbackFlow); service collects it](007-location-repository/task.md) | 005 | TODO |
