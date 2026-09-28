@@ -51,6 +51,11 @@ Required:
 - Update/delete as listed in Scope.
 
 ## Risks and edge cases
+- Notes from the TASK-007 review:
+  - `LocationRepository.fixes`/`satellites` are typed `Flow`, not `SharedFlow`. They still share one registration (WhileSubscribed): `shareRethrowingIn` forwards registration failures as `LocationRegistrationException` to every collector.
+  - A collector joining in the brief stop window can receive the previous failure instead of retrying (N2).
+  - The service test seam replaces the injected `locationRepository` after `create()` (N3). A Hilt test module binding a fake `LocationDataSource` would be cleaner.
+  - `locationEnabled` has no consumer yet (N5).
 - Race: Activity pauses while a fix is in flight → service sees `visible=false` then first fix → stops. Same as today; test it.
 - Configuration change (rotation) briefly sets visibility false (onPause → onResume). Today the same happens with the bridge; the service would stop if a usable fix exists. Preserve behavior, but note it in the PR; TASK-016 revisits lifecycle once ViewModels hold state.
 - Thread-safety: `StateFlow` removes the unsynchronized `var`s.
