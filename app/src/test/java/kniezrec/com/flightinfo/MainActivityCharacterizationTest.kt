@@ -61,6 +61,17 @@ class MainActivityCharacterizationTest {
 
     private val application: Application = ApplicationProvider.getApplicationContext()
     private var scenario: ActivityScenario<MainActivity>? = null
+    private var previousCreateActivityContexts: String? = null
+
+    @Before
+    fun giveActivitiesTheirOwnDisplayContext() {
+        // By default Robolectric attaches every Activity to the Application's ContextImpl, which is
+        // not a UI context, so Context.getDisplay() throws (AndroidOrientationSource reads it). On a
+        // device the Activity context is display-associated. This Robolectric switch (read in
+        // ShadowActivity.callAttach) creates a real activity ContextImpl, as Android does.
+        previousCreateActivityContexts = System.getProperty(CREATE_ACTIVITY_CONTEXTS)
+        System.setProperty(CREATE_ACTIVITY_CONTEXTS, "true")
+    }
 
     @Before
     fun seedOfflineMapArchive() {
@@ -80,6 +91,8 @@ class MainActivityCharacterizationTest {
         scenario?.close()
         BackgroundMonitoringBridge.clear()
         BackgroundMonitoringBridge.clearEventHandlers()
+        previousCreateActivityContexts?.let { System.setProperty(CREATE_ACTIVITY_CONTEXTS, it) }
+            ?: System.clearProperty(CREATE_ACTIVITY_CONTEXTS)
     }
 
     // Scenario 1. TASK-024 changes this on purpose (dashboard without permission).
@@ -330,6 +343,7 @@ class MainActivityCharacterizationTest {
     private fun pressureMbar(number: String) = string(R.string.flight_pressure_value, number, string(R.string.unit_mbar))
 
     private companion object {
+        const val CREATE_ACTIVITY_CONTEXTS = "robolectric.createActivityContexts"
         const val ASYNC_TIMEOUT_MILLIS = 20_000L
         const val WARSAW_ID = 31395L
         const val BERLIN_ID = 10409L
