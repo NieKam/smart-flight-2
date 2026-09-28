@@ -4,7 +4,8 @@ import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
-import android.location.LocationRequest
+import kniezrec.com.flightinfo.location.data.gpsLocationRequest
+import kniezrec.com.flightinfo.location.data.toFlightLocationFix
 import java.util.concurrent.Executor
 
 internal class AndroidFlightLocationPlatform(
@@ -22,23 +23,14 @@ internal class AndroidFlightLocationPlatform(
         val newListener =
             object : LocationListener {
                 override fun onLocationChanged(location: Location) {
-                    onLocation(
-                        FlightLocationFix(
-                            speedMetresPerSecond = location.takeIf(Location::hasSpeed)?.speed?.toDouble(),
-                            altitudeMetres = location.takeIf(Location::hasAltitude)?.altitude,
-                            elapsedRealtimeNanos = location.elapsedRealtimeNanos,
-                            bearingDegrees = location.takeIf(Location::hasBearing)?.bearing?.toDouble(),
-                            latitude = location.latitude,
-                            longitude = location.longitude,
-                        ),
-                    )
+                    onLocation(location.toFlightLocationFix())
                 }
             }
         listener = newListener
         try {
             locationManager.requestLocationUpdates(
                 LocationManager.GPS_PROVIDER,
-                LocationRequest.Builder(1_000L).build(),
+                gpsLocationRequest(),
                 callbackExecutor,
                 newListener,
             )
