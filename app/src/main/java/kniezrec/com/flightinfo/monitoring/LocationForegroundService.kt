@@ -17,10 +17,12 @@ import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import androidx.core.content.ContextCompat
+import dagger.hilt.android.AndroidEntryPoint
 import kniezrec.com.flightinfo.MainActivity
 import kniezrec.com.flightinfo.R
 import kniezrec.com.flightinfo.flight.AndroidFlightLocationPlatform
 import kniezrec.com.flightinfo.gnss.AndroidGnssStatusPlatform
+import javax.inject.Inject
 
 /** Foreground lifetime for the service-owned location/GNSS monitoring session. */
 internal interface MonitoringSession {
@@ -29,9 +31,15 @@ internal interface MonitoringSession {
     fun stop()
 }
 
+@AndroidEntryPoint
 internal open class LocationForegroundService :
     Service(),
     BackgroundMonitoringService {
+    // Injected in super.onCreate() (Hilt_LocationForegroundService); test subclasses inherit it.
+    @Inject lateinit var backgroundNotificationPreferencesStore: BackgroundNotificationPreferencesStore
+
+    @Inject lateinit var locationManager: LocationManager
+
     private val handler = Handler(Looper.getMainLooper())
     private var providerReceiver: BroadcastReceiver? = null
     private var started = false
@@ -132,15 +140,12 @@ internal open class LocationForegroundService :
 
     protected open fun isMonitoringEligible(): Boolean =
         ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED &&
-            getSystemService(LocationManager::class.java).let { locationManager ->
+            (
                 locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) ||
                     locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
-            }
+            )
 
-    protected open fun showBackgroundNotification(): Boolean =
-        BackgroundNotificationPreferencesStore(
-            getSharedPreferences(BackgroundNotificationPreferencesStore.PREFERENCES_NAME, MODE_PRIVATE),
-        ).read().showBackgroundNotification
+    protected open fun showBackgroundNotification(): Boolean = backgroundNotificationPreferencesStore.read().showBackgroundNotification
 
     private fun registerProviderReceiver() {
         if (providerReceiver != null) return
@@ -201,13 +206,13 @@ internal open class LocationForegroundService :
         LocationGnssMonitoringSession(
             locationPlatform =
                 AndroidFlightLocationPlatform(
-                    getSystemService(LocationManager::class.java),
+                    locationManager,
                     packageManager,
                     mainExecutor,
                 ),
             gnssPlatform =
                 AndroidGnssStatusPlatform(
-                    getSystemService(LocationManager::class.java),
+                    locationManager,
                     packageManager,
                     mainExecutor,
                 ),
