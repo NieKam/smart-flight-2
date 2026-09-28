@@ -4,7 +4,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageInfo
 import android.net.Uri
-import android.os.Build
 import java.net.URLEncoder
 
 data class AppVersion(
@@ -33,15 +32,7 @@ class AndroidAppVersionProvider(
 ) {
     fun read(): AppVersion {
         val info = runCatching { packageInfoReader() }.getOrNull() ?: return AppVersion(null, null)
-        val code =
-            runCatching {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                    info.longVersionCode
-                } else {
-                    @Suppress("DEPRECATION")
-                    info.versionCode.toLong()
-                }
-            }.getOrNull()?.takeIf { it > 0 }
+        val code = runCatching { info.longVersionCode }.getOrNull()?.takeIf { it > 0 }
         return AppVersion(info.versionName, code)
     }
 }
