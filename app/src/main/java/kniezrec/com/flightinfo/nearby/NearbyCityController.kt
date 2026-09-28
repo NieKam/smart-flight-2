@@ -50,7 +50,7 @@ data class NearbyCityRecord(
     val timeZoneId: String,
 )
 
-internal interface NearbyCityRepository {
+interface NearbyCityRepository {
     @Throws(Exception::class)
     fun findNearest(
         position: NearbyCoordinate,
