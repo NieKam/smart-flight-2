@@ -46,16 +46,6 @@ class MapArchiveCopierTest {
         }
     }
 
-    @Test
-    fun staleArchiveAttemptIsIgnoredAfterRetryBegins() {
-        val gate = MapLoadAttemptGate()
-        val stale = gate.begin()
-        val current = gate.begin()
-
-        assertFalse(gate.isCurrent(stale))
-        assertTrue(gate.isCurrent(current))
-    }
-
     private fun validArchive(): ByteArray =
         ByteArrayOutputStream()
             .also { bytes ->

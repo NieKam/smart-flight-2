@@ -48,11 +48,3 @@ internal object MapArchiveCopier {
         }
     }
 }
-
-internal class MapLoadAttemptGate {
-    private var attempt = 0L
-
-    fun begin(): Long = ++attempt
-
-    fun isCurrent(token: Long): Boolean = token == attempt
-}
