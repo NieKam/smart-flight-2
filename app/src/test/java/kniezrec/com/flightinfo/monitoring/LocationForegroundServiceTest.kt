@@ -6,6 +6,7 @@ import android.content.Intent
 import androidx.test.core.app.ApplicationProvider
 import kniezrec.com.flightinfo.flight.FlightLocationFix
 import kniezrec.com.flightinfo.gnss.GnssSatellite
+import kniezrec.com.flightinfo.testutil.FakeBackgroundNotificationSettingsRepository
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -124,30 +125,32 @@ class LocationForegroundServiceTest {
 
         assertEquals(1, sessions.single().stopCount)
         assertTrue(notifications().isEmpty())
-        assertTrue(
-            BackgroundNotificationPreferencesStore(
-                service.getSharedPreferences(BackgroundNotificationPreferencesStore.PREFERENCES_NAME, 0),
-            ).read().showBackgroundNotification,
-        )
+        assertTrue(service.backgroundNotificationSettingsRepository.settings.value.showBackgroundNotification)
     }
 
     @Test
     fun `preference off stops session and leaves preference unchanged`() {
         service = startService()
-        BackgroundNotificationPreferencesStore(
-            service.getSharedPreferences(BackgroundNotificationPreferencesStore.PREFERENCES_NAME, 0),
-        ).write(BackgroundNotificationPreferences(false))
+        val settings = FakeBackgroundNotificationSettingsRepository(showBackgroundNotification = false)
+        service.backgroundNotificationSettingsRepository = settings
         service.onStartCommand(null, 0, 1)
         BackgroundMonitoringBridge.setActivityVisible(true)
         BackgroundMonitoringBridge.setNotificationEnabled(false)
 
         assertEquals(0, sessions.single().stopCount)
         assertEquals(1, notifications().size)
-        assertFalse(
-            BackgroundNotificationPreferencesStore(
-                service.getSharedPreferences(BackgroundNotificationPreferencesStore.PREFERENCES_NAME, 0),
-            ).read().showBackgroundNotification,
-        )
+        assertFalse(settings.settings.value.showBackgroundNotification)
+    }
+
+    @Test
+    fun `preference off read from the repository releases the session when the activity hides`() {
+        service = startService()
+        service.backgroundNotificationSettingsRepository = FakeBackgroundNotificationSettingsRepository(showBackgroundNotification = false)
+        service.onStartCommand(null, 0, 1)
+        BackgroundMonitoringBridge.setActivityVisible(false)
+
+        assertEquals(1, sessions.single().stopCount)
+        assertTrue(notifications().isEmpty())
     }
 
     @Test

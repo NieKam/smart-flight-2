@@ -10,7 +10,7 @@ internal interface FineLocationPermissionPlatform {
 }
 
 /** Durable record that distinguishes a first launch from a no-rationale denial. */
-internal interface LocationPermissionRequestHistory {
+interface LocationPermissionRequestHistory {
     var hasRequestedFineLocation: Boolean
 }
 

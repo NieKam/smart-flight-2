@@ -2,14 +2,15 @@ package kniezrec.com.flightinfo.displayunits.data.di
 
 import android.content.Context
 import android.content.SharedPreferences
+import dagger.Binds
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
-import kniezrec.com.flightinfo.displayunits.UnitPreferencesStore
+import kniezrec.com.flightinfo.displayunits.data.SharedPreferencesUnitSettingsRepository
+import kniezrec.com.flightinfo.displayunits.data.UnitSettingsRepository
 import javax.inject.Qualifier
-import javax.inject.Singleton
 
 /** The `display_units` SharedPreferences file. */
 @Qualifier
@@ -26,10 +27,12 @@ object UnitsModule {
     fun provideDisplayUnitsPreferences(
         @ApplicationContext context: Context,
     ): SharedPreferences = context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
+}
 
-    @Provides
-    @Singleton
-    fun provideUnitPreferencesStore(
-        @DisplayUnitsPreferences preferences: SharedPreferences,
-    ): UnitPreferencesStore = UnitPreferencesStore(preferences)
+/** One [SharedPreferencesUnitSettingsRepository] (a `@Singleton`) serves every consumer. */
+@Module
+@InstallIn(SingletonComponent::class)
+abstract class UnitsBindingsModule {
+    @Binds
+    abstract fun bindUnitSettingsRepository(repository: SharedPreferencesUnitSettingsRepository): UnitSettingsRepository
 }

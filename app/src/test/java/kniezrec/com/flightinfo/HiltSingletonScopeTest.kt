@@ -19,8 +19,8 @@ import org.junit.runner.RunWith
 import org.robolectric.Robolectric
 
 /**
- * The real [SmartFlightApplication] (from the manifest) is the Hilt root under Robolectric. Stores
- * and repositories are process singletons: shared across Activity recreation and with the service.
+ * The real [SmartFlightApplication] (from the manifest) is the Hilt root under Robolectric.
+ * Repositories are process singletons: shared across Activity recreation and with the service.
  */
 @RunWith(AndroidJUnit4::class)
 class HiltSingletonScopeTest {
@@ -60,22 +60,23 @@ class HiltSingletonScopeTest {
         val second = launched.injected()
 
         assertNotSame(first.activity, second.activity)
-        assertSame(first.displayPreferencesStore, second.displayPreferencesStore)
-        assertSame(first.unitPreferencesStore, second.unitPreferencesStore)
-        assertSame(first.backgroundNotificationPreferencesStore, second.backgroundNotificationPreferencesStore)
+        assertSame(first.displaySettingsRepository, second.displaySettingsRepository)
+        assertSame(first.unitSettingsRepository, second.unitSettingsRepository)
+        assertSame(first.backgroundNotificationSettingsRepository, second.backgroundNotificationSettingsRepository)
+        assertSame(first.permissionRequestHistory, second.permissionRequestHistory)
         assertSame(first.nearbyCityRepository, second.nearbyCityRepository)
         assertSame(first.mapArchiveRepository, second.mapArchiveRepository)
         assertSame(first.clock, second.clock)
     }
 
     @Test
-    fun activityAndServiceShareTheNotificationPreferencesStore() {
+    fun activityAndServiceShareTheNotificationSettingsRepository() {
         val activity = ActivityScenario.launch(MainActivity::class.java).also { scenario = it }.injected()
         val controller = Robolectric.buildService(LocationForegroundService::class.java).create()
         try {
             val service = controller.get()
 
-            assertSame(activity.backgroundNotificationPreferencesStore, service.backgroundNotificationPreferencesStore)
+            assertSame(activity.backgroundNotificationSettingsRepository, service.backgroundNotificationSettingsRepository)
             assertSame(application.getSystemService(LocationManager::class.java), service.locationManager)
         } finally {
             controller.destroy()
@@ -88,9 +89,10 @@ class HiltSingletonScopeTest {
             result =
                 Injected(
                     activity = it,
-                    displayPreferencesStore = it.displayPreferencesStore,
-                    unitPreferencesStore = it.unitPreferencesStore,
-                    backgroundNotificationPreferencesStore = it.backgroundNotificationPreferencesStore,
+                    displaySettingsRepository = it.displaySettingsRepository,
+                    unitSettingsRepository = it.unitSettingsRepository,
+                    backgroundNotificationSettingsRepository = it.backgroundNotificationSettingsRepository,
+                    permissionRequestHistory = it.permissionRequestHistory,
                     nearbyCityRepository = it.nearbyCityRepository,
                     mapArchiveRepository = it.mapArchiveRepository,
                     clock = it.clock,
@@ -101,9 +103,10 @@ class HiltSingletonScopeTest {
 
     private data class Injected(
         val activity: MainActivity,
-        val displayPreferencesStore: Any,
-        val unitPreferencesStore: Any,
-        val backgroundNotificationPreferencesStore: Any,
+        val displaySettingsRepository: Any,
+        val unitSettingsRepository: Any,
+        val backgroundNotificationSettingsRepository: Any,
+        val permissionRequestHistory: Any,
         val nearbyCityRepository: Any,
         val mapArchiveRepository: Any,
         val clock: Any,

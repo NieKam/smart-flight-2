@@ -34,6 +34,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.zIndex
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import dagger.hilt.android.AndroidEntryPoint
 import kniezrec.com.flightinfo.about.AboutIntentFactory
 import kniezrec.com.flightinfo.about.AndroidAppVersionProvider
@@ -41,12 +45,9 @@ import kniezrec.com.flightinfo.about.AndroidExternalIntentLauncher
 import kniezrec.com.flightinfo.course.CourseController
 import kniezrec.com.flightinfo.course.CourseState
 import kniezrec.com.flightinfo.course.ForegroundCourseObservationCoordinator
-import kniezrec.com.flightinfo.display.DisplayEffectSink
-import kniezrec.com.flightinfo.display.DisplayPreferences
-import kniezrec.com.flightinfo.display.DisplayPreferencesApplier
-import kniezrec.com.flightinfo.display.DisplayPreferencesStore
-import kniezrec.com.flightinfo.displayunits.UnitPreferences
-import kniezrec.com.flightinfo.displayunits.UnitPreferencesStore
+import kniezrec.com.flightinfo.display.data.DisplaySettingsRepository
+import kniezrec.com.flightinfo.display.ui.applyDisplayPreferences
+import kniezrec.com.flightinfo.displayunits.data.UnitSettingsRepository
 import kniezrec.com.flightinfo.flight.AndroidFlightLocationPlatform
 import kniezrec.com.flightinfo.flight.AndroidPressurePlatform
 import kniezrec.com.flightinfo.flight.FlightParametersController
@@ -60,9 +61,8 @@ import kniezrec.com.flightinfo.horizon.HorizonState
 import kniezrec.com.flightinfo.map.MapArchiveRepository
 import kniezrec.com.flightinfo.map.MapSessionRules
 import kniezrec.com.flightinfo.monitoring.BackgroundMonitoringBridge
-import kniezrec.com.flightinfo.monitoring.BackgroundNotificationPreferences
-import kniezrec.com.flightinfo.monitoring.BackgroundNotificationPreferencesStore
 import kniezrec.com.flightinfo.monitoring.LocationForegroundService
+import kniezrec.com.flightinfo.monitoring.data.BackgroundNotificationSettingsRepository
 import kniezrec.com.flightinfo.nearby.NearbyCityController
 import kniezrec.com.flightinfo.nearby.NearbyCityRecord
 import kniezrec.com.flightinfo.nearby.NearbyCityRepository
@@ -74,7 +74,6 @@ import kniezrec.com.flightinfo.permission.FineLocationPermissionPlatform
 import kniezrec.com.flightinfo.permission.LocationPermissionRequestHistory
 import kniezrec.com.flightinfo.permission.LocationPermissionState
 import kniezrec.com.flightinfo.permission.LocationPermissionStateController
-import kniezrec.com.flightinfo.permission.data.di.LocationPermissionPreferences
 import kniezrec.com.flightinfo.permission.locationPermissionRequest
 import kniezrec.com.flightinfo.route.RouteController
 import kniezrec.com.flightinfo.route.RouteEndpoint
@@ -96,15 +95,13 @@ import javax.inject.Inject
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     // Injected in super.onCreate(); nothing below may touch them earlier.
-    @Inject lateinit var displayPreferencesStore: DisplayPreferencesStore
+    @Inject lateinit var displaySettingsRepository: DisplaySettingsRepository
 
-    @Inject lateinit var unitPreferencesStore: UnitPreferencesStore
+    @Inject lateinit var unitSettingsRepository: UnitSettingsRepository
 
-    @Inject lateinit var backgroundNotificationPreferencesStore: BackgroundNotificationPreferencesStore
+    @Inject lateinit var backgroundNotificationSettingsRepository: BackgroundNotificationSettingsRepository
 
-    @LocationPermissionPreferences
-    @Inject
-    lateinit var permissionPreferences: SharedPreferences
+    @Inject lateinit var permissionRequestHistory: LocationPermissionRequestHistory
 
     @RoutePreferences
     @Inject
@@ -133,29 +130,6 @@ class MainActivity : ComponentActivity() {
     private var routeNearestDraft by mutableStateOf<NearbyCityRecord?>(null)
     private var showUnitSettings by mutableStateOf(false)
     private var showAbout by mutableStateOf(false)
-    private var unitPreferences by mutableStateOf(UnitPreferences())
-    private var displayPreferences by mutableStateOf(DisplayPreferences())
-    private var backgroundNotificationPreferences by mutableStateOf(BackgroundNotificationPreferences())
-    private val displayPreferencesApplier by lazy {
-        DisplayPreferencesApplier(
-            sink =
-                object : DisplayEffectSink {
-                    override fun setKeepScreenAlwaysOn(enabled: Boolean) {
-                        if (enabled) {
-                            window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-                        } else {
-                            window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-                        }
-                    }
-
-                    override fun requestOrientation(orientation: Int) {
-                        requestedOrientation = orientation
-                    }
-                },
-            portraitOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT,
-            sensorOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR,
-        )
-    }
     private var lastRouteSearchQuery = ""
     private val mapRules = MapSessionRules()
     private var mapLoadToken = 0L
@@ -182,12 +156,19 @@ class MainActivity : ComponentActivity() {
             onLocation = flightParametersController::acceptLocationFix,
             onGnssStatus = gnssStatusController::acceptStatus,
         )
-        unitPreferences = unitPreferencesStore.read()
-        displayPreferences = displayPreferencesStore.read()
-        backgroundNotificationPreferences = backgroundNotificationPreferencesStore.read()
-        applyDisplayPreferences()
+        // Synchronous current value: window flags and orientation are set before the first frame.
+        applyDisplayPreferences(displaySettingsRepository.display.value)
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                displaySettingsRepository.display.collect { applyDisplayPreferences(it) }
+            }
+        }
         setContent {
             SmartFlightTheme {
+                val unitPreferences by unitSettingsRepository.units.collectAsStateWithLifecycle()
+                val displayPreferences by displaySettingsRepository.display.collectAsStateWithLifecycle()
+                val backgroundNotificationPreferences by
+                    backgroundNotificationSettingsRepository.settings.collectAsStateWithLifecycle()
                 BackHandler(enabled = showUnitSettings) { showUnitSettings = false }
                 BackHandler(enabled = showAbout) { showAbout = false }
                 val snackbarHostState = remember { SnackbarHostState() }
@@ -209,23 +190,21 @@ class MainActivity : ComponentActivity() {
                                     UnitSettingsScreen(
                                         preferences = unitPreferences,
                                         onPreferenceChange = { value ->
-                                            unitPreferencesStore.write(value)
-                                            unitPreferences = value
+                                            lifecycleScope.launch { unitSettingsRepository.setUnits(value) }
                                         },
                                         displayPreferences = displayPreferences,
                                         onDisplayPreferenceChange = { value ->
-                                            displayPreferencesStore.write(value)
-                                            displayPreferences = value
-                                            applyDisplayPreferences()
+                                            // Window effects follow from the display collector above.
+                                            lifecycleScope.launch { displaySettingsRepository.set(value) }
                                         },
                                         showBackgroundNotification = backgroundNotificationPreferences.showBackgroundNotification,
                                         onBackgroundNotificationChange = { enabled ->
-                                            val value = BackgroundNotificationPreferences(enabled)
-                                            backgroundNotificationPreferencesStore.write(value)
-                                            backgroundNotificationPreferences = value
-                                            BackgroundMonitoringBridge.setNotificationEnabled(enabled)
-                                            if (enabled && isForeground && permissionState == LocationPermissionState.Granted) {
-                                                startBackgroundMonitoring()
+                                            lifecycleScope.launch {
+                                                backgroundNotificationSettingsRepository.setShowBackgroundNotification(enabled)
+                                                BackgroundMonitoringBridge.setNotificationEnabled(enabled)
+                                                if (enabled && isForeground && permissionState == LocationPermissionState.Granted) {
+                                                    startBackgroundMonitoring()
+                                                }
                                             }
                                         },
                                         onBack = { showUnitSettings = false },
@@ -394,10 +373,6 @@ class MainActivity : ComponentActivity() {
         BackgroundMonitoringBridge.beginSession()
         BackgroundMonitoringBridge.setActivityVisible(true)
         refreshPermissionState()
-        unitPreferences = unitPreferencesStore.read()
-        displayPreferences = displayPreferencesStore.read()
-        backgroundNotificationPreferences = backgroundNotificationPreferencesStore.read()
-        applyDisplayPreferences()
         if (permissionState == LocationPermissionState.Granted) {
             startBackgroundMonitoring()
         } else {
@@ -487,14 +462,7 @@ class MainActivity : ComponentActivity() {
                     override fun shouldShowFineLocationRationale(): Boolean =
                         shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_FINE_LOCATION)
                 },
-            requestHistory =
-                object : LocationPermissionRequestHistory {
-                    override var hasRequestedFineLocation: Boolean
-                        get() = permissionPreferences.getBoolean(HAS_REQUESTED_PERMISSION, false)
-                        set(value) {
-                            permissionPreferences.edit().putBoolean(HAS_REQUESTED_PERMISSION, value).apply()
-                        }
-                },
+            requestHistory = permissionRequestHistory,
         )
     }
 
@@ -573,10 +541,6 @@ class MainActivity : ComponentActivity() {
         ForegroundCourseObservationCoordinator(flightParametersController, courseController, nearbyCityController)
     }
 
-    private fun applyDisplayPreferences() {
-        displayPreferencesApplier.apply(displayPreferences, requestedOrientation)
-    }
-
     private fun startBackgroundMonitoring() {
         runCatching {
             ContextCompat.startForegroundService(this, Intent(this, LocationForegroundService::class.java))
@@ -619,9 +583,5 @@ class MainActivity : ComponentActivity() {
         mapLoadToken++
         mapRules.reset()
         mapState = MapCardState.Inactive
-    }
-
-    private companion object {
-        const val HAS_REQUESTED_PERMISSION = "has_requested_location_permission"
     }
 }
