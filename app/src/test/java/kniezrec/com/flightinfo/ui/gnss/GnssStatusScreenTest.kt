@@ -100,7 +100,8 @@ class GnssStatusScreenTest {
         composeRule.onNodeWithText("36.0 km/h").assertIsDisplayed()
         composeRule.onNodeWithText("—").assertIsDisplayed()
         composeRule.onNodeWithText("100.0 m").assertIsDisplayed()
-        composeRule.onNodeWithText("1013.3 mbar").assertIsDisplayed()
+        // NumberFormat: grouping separator and HALF_EVEN rounding of 1013.25.
+        composeRule.onNodeWithText("1,013.2 mbar").assertIsDisplayed()
     }
 
     @Test fun flightParametersPressureRowHasOrderPlaceholderAndAccessibility() {
@@ -135,7 +136,7 @@ class GnssStatusScreenTest {
             )
         }
 
-        composeRule.onNodeWithContentDescription("Pressure 1013.3 millibars").assertExists()
+        composeRule.onNodeWithContentDescription("Pressure 1,013.2 millibars").assertExists()
     }
 
     @Test fun flightParametersAnnounceAvailabilityAfterWaiting() {

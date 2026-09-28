@@ -20,6 +20,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kniezrec.com.flightinfo.display.DisplayPreferences
 import kniezrec.com.flightinfo.displayunits.AltitudeUnit
@@ -49,6 +50,11 @@ import java.util.zip.ZipOutputStream
 private const val LARGER_ZOOM_ON_DESCRIPTION =
     "Larger map zoom, current value On. Extra zoom may show unavailable or grey map areas " +
         "because offline tiles may not be available at those levels."
+
+// osmdroid floors the map centre to whole Mercator pixels on every zoom change (TileSystem.ClipToLong),
+// so zooming 8 -> 6 moves the centre by at most one zoom-8 pixel plus one zoom-6 pixel of longitude
+// (a latitude pixel is smaller). Resetting or re-centring the viewport would move it by degrees.
+private const val CENTER_TOLERANCE_DEGREES = 360.0 / (256 * 256) + 360.0 / (256 * 64)
 
 @RunWith(AndroidJUnit4::class)
 class UnitSettingsScreenTest {
@@ -144,7 +150,11 @@ class UnitSettingsScreenTest {
             )
         val defaults = listOf("km/h", "m", "km", "m/s", "mbar")
         selectors.forEachIndexed { index, (label, options, chosen) ->
-            composeRule.onNode(hasContentDescription("$label, current value ${defaults[index]}, double tap to change")).performClick()
+            // The lower rows sit below the fold of a phone window; scroll them in like a user would.
+            composeRule
+                .onNode(hasContentDescription("$label, current value ${defaults[index]}, double tap to change"))
+                .performScrollTo()
+                .performClick()
             options.forEach { composeRule.onNodeWithText(it).assertIsDisplayed() }
             composeRule.onNodeWithText(options.single { it.endsWith("($chosen)") }).performClick()
             composeRule.onNode(hasContentDescription("$label, current value $chosen, double tap to change")).assertExists()
@@ -217,8 +227,10 @@ class UnitSettingsScreenTest {
 
             val initialMap = requireNotNull(findMapView(composeRule.activity.window.decorView))
             composeRule.runOnIdle {
-                initialMap.controller.setCenter(GeoPoint(48.8566, 2.3522))
+                // Zoom first: osmdroid zooms around the current centre snapped to whole pixels, so
+                // centring at the default zoom 3 and then zooming would move the centre by a zoom-3 pixel.
                 initialMap.controller.setZoom(8.0)
+                initialMap.controller.setCenter(GeoPoint(48.8566, 2.3522))
             }
             composeRule.onNodeWithText("Settings").performClick()
             composeRule.runOnIdle {
@@ -231,16 +243,16 @@ class UnitSettingsScreenTest {
                 assertSame(initialMap, findMapView(composeRule.activity.window.decorView))
                 assertEquals(6.0, initialMap.maxZoomLevel, 0.0)
                 assertEquals(6.0, initialMap.zoomLevelDouble, 0.0)
-                assertEquals(48.8566, initialMap.mapCenter.latitude, 0.0)
-                assertEquals(2.3522, initialMap.mapCenter.longitude, 0.0)
+                assertEquals(48.8566, initialMap.mapCenter.latitude, CENTER_TOLERANCE_DEGREES)
+                assertEquals(2.3522, initialMap.mapCenter.longitude, CENTER_TOLERANCE_DEGREES)
             }
 
             composeRule.onNodeWithContentDescription("Navigate up").performClick()
             composeRule.runOnIdle {
                 assertSame(initialMap, findMapView(composeRule.activity.window.decorView))
                 assertEquals(6.0, initialMap.maxZoomLevel, 0.0)
-                assertEquals(48.8566, initialMap.mapCenter.latitude, 0.0)
-                assertEquals(2.3522, initialMap.mapCenter.longitude, 0.0)
+                assertEquals(48.8566, initialMap.mapCenter.latitude, CENTER_TOLERANCE_DEGREES)
+                assertEquals(2.3522, initialMap.mapCenter.longitude, CENTER_TOLERANCE_DEGREES)
             }
         } finally {
             archive.delete()
