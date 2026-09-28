@@ -131,3 +131,6 @@ Relevant files:
 - /home/ai-dev/smart-flight-2-modern/app/src/main/java/kniezrec/com/flightinfo/ui/gnss/MapCard.kt
 - /home/ai-dev/smart-flight-2-modern/app/src/main/java/kniezrec/com/flightinfo/displayunits/UnitPresentation.kt
 - /home/ai-dev/smart-flight/app/src/main/java/kniezrec/com/flightinfo/avionic/calculators/Pressure.kt
+
+## Human decision (2026-09-28)
+E1 resolved with option A (the reviewer's recommendation): keep the `@Ignore` on `invalidOfflineArchiveReportsOpenFailureWithoutUsingNetworkFallback`. The review result becomes **PASS**; no code change needed. Follow-ups recorded in the plan: F1 → TASK-014 (fix `MapCard` for unreadable archives, remove the `@Ignore`), F2 and F3 → TASK-020.

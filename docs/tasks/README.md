@@ -31,7 +31,7 @@ The order follows four phases. Every task leaves the app building, tests green a
 | NNN | Title | Depends on | Status |
 |---|---|---|---|
 | 001 | [Build foundation: coroutines, lifecycle-compose, coroutine tests, versionName 1.0.0](001-build-foundation/task.md) | none | DONE |
-| 002 | [Run Compose UI tests on the JVM (Robolectric), retire androidTest](002-compose-tests-on-jvm/task.md) | 001 | TODO |
+| 002 | [Run Compose UI tests on the JVM (Robolectric), retire androidTest](002-compose-tests-on-jvm/task.md) | 001 | DONE |
 | 003 | [Remove dead and test-only production code](003-remove-dead-code/task.md) | 002 | TODO |
 | 004 | [Characterization tests pinning dashboard orchestration](004-characterization-tests/task.md) | 002, 003 | TODO |
 | 005 | [Introduce KSP + Hilt as a dedicated DI step (CI compatibility check first)](005-hilt-di/task.md) | 001, 004 | TODO |
@@ -178,6 +178,9 @@ The order follows four phases. Every task leaves the app building, tests green a
 | Plane marker drawn under the route line and pins (added first, `MapCard.kt:331` vs `:351-366`); cyan star with poor contrast on light tiles; empty info window on tap | 030 |
 | Non-palette colors outside the theme: map buttons #DD25133F (`MapCard.kt:182`), route pins #4DD0E1/#FFB74D, template `res/values/colors.xml` | 018 (tokens, guard), 030 (pins), 031 (buttons) |
 | Original launcher adaptive-icon XMLs are unused template files; the real icon is the PNG mipmaps | 034 |
+| F1 (TASK-002 review): `MapCard` never reports an unreadable offline archive (osmdroid swallows the `ZipException`); `invalidOfflineArchive…` test `@Ignore`d until fixed | 014 |
+| F2 (TASK-002 review): pressure shown as "1,013.2 mbar" (grouping, HALF_EVEN) vs original "1013.3 mbar" | 020 |
+| F3 (TASK-002 review): flight-row accessibility descriptions have no separator between label and value | 020 |
 
 ## Deferred / rejected
 
