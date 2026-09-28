@@ -57,7 +57,7 @@ class AboutDialogTest {
         composeRule.onNodeWithText("Send feedback").assertIsDisplayed()
         composeRule.onNodeWithText("Rate in Google Play").assertIsDisplayed()
         composeRule.onNodeWithText("Safety information").assertIsDisplayed()
-        composeRule.onNode(hasStateDescription("Sends feedback using an email app.")).assertExists()
+        composeRule.onNode(hasStateDescription("Opens an email addressed to Smart Flight feedback")).assertExists()
         composeRule.onNodeWithText("OK").assertIsDisplayed().performClick()
         composeRule.onNodeWithText("Smart Flight").assertDoesNotExist()
     }

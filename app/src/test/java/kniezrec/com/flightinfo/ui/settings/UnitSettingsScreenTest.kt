@@ -45,6 +45,11 @@ import java.io.FileOutputStream
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
+// When larger zoom is on, the row description also carries the tile-availability warning.
+private const val LARGER_ZOOM_ON_DESCRIPTION =
+    "Larger map zoom, current value On. Extra zoom may show unavailable or grey map areas " +
+        "because offline tiles may not be available at those levels."
+
 @RunWith(AndroidJUnit4::class)
 class UnitSettingsScreenTest {
     @get:Rule val composeRule = createAndroidComposeRule<ComponentActivity>()
@@ -110,7 +115,7 @@ class UnitSettingsScreenTest {
             .onNodeWithText(
                 "Extra zoom may show unavailable or grey map areas because offline tiles may not be available at those levels.",
             ).assertIsDisplayed()
-        composeRule.onNode(hasContentDescription("Larger map zoom, current value On")).performClick()
+        composeRule.onNode(hasContentDescription(LARGER_ZOOM_ON_DESCRIPTION)).performClick()
         composeRule
             .onNodeWithText(
                 "Extra zoom may show unavailable or grey map areas because offline tiles may not be available at those levels.",
@@ -141,7 +146,7 @@ class UnitSettingsScreenTest {
         selectors.forEachIndexed { index, (label, options, chosen) ->
             composeRule.onNode(hasContentDescription("$label, current value ${defaults[index]}, double tap to change")).performClick()
             options.forEach { composeRule.onNodeWithText(it).assertIsDisplayed() }
-            composeRule.onNodeWithText(options.last()).performClick()
+            composeRule.onNodeWithText(options.single { it.endsWith("($chosen)") }).performClick()
             composeRule.onNode(hasContentDescription("$label, current value $chosen, double tap to change")).assertExists()
         }
         composeRule.runOnIdle {
@@ -221,7 +226,7 @@ class UnitSettingsScreenTest {
                 assertEquals(9.0, initialMap.maxZoomLevel, 0.0)
             }
 
-            composeRule.onNodeWithContentDescription("Larger map zoom, current value On").performClick()
+            composeRule.onNodeWithContentDescription(LARGER_ZOOM_ON_DESCRIPTION).performClick()
             composeRule.runOnIdle {
                 assertSame(initialMap, findMapView(composeRule.activity.window.decorView))
                 assertEquals(6.0, initialMap.maxZoomLevel, 0.0)
