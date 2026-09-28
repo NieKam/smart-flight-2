@@ -2,6 +2,7 @@ package kniezrec.com.flightinfo
 
 import android.Manifest
 import android.content.Intent
+import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.hardware.SensorManager
@@ -33,6 +34,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.zIndex
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
+import dagger.hilt.android.AndroidEntryPoint
 import kniezrec.com.flightinfo.about.AboutIntentFactory
 import kniezrec.com.flightinfo.about.AndroidAppVersionProvider
 import kniezrec.com.flightinfo.about.AndroidExternalIntentLauncher
@@ -61,9 +63,9 @@ import kniezrec.com.flightinfo.monitoring.BackgroundMonitoringBridge
 import kniezrec.com.flightinfo.monitoring.BackgroundNotificationPreferences
 import kniezrec.com.flightinfo.monitoring.BackgroundNotificationPreferencesStore
 import kniezrec.com.flightinfo.monitoring.LocationForegroundService
-import kniezrec.com.flightinfo.nearby.AndroidNearbyCityRepository
 import kniezrec.com.flightinfo.nearby.NearbyCityController
 import kniezrec.com.flightinfo.nearby.NearbyCityRecord
+import kniezrec.com.flightinfo.nearby.NearbyCityRepository
 import kniezrec.com.flightinfo.nearby.NearbyCityState
 import kniezrec.com.flightinfo.orientation.AndroidOrientationSource
 import kniezrec.com.flightinfo.orientation.SharedCourseOrientationPlatform
@@ -72,10 +74,12 @@ import kniezrec.com.flightinfo.permission.FineLocationPermissionPlatform
 import kniezrec.com.flightinfo.permission.LocationPermissionRequestHistory
 import kniezrec.com.flightinfo.permission.LocationPermissionState
 import kniezrec.com.flightinfo.permission.LocationPermissionStateController
+import kniezrec.com.flightinfo.permission.data.di.LocationPermissionPreferences
 import kniezrec.com.flightinfo.permission.locationPermissionRequest
 import kniezrec.com.flightinfo.route.RouteController
 import kniezrec.com.flightinfo.route.RouteEndpoint
 import kniezrec.com.flightinfo.route.RouteState
+import kniezrec.com.flightinfo.route.data.di.RoutePreferences
 import kniezrec.com.flightinfo.route.validCity
 import kniezrec.com.flightinfo.ui.about.AboutDialog
 import kniezrec.com.flightinfo.ui.gnss.GnssStatusScreen
@@ -85,9 +89,33 @@ import kniezrec.com.flightinfo.ui.permission.smartFlightPageColor
 import kniezrec.com.flightinfo.ui.settings.UnitSettingsScreen
 import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
 import kotlinx.coroutines.launch
+import java.time.Clock
 import java.util.concurrent.Executors
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    // Injected in super.onCreate(); nothing below may touch them earlier.
+    @Inject lateinit var displayPreferencesStore: DisplayPreferencesStore
+
+    @Inject lateinit var unitPreferencesStore: UnitPreferencesStore
+
+    @Inject lateinit var backgroundNotificationPreferencesStore: BackgroundNotificationPreferencesStore
+
+    @LocationPermissionPreferences
+    @Inject
+    lateinit var permissionPreferences: SharedPreferences
+
+    @RoutePreferences
+    @Inject
+    lateinit var routePreferences: SharedPreferences
+
+    @Inject lateinit var nearbyCityRepository: NearbyCityRepository
+
+    @Inject lateinit var mapArchiveRepository: MapArchiveRepository
+
+    @Inject lateinit var clock: Clock
+
     private var permissionState by mutableStateOf(LocationPermissionState.Requestable)
     private var announcementVersion by mutableIntStateOf(0)
     private var gnssState by mutableStateOf<GnssStatusState>(GnssStatusState.Waiting)
@@ -398,7 +426,6 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() {
         pressureController.stop()
         cityLookupExecutor.shutdownNow()
-        mapArchiveRepository.close()
         if (!isChangingConfigurations) {
             BackgroundMonitoringBridge.clear()
             BackgroundMonitoringBridge.clearEventHandlers()
@@ -471,22 +498,6 @@ class MainActivity : ComponentActivity() {
         )
     }
 
-    private val displayPreferencesStore by lazy {
-        DisplayPreferencesStore(getSharedPreferences("display_behavior", MODE_PRIVATE))
-    }
-
-    private val backgroundNotificationPreferencesStore by lazy {
-        BackgroundNotificationPreferencesStore(getSharedPreferences(BackgroundNotificationPreferencesStore.PREFERENCES_NAME, MODE_PRIVATE))
-    }
-
-    private val unitPreferencesStore by lazy {
-        UnitPreferencesStore(getSharedPreferences("display_units", MODE_PRIVATE))
-    }
-
-    private val permissionPreferences by lazy {
-        getSharedPreferences(PERMISSION_PREFERENCES, MODE_PRIVATE)
-    }
-
     private val gnssStatusController by lazy {
         GnssStatusController(
             platform = AndroidGnssStatusPlatform(getSystemService(LocationManager::class.java), packageManager, mainExecutor),
@@ -533,21 +544,21 @@ class MainActivity : ComponentActivity() {
 
     private val routeController by lazy {
         RouteController(
-            repository = AndroidNearbyCityRepository(applicationContext),
+            repository = nearbyCityRepository,
             preferences = routePreferences,
             worker = cityLookupExecutor,
             callbackExecutor = mainExecutor,
             onStateChanged = { routeState = it },
+            clock = clock::instant,
         )
     }
 
-    private val routePreferences by lazy { getSharedPreferences("route", MODE_PRIVATE) }
-
     private val nearbyCityController by lazy {
         NearbyCityController(
-            repository = AndroidNearbyCityRepository(applicationContext),
+            repository = nearbyCityRepository,
             worker = cityLookupExecutor,
             callbackExecutor = mainExecutor,
+            clock = clock::instant,
             onStateChanged = { nearbyCityState = it },
         )
     }
@@ -590,8 +601,6 @@ class MainActivity : ComponentActivity() {
         startMapLoad()
     }
 
-    private val mapArchiveRepository by lazy { MapArchiveRepository(applicationContext) }
-
     private fun startMapLoad() {
         if (!isForeground || permissionState != LocationPermissionState.Granted) return
         val token = ++mapLoadToken
@@ -614,6 +623,5 @@ class MainActivity : ComponentActivity() {
 
     private companion object {
         const val HAS_REQUESTED_PERMISSION = "has_requested_location_permission"
-        const val PERMISSION_PREFERENCES = "location_permission"
     }
 }
