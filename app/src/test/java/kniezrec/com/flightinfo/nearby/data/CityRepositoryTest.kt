@@ -78,7 +78,7 @@ class CityRepositoryTest {
             val source =
                 FakeCityDataSource(
                     listOf(
-                        city(1, "Alpha", 0.0, 0.0),
+                        city(1, "Omaha", 0.0, 0.0),
                         city(2, " BETA town ", 0.0, 0.0),
                         city(3, "Gamma", 0.0, 0.0),
                         city(4, "Beta", 0.0, 0.0),
