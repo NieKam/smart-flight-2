@@ -2,7 +2,6 @@ package kniezrec.com.flightinfo
 
 import android.Manifest
 import android.content.Intent
-import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
@@ -56,17 +55,14 @@ import kniezrec.com.flightinfo.monitoring.AppVisibility
 import kniezrec.com.flightinfo.monitoring.LocationForegroundService
 import kniezrec.com.flightinfo.monitoring.data.BackgroundNotificationSettingsRepository
 import kniezrec.com.flightinfo.nearby.NearbyCityRecord
-import kniezrec.com.flightinfo.nearby.NearbyCityRepository
 import kniezrec.com.flightinfo.nearby.ui.NearbyCityViewModel
 import kniezrec.com.flightinfo.permission.FineLocationPermissionPlatform
 import kniezrec.com.flightinfo.permission.LocationPermissionRequestHistory
 import kniezrec.com.flightinfo.permission.LocationPermissionState
 import kniezrec.com.flightinfo.permission.LocationPermissionStateController
 import kniezrec.com.flightinfo.permission.locationPermissionRequest
-import kniezrec.com.flightinfo.route.RouteController
 import kniezrec.com.flightinfo.route.RouteEndpoint
-import kniezrec.com.flightinfo.route.RouteState
-import kniezrec.com.flightinfo.route.data.di.RoutePreferences
+import kniezrec.com.flightinfo.route.ui.RouteViewModel
 import kniezrec.com.flightinfo.route.validCity
 import kniezrec.com.flightinfo.ui.about.AboutDialog
 import kniezrec.com.flightinfo.ui.gnss.GnssStatusScreen
@@ -75,10 +71,11 @@ import kniezrec.com.flightinfo.ui.permission.PermissionOnboardingScreen
 import kniezrec.com.flightinfo.ui.permission.smartFlightPageColor
 import kniezrec.com.flightinfo.ui.settings.UnitSettingsScreen
 import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import java.time.Clock
-import java.util.concurrent.Executors
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -92,15 +89,7 @@ class MainActivity : ComponentActivity() {
 
     @Inject lateinit var permissionRequestHistory: LocationPermissionRequestHistory
 
-    @RoutePreferences
-    @Inject
-    lateinit var routePreferences: SharedPreferences
-
-    @Inject lateinit var nearbyCityRepository: NearbyCityRepository
-
     @Inject lateinit var mapArchiveRepository: MapArchiveRepository
-
-    @Inject lateinit var clock: Clock
 
     @Inject lateinit var locationRepository: LocationRepository
 
@@ -109,7 +98,6 @@ class MainActivity : ComponentActivity() {
     private var permissionState by mutableStateOf(LocationPermissionState.Requestable)
     private var announcementVersion by mutableIntStateOf(0)
     private var mapState by mutableStateOf<MapCardState>(MapCardState.Inactive)
-    private var routeState by mutableStateOf(RouteState())
     private var routePicker by mutableStateOf<RouteEndpoint?>(null)
     private var routeResults by mutableStateOf<List<NearbyCityRecord>>(emptyList())
     private var routeSearchLoading by mutableStateOf(false)
@@ -118,6 +106,9 @@ class MainActivity : ComponentActivity() {
     private var showUnitSettings by mutableStateOf(false)
     private var showAbout by mutableStateOf(false)
     private var lastRouteSearchQuery = ""
+
+    // The latest picker lookup; a newer one cancels it, so only the latest result is shown.
+    private var routeLookup: Job? = null
     private val mapRules = MapSessionRules()
     private var mapLoadToken = 0L
     private var mapPositionVersion by mutableIntStateOf(0)
@@ -173,11 +164,13 @@ class MainActivity : ComponentActivity() {
                             val courseViewModel: CourseViewModel = hiltViewModel()
                             val horizonViewModel: HorizonViewModel = hiltViewModel()
                             val nearbyCityViewModel: NearbyCityViewModel = hiltViewModel()
+                            val routeViewModel: RouteViewModel = hiltViewModel()
                             val gnssState by gnssStatusViewModel.state.collectAsStateWithLifecycle()
                             val flightParametersState by flightParametersViewModel.state.collectAsStateWithLifecycle()
                             val courseState by courseViewModel.state.collectAsStateWithLifecycle()
                             val horizonState by horizonViewModel.state.collectAsStateWithLifecycle()
                             val nearbyCityState by nearbyCityViewModel.state.collectAsStateWithLifecycle()
+                            val routeState by routeViewModel.state.collectAsStateWithLifecycle()
                             // Settings is an overlay so the dashboard's AndroidView-backed map remains
                             // composed. This preserves its viewport, overlays, and in-place zoom policy.
                             Box(Modifier.fillMaxSize()) {
@@ -230,8 +223,8 @@ class MainActivity : ComponentActivity() {
                                         routeNearestDraft = null
                                         lastRouteSearchQuery = ""
                                     },
-                                    onRouteClear = { routeController.clear(it) },
-                                    onRouteClearAll = { routeController.clearRoute() },
+                                    onRouteClear = routeViewModel::clear,
+                                    onRouteClearAll = routeViewModel::clearAll,
                                     routePicker = routePicker,
                                     routePickerInitial =
                                         if (routePicker ==
@@ -248,9 +241,8 @@ class MainActivity : ComponentActivity() {
                                         lastRouteSearchQuery = query
                                         routeSearchLoading = true
                                         routeSearchError = null
-                                        routeController.search(query) { result ->
-                                            routeSearchLoading = false
-                                            result.fold(
+                                        lookUpRouteCities {
+                                            result { routeViewModel.search(query) }.fold(
                                                 { routeResults = it },
                                                 { routeSearchError = getString(R.string.route_error) },
                                             )
@@ -258,7 +250,7 @@ class MainActivity : ComponentActivity() {
                                     },
                                     onRouteConfirm = { city ->
                                         routePicker?.let { endpoint ->
-                                            if (routeController.choose(endpoint, city)) {
+                                            if (routeViewModel.choose(endpoint, city)) {
                                                 routeNearestDraft = null
                                                 routePicker = null
                                                 true
@@ -275,22 +267,20 @@ class MainActivity : ComponentActivity() {
                                         routePicker?.let {
                                             routeSearchLoading = true
                                             routeSearchError = null
-                                            routeController.search(lastRouteSearchQuery, reload = true) { result ->
-                                                routeSearchLoading = false
-                                                result.fold(
+                                            lookUpRouteCities {
+                                                result { routeViewModel.search(lastRouteSearchQuery, reload = true) }.fold(
                                                     { routeResults = it },
                                                     { routeSearchError = getString(R.string.route_error) },
                                                 )
                                             }
                                         }
                                     },
-                                    onRouteRestoreRetry = { routeController.retryRestore() },
+                                    onRouteRestoreRetry = routeViewModel::retryRestore,
                                     onRouteNearest = { coordinate ->
                                         routeSearchLoading = true
                                         routeSearchError = null
-                                        routeController.nearest(coordinate) { result ->
-                                            routeSearchLoading = false
-                                            result.fold(
+                                        lookUpRouteCities {
+                                            result { routeViewModel.nearest(coordinate) }.fold(
                                                 { city ->
                                                     if (city == null) {
                                                         routeNearestDraft = null
@@ -377,13 +367,11 @@ class MainActivity : ComponentActivity() {
     override fun onPause() {
         stopMap()
         isForeground = false
-        routeController.stop()
         appVisibility.setVisible(false)
         super.onPause()
     }
 
     override fun onDestroy() {
-        cityLookupExecutor.shutdownNow()
         if (!isChangingConfigurations) {
             stopBackgroundMonitoring()
         }
@@ -395,7 +383,6 @@ class MainActivity : ComponentActivity() {
         if (isForeground && permissionState == LocationPermissionState.Granted) {
             startObservation()
         } else if (permissionState != LocationPermissionState.Granted || isForeground) {
-            routeController.stop()
             stopMap()
             stopBackgroundMonitoring()
         }
@@ -443,18 +430,32 @@ class MainActivity : ComponentActivity() {
         )
     }
 
-    private val cityLookupExecutor by lazy { Executors.newSingleThreadExecutor() }
-
-    private val routeController by lazy {
-        RouteController(
-            repository = nearbyCityRepository,
-            preferences = routePreferences,
-            worker = cityLookupExecutor,
-            callbackExecutor = mainExecutor,
-            onStateChanged = { routeState = it },
-            clock = clock::instant,
-        )
+    /**
+     * Runs a route picker lookup, replacing the previous one; [routeSearchLoading] is on while it
+     * runs. Temporary until the picker gets its own state holder (TASK-013).
+     */
+    private fun lookUpRouteCities(block: suspend () -> Unit) {
+        routeLookup?.cancel()
+        routeLookup =
+            lifecycleScope.launch {
+                try {
+                    block()
+                } finally {
+                    // A cancelled lookup was replaced (or the activity is gone): the newer one owns the flag.
+                    if (isActive) routeSearchLoading = false
+                }
+            }
     }
+
+    /** [block]'s value, or its failure; cancellation is not caught. */
+    private suspend fun <T> result(block: suspend () -> T): Result<T> =
+        try {
+            Result.success(block())
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (failure: Exception) {
+            Result.failure(failure)
+        }
 
     private fun startBackgroundMonitoring() {
         runCatching {
@@ -467,13 +468,12 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun startObservation() {
-        routeController.start()
         startMapLoad()
     }
 
     /**
      * Feeds the fixes of the shared location registration (the service and the card ViewModels
-     * collect the same one) to route and map. While the location is
+     * collect the same one) to the map. While the location is
      * switched off the fixes are not collected. A registration failure stops the feed until the
      * next resume.
      */
@@ -488,7 +488,6 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun onLocationFix(fix: FlightLocationFix) {
-        routeController.onFix(fix)
         if (mapRules.accept(fix)) mapPositionVersion++
     }
 

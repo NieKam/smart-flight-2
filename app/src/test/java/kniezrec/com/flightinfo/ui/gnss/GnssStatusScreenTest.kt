@@ -152,8 +152,8 @@ class GnssStatusScreenTest {
         composeRule.onNodeWithContentDescription("Flight parameters available").assertExists()
     }
 
-    // Tall window so the whole dashboard, down to the route card, is on screen.
-    @Config(qualifiers = "w411dp-h2000dp")
+    // Tall window so the whole dashboard, down to the route card, is on screen; fixed locale for the arrival.
+    @Config(qualifiers = "en-rUS-w411dp-h2000dp")
     @Test
     fun changingUnitsImmediatelyUpdatesFlightNearbyAndRouteValues() {
         var preferences by mutableStateOf(UnitPreferences())
@@ -167,7 +167,7 @@ class GnssStatusScreenTest {
                 nearbyCityState = NearbyCityState.Available("Nearby", "US", 10.0, java.time.ZoneOffset.UTC, java.time.Instant.EPOCH, 0),
                 routeState =
                     RouteState(
-                        details = RouteDetails(100.0, 50.0, "10:00", "01:00"),
+                        details = RouteDetails(100.0, 50.0, ARRIVAL, java.time.ZoneOffset.UTC, java.time.Duration.ofHours(1)),
                     ),
             )
         }
@@ -175,7 +175,7 @@ class GnssStatusScreenTest {
         composeRule.onNodeWithText("10.0 km").assertIsDisplayed()
         composeRule.onNodeWithText("100.0 km").assertIsDisplayed()
         composeRule.onNodeWithText("50.0 km").assertIsDisplayed()
-        composeRule.onNodeWithText("10:00 (01:00)").assertIsDisplayed()
+        composeRule.onNodeWithText("$ARRIVAL_TEXT (01:00)").assertIsDisplayed()
 
         composeRule.runOnIdle {
             preferences =
@@ -195,7 +195,7 @@ class GnssStatusScreenTest {
         composeRule.onNodeWithText("6.2 mi").assertIsDisplayed()
         composeRule.onNodeWithText("62.1 mi").assertIsDisplayed()
         composeRule.onNodeWithText("31.1 mi").assertIsDisplayed()
-        composeRule.onNodeWithText("10:00 (01:00)").assertIsDisplayed()
+        composeRule.onNodeWithText("$ARRIVAL_TEXT (01:00)").assertIsDisplayed()
     }
 
     @Test fun courseWaitingShowsOnlyCurrentSessionWaitingContent() {
@@ -519,7 +519,7 @@ class GnssStatusScreenTest {
                         destination = destination,
                         details =
                             kniezrec.com.flightinfo.route
-                                .RouteDetails(111.2, null, null, null),
+                                .RouteDetails(111.2, null, null, java.time.ZoneId.of("Europe/Berlin"), null),
                     ),
                 onChoose = {},
                 onClear = {},
@@ -596,5 +596,16 @@ class GnssStatusScreenTest {
         composeRule.setContent {
             GnssStatusScreen(GnssStatusState.Waiting, FlightParametersState.Waiting, {}, {}, courseState = shownCourse, onCourseRetry = {})
         }
+    }
+
+    private companion object {
+        val ARRIVAL: java.time.Instant = java.time.Instant.parse("2020-01-01T10:00:00Z")
+
+        /** [ARRIVAL] as the route card shows it with the test's en-US locale. */
+        val ARRIVAL_TEXT: String =
+            java.time.format.DateTimeFormatter
+                .ofLocalizedDateTime(java.time.format.FormatStyle.SHORT)
+                .withLocale(java.util.Locale.US)
+                .format(ARRIVAL.atZone(java.time.ZoneOffset.UTC))
     }
 }

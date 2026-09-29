@@ -6,9 +6,6 @@ import kniezrec.com.flightinfo.nearby.distanceKilometres
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.time.format.FormatStyle
-import java.util.Locale
 import kotlin.math.roundToInt
 
 enum class RouteEndpoint { DEPARTURE, DESTINATION }
@@ -20,11 +17,16 @@ data class RouteOverlay(
     val destinationName: String,
 )
 
+/**
+ * Route values; the UI formats them. [arrival] and [duration] are known only with a position and a
+ * positive speed; [arrival] is shown in [destinationZone].
+ */
 data class RouteDetails(
     val fixedDistanceKm: Double,
     val remainingDistanceKm: Double?,
-    val arrival: String?,
-    val duration: String?,
+    val arrival: Instant?,
+    val destinationZone: ZoneId,
+    val duration: Duration?,
 )
 
 data class RouteState(
@@ -43,8 +45,6 @@ data class RouteFix(
     val coordinate: NearbyCoordinate,
     val speedMetresPerSecond: Double?,
 )
-
-fun normalizeCityQuery(query: String): String = query.trim().lowercase(Locale.ROOT)
 
 fun validCity(city: NearbyCityRecord): Boolean =
     NearbyCoordinate.from(city.latitude, city.longitude) != null && runCatching { ZoneId.of(city.timeZoneId) }.isSuccess
@@ -73,11 +73,12 @@ fun routeDistance(
         NearbyCoordinate(destination.latitude, destination.longitude),
     )
 
+/** Details of the route between two [validCity] endpoints at [now], with the latest [fix] if any. */
 fun routeDetails(
     departure: NearbyCityRecord,
     destination: NearbyCityRecord,
     fix: RouteFix?,
-    now: Instant = Instant.now(),
+    now: Instant,
 ): RouteDetails {
     val fixed = routeDistance(departure, destination)
     val remaining = fix?.let { distanceKilometres(it.coordinate, NearbyCoordinate(destination.latitude, destination.longitude)) }
@@ -90,19 +91,6 @@ fun routeDetails(
         } else {
             null
         }
-    val arrival =
-        durationSeconds?.let {
-            DateTimeFormatter
-                .ofLocalizedDateTime(
-                    FormatStyle.SHORT,
-                ).withLocale(Locale.getDefault())
-                .format(now.plusSeconds(it).atZone(ZoneId.of(destination.timeZoneId)))
-        }
-    val duration =
-        durationSeconds?.let {
-            Duration.ofSeconds(it).let { d ->
-                "%02d:%02d".format(Locale.ROOT, d.toHours(), d.toMinutesPart())
-            }
-        }
-    return RouteDetails(fixed, remaining, arrival, duration)
+    val duration = durationSeconds?.let(Duration::ofSeconds)
+    return RouteDetails(fixed, remaining, duration?.let { now.plus(it) }, ZoneId.of(destination.timeZoneId), duration)
 }
