@@ -40,7 +40,7 @@ The order follows four phases. Every task leaves the app building, tests green a
 | 008 | [Remove BackgroundMonitoringBridge and dead foreground paths](008-remove-monitoring-bridge/task.md) | 007 | DONE |
 | 009 | [GNSS status and flight parameters ViewModels](009-gnss-flight-viewmodels/task.md) | 008 | DONE |
 | 010 | [One orientation Flow; Course and Horizon ViewModels](010-orientation-course-horizon/task.md) | 008 | DONE |
-| 011 | [City repository and Nearby city ViewModel](011-city-repository-nearby/task.md) | 005, 008 | TODO |
+| 011 | [City repository and Nearby city ViewModel](011-city-repository-nearby/task.md) | 005, 008 | DONE |
 | 012 | [Route repository and Route card ViewModel](012-route-repository-viewmodel/task.md) | 006, 011 | TODO |
 | 013 | [Route picker state holder, typed errors, nearest-city draft fix](013-route-picker-state/task.md) | 012 | TODO |
 | 014 | [Map ViewModel, suspend archive, osmdroid config at startup, marker follows fixes](014-map-viewmodel/task.md) | 006, 008, 011 | TODO |

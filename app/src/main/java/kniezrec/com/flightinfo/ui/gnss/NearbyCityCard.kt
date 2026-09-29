@@ -21,6 +21,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -36,6 +37,10 @@ import kniezrec.com.flightinfo.displayunits.convertDistance
 import kniezrec.com.flightinfo.displayunits.formatUnitNumber
 import kniezrec.com.flightinfo.nearby.NearbyCityState
 import kniezrec.com.flightinfo.ui.permission.cardPurple
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 
 private val nearbyTextColor =
     androidx.compose.ui.graphics
@@ -122,10 +127,11 @@ internal fun NearbyCityCard(
         ),
     )
     val offset = utcOffsetPresentation(state.utcOffsetSeconds)
+    val localTime = localTimeText(state.instant, state.zoneId)
     Row(
         R.string.nearby_city_time,
-        stringResource(R.string.nearby_city_time_value, state.localTime, offset.visible),
-        stringResource(R.string.nearby_city_time_spoken, state.localTime, offset.spoken),
+        stringResource(R.string.nearby_city_time_value, localTime, offset.visible),
+        stringResource(R.string.nearby_city_time_spoken, localTime, offset.spoken),
     )
 }
 
@@ -152,6 +158,20 @@ internal fun NearbyCityCard(
                 ).semantics { stateDescription = hint },
         interactionSource = interactionSource,
     ) { Text(stringResource(R.string.nearby_city_retry)) }
+}
+
+/** The city's local time at [instant], in the short time style of the current locale. */
+@Composable private fun localTimeText(
+    instant: Instant,
+    zoneId: ZoneId,
+): String {
+    val locale = LocalConfiguration.current.locales[0]
+    return remember(instant, zoneId, locale) {
+        DateTimeFormatter
+            .ofLocalizedTime(FormatStyle.SHORT)
+            .withLocale(locale)
+            .format(instant.atZone(zoneId))
+    }
 }
 
 private data class UtcOffsetText(

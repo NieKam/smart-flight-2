@@ -55,10 +55,9 @@ import kniezrec.com.flightinfo.map.MapSessionRules
 import kniezrec.com.flightinfo.monitoring.AppVisibility
 import kniezrec.com.flightinfo.monitoring.LocationForegroundService
 import kniezrec.com.flightinfo.monitoring.data.BackgroundNotificationSettingsRepository
-import kniezrec.com.flightinfo.nearby.NearbyCityController
 import kniezrec.com.flightinfo.nearby.NearbyCityRecord
 import kniezrec.com.flightinfo.nearby.NearbyCityRepository
-import kniezrec.com.flightinfo.nearby.NearbyCityState
+import kniezrec.com.flightinfo.nearby.ui.NearbyCityViewModel
 import kniezrec.com.flightinfo.permission.FineLocationPermissionPlatform
 import kniezrec.com.flightinfo.permission.LocationPermissionRequestHistory
 import kniezrec.com.flightinfo.permission.LocationPermissionState
@@ -109,7 +108,6 @@ class MainActivity : ComponentActivity() {
 
     private var permissionState by mutableStateOf(LocationPermissionState.Requestable)
     private var announcementVersion by mutableIntStateOf(0)
-    private var nearbyCityState by mutableStateOf<NearbyCityState>(NearbyCityState.WaitingForPosition)
     private var mapState by mutableStateOf<MapCardState>(MapCardState.Inactive)
     private var routeState by mutableStateOf(RouteState())
     private var routePicker by mutableStateOf<RouteEndpoint?>(null)
@@ -174,10 +172,12 @@ class MainActivity : ComponentActivity() {
                             val flightParametersViewModel: FlightParametersViewModel = hiltViewModel()
                             val courseViewModel: CourseViewModel = hiltViewModel()
                             val horizonViewModel: HorizonViewModel = hiltViewModel()
+                            val nearbyCityViewModel: NearbyCityViewModel = hiltViewModel()
                             val gnssState by gnssStatusViewModel.state.collectAsStateWithLifecycle()
                             val flightParametersState by flightParametersViewModel.state.collectAsStateWithLifecycle()
                             val courseState by courseViewModel.state.collectAsStateWithLifecycle()
                             val horizonState by horizonViewModel.state.collectAsStateWithLifecycle()
+                            val nearbyCityState by nearbyCityViewModel.state.collectAsStateWithLifecycle()
                             // Settings is an overlay so the dashboard's AndroidView-backed map remains
                             // composed. This preserves its viewport, overlays, and in-place zoom policy.
                             Box(Modifier.fillMaxSize()) {
@@ -215,7 +215,7 @@ class MainActivity : ComponentActivity() {
                                     onHorizonCalibrate = horizonViewModel::calibrate,
                                     onHorizonRetry = horizonViewModel::retry,
                                     nearbyCityState = nearbyCityState,
-                                    onNearbyCityRetry = { nearbyCityController.retry() },
+                                    onNearbyCityRetry = nearbyCityViewModel::retry,
                                     mapState = mapState,
                                     mapRules = mapRules,
                                     largerMapZoom = displayPreferences.largerMapZoom,
@@ -377,7 +377,6 @@ class MainActivity : ComponentActivity() {
     override fun onPause() {
         stopMap()
         isForeground = false
-        nearbyCityController.stop()
         routeController.stop()
         appVisibility.setVisible(false)
         super.onPause()
@@ -396,7 +395,6 @@ class MainActivity : ComponentActivity() {
         if (isForeground && permissionState == LocationPermissionState.Granted) {
             startObservation()
         } else if (permissionState != LocationPermissionState.Granted || isForeground) {
-            nearbyCityController.stop()
             routeController.stop()
             stopMap()
             stopBackgroundMonitoring()
@@ -458,16 +456,6 @@ class MainActivity : ComponentActivity() {
         )
     }
 
-    private val nearbyCityController by lazy {
-        NearbyCityController(
-            repository = nearbyCityRepository,
-            worker = cityLookupExecutor,
-            callbackExecutor = mainExecutor,
-            clock = clock::instant,
-            onStateChanged = { nearbyCityState = it },
-        )
-    }
-
     private fun startBackgroundMonitoring() {
         runCatching {
             ContextCompat.startForegroundService(this, Intent(this, LocationForegroundService::class.java))
@@ -480,13 +468,12 @@ class MainActivity : ComponentActivity() {
 
     private fun startObservation() {
         routeController.start()
-        nearbyCityController.start()
         startMapLoad()
     }
 
     /**
-     * Feeds the fixes of the shared location registration (the service and the GNSS/flight
-     * ViewModels collect the same one) to nearby city, route and map. While the location is
+     * Feeds the fixes of the shared location registration (the service and the card ViewModels
+     * collect the same one) to route and map. While the location is
      * switched off the fixes are not collected. A registration failure stops the feed until the
      * next resume.
      */
@@ -501,7 +488,6 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun onLocationFix(fix: FlightLocationFix) {
-        nearbyCityController.onLocationFix(fix)
         routeController.onFix(fix)
         if (mapRules.accept(fix)) mapPositionVersion++
     }

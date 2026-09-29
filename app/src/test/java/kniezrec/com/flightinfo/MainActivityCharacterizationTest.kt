@@ -36,6 +36,7 @@ import kniezrec.com.flightinfo.flight.FlightLocationFix
 import kniezrec.com.flightinfo.flight.FlightParametersState
 import kniezrec.com.flightinfo.flight.ui.FlightParametersViewModel
 import kniezrec.com.flightinfo.monitoring.LocationForegroundService
+import kniezrec.com.flightinfo.nearby.ui.NearbyCityViewModel
 import kniezrec.com.flightinfo.testutil.flightFix
 import kniezrec.com.flightinfo.testutil.idleMainLooper
 import org.junit.After
@@ -312,22 +313,29 @@ class MainActivityCharacterizationTest {
         composeRule.onNodeWithText(speedKmh("108.0")).assertIsDisplayed()
     }
 
-    // TASK-009: rotation keeps the ViewModels, so the last readings stay visible (no reset to waiting).
+    // TASK-009/TASK-011: rotation keeps the ViewModels, so the last readings and the nearby city
+    // stay visible (no reset to waiting).
     @Test
-    fun recreationKeepsFlightReadingsVisible() {
+    fun recreationKeepsFlightReadingsAndNearbyCityVisible() {
         val activity = launch()
-        forward(flightFix(speedMetresPerSecond = 10.0)) { hasText(speedKmh("36.0")) }
+        val closestCity = string(R.string.card_row_description, string(R.string.nearby_city_closest), "Warsaw")
+        forward(flightFix(speedMetresPerSecond = 10.0, latitude = WARSAW_LATITUDE, longitude = WARSAW_LONGITUDE)) {
+            hasText(speedKmh("36.0")) &&
+                composeRule.onAllNodesWithContentDescription(closestCity).fetchSemanticsNodes().isNotEmpty()
+        }
         val before = activity.flightParametersViewModel()
+        val nearbyBefore = activity.nearbyCityViewModel()
 
         activity.recreate()
 
         assertSame(before, activity.flightParametersViewModel())
+        assertSame(nearbyBefore, activity.nearbyCityViewModel())
         assertTrue(before.state.value is FlightParametersState.Readings)
         composeRule.onNodeWithText(speedKmh("36.0")).assertIsDisplayed()
-        // The flight card shows its readings layout (the "Vertical speed" row exists only there). Its
-        // waiting text is not checked by value: the nearby-city card uses the same "Waiting for GPS
-        // position…" text and still lives in the activity (reset on recreation until TASK-011).
         composeRule.onNodeWithText(string(R.string.flight_vertical_speed)).assertExists()
+        composeRule.onNodeWithContentDescription(closestCity).assertExists()
+        // Neither the flight card nor the nearby-city card (same text) went back to waiting.
+        composeRule.onAllNodesWithText(string(R.string.flight_parameters_waiting)).assertCountEquals(0)
     }
 
     // Scenario 9. Replaced in TASK-008 (formerly "the activity registers no listener of its own"):
@@ -394,6 +402,12 @@ class MainActivityCharacterizationTest {
     private fun ActivityScenario<MainActivity>.flightParametersViewModel(): FlightParametersViewModel {
         var viewModel: FlightParametersViewModel? = null
         onActivity { viewModel = ViewModelProvider(it)[FlightParametersViewModel::class.java] }
+        return checkNotNull(viewModel)
+    }
+
+    private fun ActivityScenario<MainActivity>.nearbyCityViewModel(): NearbyCityViewModel {
+        var viewModel: NearbyCityViewModel? = null
+        onActivity { viewModel = ViewModelProvider(it)[NearbyCityViewModel::class.java] }
         return checkNotNull(viewModel)
     }
 
