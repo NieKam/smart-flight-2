@@ -33,6 +33,7 @@ import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kniezrec.com.flightinfo.flight.FlightLocationFix
+import kniezrec.com.flightinfo.flight.FlightParametersState
 import kniezrec.com.flightinfo.flight.ui.FlightParametersViewModel
 import kniezrec.com.flightinfo.monitoring.LocationForegroundService
 import kniezrec.com.flightinfo.testutil.flightFix
@@ -320,8 +321,12 @@ class MainActivityCharacterizationTest {
         activity.recreate()
 
         assertSame(before, activity.flightParametersViewModel())
+        assertTrue(before.state.value is FlightParametersState.Readings)
         composeRule.onNodeWithText(speedKmh("36.0")).assertIsDisplayed()
-        composeRule.onAllNodesWithText(string(R.string.flight_parameters_waiting)).assertCountEquals(0)
+        // The flight card shows its readings layout (the "Vertical speed" row exists only there). Its
+        // waiting text is not checked by value: the nearby-city card uses the same "Waiting for GPS
+        // position…" text and still lives in the activity (reset on recreation until TASK-011).
+        composeRule.onNodeWithText(string(R.string.flight_vertical_speed)).assertExists()
     }
 
     // Scenario 9. Replaced in TASK-008 (formerly "the activity registers no listener of its own"):

@@ -179,6 +179,9 @@ class FlightParametersViewModelTest {
             assertEquals(0, location.fixRegistrations.activeCount)
 
             location.switchLocation(true)
+            // Let the ViewModel register for fixes again before the next one arrives.
+            runCurrent()
+            assertEquals(1, location.fixRegistrations.activeCount)
             fix(FlightLocationFix(10.0, 104.0, 3_000_000_000L))
             assertEquals(FlightParametersState.Readings(36.0, null, 104.0), viewModel.state.value)
         }
