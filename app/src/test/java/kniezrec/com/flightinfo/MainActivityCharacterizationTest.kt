@@ -28,10 +28,12 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.ViewModelProvider
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kniezrec.com.flightinfo.flight.FlightLocationFix
+import kniezrec.com.flightinfo.flight.ui.FlightParametersViewModel
 import kniezrec.com.flightinfo.monitoring.LocationForegroundService
 import kniezrec.com.flightinfo.testutil.flightFix
 import kniezrec.com.flightinfo.testutil.idleMainLooper
@@ -40,6 +42,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -210,6 +213,8 @@ class MainActivityCharacterizationTest {
         val pressureSensor = ShadowSensor.newInstance(Sensor.TYPE_PRESSURE)
         shadowOf(sensorManager).addSensor(pressureSensor)
         launch()
+        // The flight ViewModel registers the barometer once the card's state is collected.
+        waitUntil { shadowOf(sensorManager).listeners.isNotEmpty() }
 
         composeRule.runOnIdle {
             shadowOf(sensorManager).sendSensorEventToListeners(
@@ -275,29 +280,48 @@ class MainActivityCharacterizationTest {
         composeRule.onNodeWithText(string(R.string.route_distance)).performScrollTo().assertIsDisplayed()
     }
 
-    // Scenario 8. Changed in TASK-008: the activity collects fixes only while RESUMED, so pausing
-    // releases its registration and a fix arriving while paused no longer reaches the flight card
-    // (it keeps its last reading). onResume still resets the card to waiting and the next fix shows.
+    // Scenario 8. Changed in TASK-009: the GNSS and flight cards live in ViewModels, collected while
+    // the activity is STARTED (as in the original app's onStart/onStop scope), and observation stops
+    // only 5 s after the last collector leaves. A pause therefore no longer resets the flight card:
+    // a fix arriving while paused (still visible) reaches it and resuming keeps it. Only a stop
+    // longer than 5 s starts over from waiting with an empty vertical-speed history.
     @Test
-    fun pauseStopsCollectingFixesAndResumeResetsFlightCard() {
+    fun pauseKeepsFlightCardAndOnlyALongStopResetsIt() {
         val activity = launch()
         forward(flightFix(speedMetresPerSecond = 10.0, elapsedSeconds = 1L)) { hasText(speedKmh("36.0")) }
 
         activity.moveToState(Lifecycle.State.STARTED)
-        assertTrue("Pausing should release the activity's location registration", pollUntil { gpsListeners().isEmpty() })
-        locationManager.simulateLocation(flightFix(speedMetresPerSecond = 20.0, elapsedSeconds = 2L).toLocation())
-        // The Compose test finders only see roots whose lifecycle is RESUMED (ComposeRootRegistry),
-        // so while paused the card is read straight from the activity's semantics tree instead.
-        val shownWhilePaused = pumpFramesUntil { pausedScreenTexts(activity).contains(speedKmh("72.0")) }
-        assertFalse("A fix while paused should not reach the flight card", shownWhilePaused)
-        assertTrue(pausedScreenTexts(activity).contains(speedKmh("36.0")))
+        val shownWhilePaused =
+            forwardWhilePaused(flightFix(speedMetresPerSecond = 20.0, elapsedSeconds = 2L)) {
+                pausedScreenTexts(activity).contains(speedKmh("72.0"))
+            }
+        assertTrue("A fix while paused should reach the flight card", shownWhilePaused)
 
         activity.moveToState(Lifecycle.State.RESUMED)
-        composeRule.onAllNodesWithText(speedKmh("36.0")).assertCountEquals(0)
+        composeRule.onNodeWithText(speedKmh("72.0")).assertIsDisplayed()
+
+        activity.moveToState(Lifecycle.State.CREATED)
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(LONGER_THAN_STOP_TIMEOUT_MILLIS))
+        activity.moveToState(Lifecycle.State.RESUMED)
+        composeRule.onAllNodesWithText(speedKmh("72.0")).assertCountEquals(0)
         assertFlightCardWaiting()
 
         forward(flightFix(speedMetresPerSecond = 30.0, elapsedSeconds = 3L)) { hasText(speedKmh("108.0")) }
         composeRule.onNodeWithText(speedKmh("108.0")).assertIsDisplayed()
+    }
+
+    // TASK-009: rotation keeps the ViewModels, so the last readings stay visible (no reset to waiting).
+    @Test
+    fun recreationKeepsFlightReadingsVisible() {
+        val activity = launch()
+        forward(flightFix(speedMetresPerSecond = 10.0)) { hasText(speedKmh("36.0")) }
+        val before = activity.flightParametersViewModel()
+
+        activity.recreate()
+
+        assertSame(before, activity.flightParametersViewModel())
+        composeRule.onNodeWithText(speedKmh("36.0")).assertIsDisplayed()
+        composeRule.onAllNodesWithText(string(R.string.flight_parameters_waiting)).assertCountEquals(0)
     }
 
     // Scenario 9. Replaced in TASK-008 (formerly "the activity registers no listener of its own"):
@@ -319,24 +343,71 @@ class MainActivityCharacterizationTest {
         assertEquals(1, gpsListeners().size)
     }
 
-    // TASK-008 review B1: switching location off stops the cards; after a trip to the location
-    // settings (pause, location back on, resume) the replayed "off" value must not stop them again.
+    // TASK-008 review B1, updated in TASK-009: switching location off resets the flight card. After a
+    // trip to the location settings longer than the ViewModels' stop timeout (location switched back
+    // on while nobody listens for the change), the replayed "off" value must not keep it waiting.
     @Test
-    fun locationBackOnAfterPauseLetsFixesReachFlightCard() {
+    fun locationBackOnAfterLongStopLetsFixesReachFlightCard() {
         val activity = launch()
         forward(flightFix(speedMetresPerSecond = 10.0, elapsedSeconds = 1L)) { hasText(speedKmh("36.0")) }
 
-        locationManager.setLocationEnabled(false)
-        application.sendBroadcast(Intent(LocationManager.PROVIDERS_CHANGED_ACTION))
+        switchLocation(enabled = false)
         waitUntil { !hasText(speedKmh("36.0")) }
         assertFlightCardWaiting()
 
-        activity.moveToState(Lifecycle.State.STARTED)
+        activity.moveToState(Lifecycle.State.CREATED)
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(LONGER_THAN_STOP_TIMEOUT_MILLIS))
         locationManager.setLocationEnabled(true)
         activity.moveToState(Lifecycle.State.RESUMED)
 
         forward(flightFix(speedMetresPerSecond = 30.0, elapsedSeconds = 3L)) { hasText(speedKmh("108.0")) }
         composeRule.onNodeWithText(speedKmh("108.0")).assertIsDisplayed()
+    }
+
+    // TASK-009: location switched back on while the dashboard is visible lets fixes reach the flight
+    // card again without a pause/resume (before, the card stayed waiting until the next resume).
+    @Test
+    fun locationBackOnWhileVisibleLetsFixesReachFlightCard() {
+        launch()
+        forward(flightFix(speedMetresPerSecond = 10.0, elapsedSeconds = 1L)) { hasText(speedKmh("36.0")) }
+
+        switchLocation(enabled = false)
+        waitUntil { !hasText(speedKmh("36.0")) }
+        switchLocation(enabled = true)
+
+        forward(flightFix(speedMetresPerSecond = 30.0, elapsedSeconds = 3L)) { hasText(speedKmh("108.0")) }
+        composeRule.onNodeWithText(speedKmh("108.0")).assertIsDisplayed()
+    }
+
+    /** Changes the location switch and sends the broadcast the system sends for it. */
+    private fun switchLocation(enabled: Boolean) {
+        locationManager.setLocationEnabled(enabled)
+        application.sendBroadcast(Intent(LocationManager.PROVIDERS_CHANGED_ACTION))
+    }
+
+    private fun ActivityScenario<MainActivity>.flightParametersViewModel(): FlightParametersViewModel {
+        var viewModel: FlightParametersViewModel? = null
+        onActivity { viewModel = ViewModelProvider(it)[FlightParametersViewModel::class.java] }
+        return checkNotNull(viewModel)
+    }
+
+    /**
+     * Simulates [fix] while the activity is paused until [delivered] holds, producing frames by hand
+     * (see [pumpFrame]). Polls in real time: repository sharing runs on a background dispatcher.
+     */
+    private fun forwardWhilePaused(
+        fix: FlightLocationFix,
+        delivered: () -> Boolean,
+    ): Boolean {
+        val location = fix.toLocation()
+        val deadline = System.currentTimeMillis() + ASYNC_TIMEOUT_MILLIS
+        while (System.currentTimeMillis() < deadline) {
+            locationManager.simulateLocation(location)
+            pumpFrame()
+            if (delivered()) return true
+            Thread.sleep(POLL_MILLIS)
+        }
+        return delivered()
     }
 
     private fun launch(grantLocation: Boolean = true): ActivityScenario<MainActivity> {
@@ -392,17 +463,13 @@ class MainActivityCharacterizationTest {
     }
 
     /**
-     * Produces frames without the Compose test idling machinery (which needs a RESUMED root): the
+     * Produces a frame without the Compose test idling machinery (which needs a RESUMED root): the
      * test clock drives the test recomposer, and the looper time drives Choreographer frames.
      */
-    private fun pumpFramesUntil(condition: () -> Boolean): Boolean {
-        repeat(PAUSED_FRAME_ATTEMPTS) {
-            if (condition()) return true
-            Snapshot.sendApplyNotifications()
-            composeRule.mainClock.advanceTimeByFrame()
-            shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(FRAME_MILLIS))
-        }
-        return condition()
+    private fun pumpFrame() {
+        Snapshot.sendApplyNotifications()
+        composeRule.mainClock.advanceTimeByFrame()
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(FRAME_MILLIS))
     }
 
     /** All texts in the activity's unmerged Compose semantics tree, readable in any lifecycle state. */
@@ -467,9 +534,9 @@ class MainActivityCharacterizationTest {
     private companion object {
         const val CREATE_ACTIVITY_CONTEXTS = "robolectric.createActivityContexts"
         const val ASYNC_TIMEOUT_MILLIS = 20_000L
-        const val PAUSED_FRAME_ATTEMPTS = 50
         const val FRAME_MILLIS = 16L
         const val POLL_MILLIS = 10L
+        const val LONGER_THAN_STOP_TIMEOUT_MILLIS = FlightParametersViewModel.STOP_TIMEOUT_MILLIS + 1_000L
         const val WARSAW_ID = 31395L
         const val BERLIN_ID = 10409L
         const val WARSAW_LATITUDE = 52.22977
