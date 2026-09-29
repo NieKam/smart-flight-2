@@ -5,6 +5,7 @@ import kniezrec.com.flightinfo.gnss.GnssSatellite
 import kniezrec.com.flightinfo.testutil.FakeLocationDataSource
 import kniezrec.com.flightinfo.testutil.flightFix
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
@@ -191,6 +192,40 @@ class LocationRepositoryTest {
 
             assertFalse(repository.locationEnabled.value)
             assertEquals(listOf(true, false), states)
+        }
+
+    @Test
+    fun `confirmed switch ignores a stale off value replayed to a new collector`() =
+        runTest {
+            val repository = repository()
+            val first = backgroundScope.launch { repository.locationEnabled.collect() }
+            runCurrent()
+            source.switchLocation(false)
+            runCurrent()
+            first.cancel()
+            runCurrent()
+
+            // Switched back on while nobody listens: the StateFlow still holds "off".
+            source.locationEnabled = true
+            assertFalse(repository.locationEnabled.value)
+
+            assertTrue(repository.confirmedLocationEnabled.first())
+        }
+
+    @Test
+    fun `confirmed switch follows changes confirmed by a fresh read`() =
+        runTest {
+            val repository = repository()
+            val states = mutableListOf<Boolean>()
+            backgroundScope.launch { repository.confirmedLocationEnabled.toList(states) }
+            runCurrent()
+
+            source.switchLocation(false)
+            runCurrent()
+            source.switchLocation(true)
+            runCurrent()
+
+            assertEquals(listOf(true, false, true), states)
         }
 
     @Test
