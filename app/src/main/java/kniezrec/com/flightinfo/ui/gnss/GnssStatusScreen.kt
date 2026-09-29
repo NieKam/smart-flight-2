@@ -59,6 +59,7 @@ import kniezrec.com.flightinfo.nearby.NearbyCityRecord
 import kniezrec.com.flightinfo.nearby.NearbyCityState
 import kniezrec.com.flightinfo.nearby.NearbyCoordinate
 import kniezrec.com.flightinfo.route.RouteEndpoint
+import kniezrec.com.flightinfo.route.RoutePickerState
 import kniezrec.com.flightinfo.route.RouteState
 import kniezrec.com.flightinfo.ui.gnss.MapCardState
 import kniezrec.com.flightinfo.ui.permission.actionCyan
@@ -95,19 +96,15 @@ fun GnssStatusScreen(
     onRouteChoose: (RouteEndpoint) -> Unit = {},
     onRouteClear: (RouteEndpoint) -> Unit = {},
     onRouteClearAll: () -> Unit = {},
-    routePicker: RouteEndpoint? = null,
-    routePickerInitial: NearbyCityRecord? = null,
-    routeSearchResults: List<NearbyCityRecord> = emptyList(),
-    routeSearchLoading: Boolean = false,
-    routeSearchError: String? = null,
+    onRouteRestoreRetry: () -> Unit = {},
+    routePickerState: RoutePickerState = RoutePickerState(),
+    onRoutePickerQueryChange: (String) -> Unit = {},
     onRouteSearch: (String) -> Unit = {},
-    onRouteConfirm: (NearbyCityRecord) -> Boolean = { false },
+    onRouteNearest: (NearbyCoordinate?) -> Unit = {},
+    onRouteSelect: (NearbyCityRecord) -> Unit = {},
+    onRouteConfirm: () -> Unit = {},
     onRouteCancel: () -> Unit = {},
     onRouteRetry: () -> Unit = {},
-    onRouteRestoreRetry: () -> Unit = {},
-    onRouteNearest: (NearbyCoordinate) -> Unit = {},
-    routeNearestDraft: NearbyCityRecord? = null,
-    routeNearestLoading: Boolean = false,
     routePickerMapArchive: File? = null,
     modifier: Modifier = Modifier,
 ) {
@@ -167,18 +164,15 @@ fun GnssStatusScreen(
             }
         }
 
-        if (routePicker != null) {
+        if (routePickerState.endpoint != null) {
             androidx.compose.foundation.layout.Box(Modifier.fillMaxSize().background(Color(0xFF211D46))) {
                 RoutePicker(
-                    endpoint = routePicker,
-                    initial = routePickerInitial,
-                    results = routeSearchResults,
-                    loading = routeSearchLoading || routeNearestLoading,
-                    error = routeSearchError,
+                    state = routePickerState,
                     mapArchive = routePickerMapArchive,
+                    onQueryChange = onRoutePickerQueryChange,
                     onSearch = onRouteSearch,
                     onNearest = onRouteNearest,
-                    nearestDraft = routeNearestDraft,
+                    onSelect = onRouteSelect,
                     onConfirm = onRouteConfirm,
                     onCancel = onRouteCancel,
                     onRetry = onRouteRetry,

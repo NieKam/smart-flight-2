@@ -54,16 +54,14 @@ import kniezrec.com.flightinfo.map.MapSessionRules
 import kniezrec.com.flightinfo.monitoring.AppVisibility
 import kniezrec.com.flightinfo.monitoring.LocationForegroundService
 import kniezrec.com.flightinfo.monitoring.data.BackgroundNotificationSettingsRepository
-import kniezrec.com.flightinfo.nearby.NearbyCityRecord
 import kniezrec.com.flightinfo.nearby.ui.NearbyCityViewModel
 import kniezrec.com.flightinfo.permission.FineLocationPermissionPlatform
 import kniezrec.com.flightinfo.permission.LocationPermissionRequestHistory
 import kniezrec.com.flightinfo.permission.LocationPermissionState
 import kniezrec.com.flightinfo.permission.LocationPermissionStateController
 import kniezrec.com.flightinfo.permission.locationPermissionRequest
-import kniezrec.com.flightinfo.route.RouteEndpoint
+import kniezrec.com.flightinfo.route.ui.RoutePickerViewModel
 import kniezrec.com.flightinfo.route.ui.RouteViewModel
-import kniezrec.com.flightinfo.route.validCity
 import kniezrec.com.flightinfo.ui.about.AboutDialog
 import kniezrec.com.flightinfo.ui.gnss.GnssStatusScreen
 import kniezrec.com.flightinfo.ui.gnss.MapCardState
@@ -71,10 +69,8 @@ import kniezrec.com.flightinfo.ui.permission.PermissionOnboardingScreen
 import kniezrec.com.flightinfo.ui.permission.smartFlightPageColor
 import kniezrec.com.flightinfo.ui.settings.UnitSettingsScreen
 import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Job
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -98,17 +94,8 @@ class MainActivity : ComponentActivity() {
     private var permissionState by mutableStateOf(LocationPermissionState.Requestable)
     private var announcementVersion by mutableIntStateOf(0)
     private var mapState by mutableStateOf<MapCardState>(MapCardState.Inactive)
-    private var routePicker by mutableStateOf<RouteEndpoint?>(null)
-    private var routeResults by mutableStateOf<List<NearbyCityRecord>>(emptyList())
-    private var routeSearchLoading by mutableStateOf(false)
-    private var routeSearchError by mutableStateOf<String?>(null)
-    private var routeNearestDraft by mutableStateOf<NearbyCityRecord?>(null)
     private var showUnitSettings by mutableStateOf(false)
     private var showAbout by mutableStateOf(false)
-    private var lastRouteSearchQuery = ""
-
-    // The latest picker lookup; a newer one cancels it, so only the latest result is shown.
-    private var routeLookup: Job? = null
     private val mapRules = MapSessionRules()
     private var mapLoadToken = 0L
     private var mapPositionVersion by mutableIntStateOf(0)
@@ -165,12 +152,17 @@ class MainActivity : ComponentActivity() {
                             val horizonViewModel: HorizonViewModel = hiltViewModel()
                             val nearbyCityViewModel: NearbyCityViewModel = hiltViewModel()
                             val routeViewModel: RouteViewModel = hiltViewModel()
+                            val routePickerViewModel: RoutePickerViewModel = hiltViewModel()
                             val gnssState by gnssStatusViewModel.state.collectAsStateWithLifecycle()
                             val flightParametersState by flightParametersViewModel.state.collectAsStateWithLifecycle()
                             val courseState by courseViewModel.state.collectAsStateWithLifecycle()
                             val horizonState by horizonViewModel.state.collectAsStateWithLifecycle()
                             val nearbyCityState by nearbyCityViewModel.state.collectAsStateWithLifecycle()
                             val routeState by routeViewModel.state.collectAsStateWithLifecycle()
+                            // Immediate, so the search field shows each typed character before the next input event.
+                            val routePickerState by routePickerViewModel.state.collectAsStateWithLifecycle(
+                                context = Dispatchers.Main.immediate,
+                            )
                             // Settings is an overlay so the dashboard's AndroidView-backed map remains
                             // composed. This preserves its viewport, overlays, and in-place zoom policy.
                             Box(Modifier.fillMaxSize()) {
@@ -216,90 +208,18 @@ class MainActivity : ComponentActivity() {
                                     onMapRetry = { startMapLoad() },
                                     onMapUnavailable = { mapState = MapCardState.Unavailable },
                                     routeState = routeState,
-                                    onRouteChoose = {
-                                        routePicker = it
-                                        routeResults = emptyList()
-                                        routeSearchError = null
-                                        routeNearestDraft = null
-                                        lastRouteSearchQuery = ""
-                                    },
+                                    onRouteChoose = routePickerViewModel::open,
                                     onRouteClear = routeViewModel::clear,
                                     onRouteClearAll = routeViewModel::clearAll,
-                                    routePicker = routePicker,
-                                    routePickerInitial =
-                                        if (routePicker ==
-                                            RouteEndpoint.DEPARTURE
-                                        ) {
-                                            routeState.departure
-                                        } else {
-                                            routeState.destination
-                                        },
-                                    routeSearchResults = routeResults,
-                                    routeSearchLoading = routeSearchLoading,
-                                    routeSearchError = routeSearchError,
-                                    onRouteSearch = { query ->
-                                        lastRouteSearchQuery = query
-                                        routeSearchLoading = true
-                                        routeSearchError = null
-                                        lookUpRouteCities {
-                                            result { routeViewModel.search(query) }.fold(
-                                                { routeResults = it },
-                                                { routeSearchError = getString(R.string.route_error) },
-                                            )
-                                        }
-                                    },
-                                    onRouteConfirm = { city ->
-                                        routePicker?.let { endpoint ->
-                                            if (routeViewModel.choose(endpoint, city)) {
-                                                routeNearestDraft = null
-                                                routePicker = null
-                                                true
-                                            } else {
-                                                false
-                                            }
-                                        } ?: false
-                                    },
-                                    onRouteCancel = {
-                                        routeNearestDraft = null
-                                        routePicker = null
-                                    },
-                                    onRouteRetry = {
-                                        routePicker?.let {
-                                            routeSearchLoading = true
-                                            routeSearchError = null
-                                            lookUpRouteCities {
-                                                result { routeViewModel.search(lastRouteSearchQuery, reload = true) }.fold(
-                                                    { routeResults = it },
-                                                    { routeSearchError = getString(R.string.route_error) },
-                                                )
-                                            }
-                                        }
-                                    },
                                     onRouteRestoreRetry = routeViewModel::retryRestore,
-                                    onRouteNearest = { coordinate ->
-                                        routeSearchLoading = true
-                                        routeSearchError = null
-                                        lookUpRouteCities {
-                                            result { routeViewModel.nearest(coordinate) }.fold(
-                                                { city ->
-                                                    if (city == null) {
-                                                        routeNearestDraft = null
-                                                        routeResults = emptyList()
-                                                        routeSearchError = getString(R.string.route_no_city_at_location)
-                                                    } else if (!validCity(city)) {
-                                                        routeNearestDraft = null
-                                                        routeResults = emptyList()
-                                                        routeSearchError = getString(R.string.route_invalid_city)
-                                                    } else {
-                                                        routeNearestDraft = city
-                                                        routeResults = listOf(city)
-                                                    }
-                                                },
-                                                { routeSearchError = getString(R.string.route_error) },
-                                            )
-                                        }
-                                    },
-                                    routeNearestLoading = routeSearchLoading,
+                                    routePickerState = routePickerState,
+                                    onRoutePickerQueryChange = routePickerViewModel::updateQuery,
+                                    onRouteSearch = routePickerViewModel::search,
+                                    onRouteNearest = routePickerViewModel::nearest,
+                                    onRouteSelect = routePickerViewModel::select,
+                                    onRouteConfirm = { routePickerViewModel.confirm() },
+                                    onRouteCancel = routePickerViewModel::close,
+                                    onRouteRetry = routePickerViewModel::retry,
                                     routePickerMapArchive = (mapState as? MapCardState.Ready)?.archive,
                                     onOpenSettings = { showUnitSettings = true },
                                     onOpenAbout = { showAbout = true },
@@ -429,33 +349,6 @@ class MainActivity : ComponentActivity() {
             requestHistory = permissionRequestHistory,
         )
     }
-
-    /**
-     * Runs a route picker lookup, replacing the previous one; [routeSearchLoading] is on while it
-     * runs. Temporary until the picker gets its own state holder (TASK-013).
-     */
-    private fun lookUpRouteCities(block: suspend () -> Unit) {
-        routeLookup?.cancel()
-        routeLookup =
-            lifecycleScope.launch {
-                try {
-                    block()
-                } finally {
-                    // A cancelled lookup was replaced (or the activity is gone): the newer one owns the flag.
-                    if (isActive) routeSearchLoading = false
-                }
-            }
-    }
-
-    /** [block]'s value, or its failure; cancellation is not caught. */
-    private suspend fun <T> result(block: suspend () -> T): Result<T> =
-        try {
-            Result.success(block())
-        } catch (cancellation: CancellationException) {
-            throw cancellation
-        } catch (failure: Exception) {
-            Result.failure(failure)
-        }
 
     private fun startBackgroundMonitoring() {
         runCatching {

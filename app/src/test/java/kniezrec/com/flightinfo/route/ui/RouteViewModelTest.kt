@@ -6,7 +6,6 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kniezrec.com.flightinfo.location.data.LocationRepository
 import kniezrec.com.flightinfo.nearby.NearbyCityRecord
-import kniezrec.com.flightinfo.nearby.NearbyCoordinate
 import kniezrec.com.flightinfo.nearby.data.CityDataSource
 import kniezrec.com.flightinfo.nearby.data.CityRepository
 import kniezrec.com.flightinfo.route.RouteEndpoint
@@ -59,6 +58,7 @@ class RouteViewModelTest {
     private val badCoordinates = NearbyCityRecord(3L, "Bad coordinates", "C", 200.0, 0.0, "UTC")
     private val badZone = NearbyCityRecord(4L, "Bad zone", "D", 0.0, 2.0, "Not/AZone")
     private val cities = listOf(alpha, beta, badCoordinates, badZone)
+    private lateinit var routeRepository: RouteRepository
 
     @Before fun setUp() = Dispatchers.setMain(dispatcher)
 
@@ -134,28 +134,12 @@ class RouteViewModelTest {
             assertEquals(RouteError.RESTORE, viewModel.state.value.error)
         }
 
-    @Test fun `choose saves a valid city and rejects invalid ones without changing the route`() =
-        runTest(dispatcher) {
-            val viewModel = viewModel()
-            subscribe(viewModel)
-
-            assertTrue(viewModel.choose(RouteEndpoint.DEPARTURE, alpha))
-            assertFalse(viewModel.choose(RouteEndpoint.DESTINATION, badCoordinates))
-            assertFalse(viewModel.choose(RouteEndpoint.DESTINATION, badZone))
-            runCurrent()
-
-            assertEquals(alpha, viewModel.state.value.departure)
-            assertNull(viewModel.state.value.destination)
-            assertEquals(alpha.id, preferences.getLong(DEPARTURE, Long.MIN_VALUE))
-            assertFalse(preferences.contains(DESTINATION))
-        }
-
     @Test fun `a chosen route is restored by a new view model`() =
         runTest(dispatcher) {
             val first = viewModel()
             subscribe(first)
-            first.choose(RouteEndpoint.DEPARTURE, alpha)
-            first.choose(RouteEndpoint.DESTINATION, beta)
+            choose(RouteEndpoint.DEPARTURE, alpha)
+            choose(RouteEndpoint.DESTINATION, beta)
             runCurrent()
             assertNotNull(first.state.value.overlay)
 
@@ -170,7 +154,7 @@ class RouteViewModelTest {
         runTest(dispatcher) {
             val viewModel = viewModel()
             subscribe(viewModel)
-            viewModel.choose(RouteEndpoint.DESTINATION, beta)
+            choose(RouteEndpoint.DESTINATION, beta)
             runCurrent()
             fix(elapsedSeconds = 1, longitude = 0.5)
 
@@ -178,7 +162,7 @@ class RouteViewModelTest {
             assertNull(viewModel.state.value.details)
             assertNull(viewModel.state.value.overlay)
 
-            viewModel.choose(RouteEndpoint.DEPARTURE, alpha)
+            choose(RouteEndpoint.DEPARTURE, alpha)
             runCurrent()
 
             assertNotNull(viewModel.state.value.details)
@@ -268,7 +252,7 @@ class RouteViewModelTest {
             runCurrent()
             assertTrue("the restore waits at the gate", gate.pending.isNotEmpty())
 
-            viewModel.choose(RouteEndpoint.DEPARTURE, beta)
+            choose(RouteEndpoint.DEPARTURE, beta)
             settle(gate)
 
             assertEquals(beta, viewModel.state.value.departure)
@@ -296,8 +280,8 @@ class RouteViewModelTest {
         runTest(dispatcher) {
             val viewModel = viewModel()
             val first = subscribe(viewModel)
-            viewModel.choose(RouteEndpoint.DEPARTURE, alpha)
-            viewModel.choose(RouteEndpoint.DESTINATION, beta)
+            choose(RouteEndpoint.DEPARTURE, alpha)
+            choose(RouteEndpoint.DESTINATION, beta)
             runCurrent()
             fix(elapsedSeconds = 20, longitude = 0.5)
 
@@ -351,28 +335,21 @@ class RouteViewModelTest {
             )
         }
 
-    @Test fun `search and nearest use the city data and search can reload it`() =
-        runTest(dispatcher) {
-            val source = FakeCityDataSource(cities)
-            val viewModel = viewModel(source)
-
-            assertEquals(listOf(beta), viewModel.search("  BeTa  "))
-            assertEquals(beta, viewModel.nearest(NearbyCoordinate(0.0, 0.9)))
-            assertEquals(listOf(false), source.reads)
-
-            assertEquals(listOf(alpha), viewModel.search("alpha", reload = true))
-            assertEquals(listOf(false, true), source.reads)
-        }
-
     private fun TestScope.viewModel(
         source: CityDataSource = FakeCityDataSource(cities),
         ioDispatcher: CoroutineDispatcher = dispatcher,
     ) = RouteViewModel(
         LocationRepository(location, backgroundScope),
         CityRepository(source, ioDispatcher),
-        RouteRepository(preferences, backgroundScope),
+        RouteRepository(preferences, backgroundScope).also { routeRepository = it },
         clock,
     )
+
+    /** Saves [city] as [endpoint] through the latest view model's repository, as the city picker does. */
+    private suspend fun choose(
+        endpoint: RouteEndpoint,
+        city: NearbyCityRecord,
+    ) = routeRepository.set(endpoint, city.id)
 
     private fun TestScope.viewModelWithRoute(): RouteViewModel {
         save(departure = alpha.id, destination = beta.id)

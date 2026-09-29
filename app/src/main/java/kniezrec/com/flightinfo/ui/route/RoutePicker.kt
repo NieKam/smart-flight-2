@@ -19,7 +19,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -36,7 +35,8 @@ import kniezrec.com.flightinfo.R
 import kniezrec.com.flightinfo.nearby.NearbyCityRecord
 import kniezrec.com.flightinfo.nearby.NearbyCoordinate
 import kniezrec.com.flightinfo.route.RouteEndpoint
-import kniezrec.com.flightinfo.route.validCity
+import kniezrec.com.flightinfo.route.RoutePickerError
+import kniezrec.com.flightinfo.route.RoutePickerState
 import org.osmdroid.config.Configuration
 import org.osmdroid.events.MapEventsReceiver
 import org.osmdroid.tileprovider.modules.OfflineTileProvider
@@ -50,28 +50,24 @@ import java.io.File
 
 private val pickerMapSource = XYTileSource("MapquestOSM", 1, 6, 256, ".jpg", arrayOf())
 
+/**
+ * Stateless city picker for [state]'s endpoint; shows nothing while the picker is closed.
+ * Long-press on the map asks for the nearest city ([onNearest] gets null for a point that is not a
+ * valid coordinate).
+ */
 @Composable
 fun RoutePicker(
-    endpoint: RouteEndpoint,
-    initial: NearbyCityRecord?,
-    results: List<NearbyCityRecord>,
-    loading: Boolean,
-    error: String?,
+    state: RoutePickerState,
     mapArchive: File?,
+    onQueryChange: (String) -> Unit,
     onSearch: (String) -> Unit,
-    onNearest: (NearbyCoordinate) -> Unit,
-    nearestDraft: NearbyCityRecord? = null,
-    onConfirm: (NearbyCityRecord) -> Boolean,
+    onNearest: (NearbyCoordinate?) -> Unit,
+    onSelect: (NearbyCityRecord) -> Unit,
+    onConfirm: () -> Unit,
     onCancel: () -> Unit,
     onRetry: () -> Unit,
 ) {
-    var query by remember { mutableStateOf("") }
-    var selected by remember { mutableStateOf(initial) }
-    var mapMessage by remember { mutableStateOf<String?>(null) }
-    var selectionError by remember { mutableStateOf(false) }
-    LaunchedEffect(initial) { selected = initial }
-    LaunchedEffect(nearestDraft) { if (nearestDraft != null) selected = nearestDraft }
-    LaunchedEffect(selected) { selectionError = selected != null && !validCity(selected!!) }
+    val endpoint = state.endpoint ?: return
     BackHandler(onBack = onCancel)
     val titleDescription = stringResource(R.string.route_picker_title_description)
     Column(Modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -80,36 +76,40 @@ fun RoutePicker(
             modifier = Modifier.semantics { contentDescription = titleDescription },
         )
         OutlinedTextField(
-            value = query,
-            onValueChange = { query = it },
+            value = state.query,
+            onValueChange = onQueryChange,
             modifier = Modifier.fillMaxWidth(),
             label = { Text(stringResource(R.string.route_city_name)) },
             singleLine = true,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-            keyboardActions = KeyboardActions(onSearch = { onSearch(query) }),
+            keyboardActions = KeyboardActions(onSearch = { onSearch(state.query) }),
         )
-        Button(onClick = { onSearch(query) }, enabled = !loading, modifier = Modifier.heightIn(min = 48.dp)) {
+        Button(onClick = { onSearch(state.query) }, enabled = !state.loading, modifier = Modifier.heightIn(min = 48.dp)) {
             Text(stringResource(R.string.route_search))
         }
         Text(stringResource(R.string.route_map_instruction))
-        if (loading) {
+        if (state.loading) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 CircularProgressIndicator()
                 Text(stringResource(R.string.route_searching))
             }
         }
-        if (error != null) {
-            Text(stringResource(R.string.route_error))
-            Text(error)
-            TextButton(onClick = onRetry, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.route_retry)) }
+        when (state.error) {
+            RoutePickerError.SearchFailed -> {
+                Text(stringResource(R.string.route_error))
+                TextButton(onClick = onRetry, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.route_retry)) }
+            }
+            RoutePickerError.NoCityAtLocation -> Text(stringResource(R.string.route_no_city_at_location))
+            RoutePickerError.InvalidCity -> Text(stringResource(R.string.route_invalid_city))
+            null -> Unit
         }
-        if (!loading && error == null && query.isNotBlank() && results.isEmpty()) {
+        if (!state.loading && state.error == null && state.query.isNotBlank() && state.results.isEmpty()) {
             Text(stringResource(R.string.route_no_cities))
         }
         LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            items(results, key = { it.id }) { city ->
+            items(state.results, key = { it.id }) { city ->
                 TextButton(
-                    onClick = { selected = city },
+                    onClick = { onSelect(city) },
                     modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
                 ) { Text(stringResource(R.string.route_city_result, city.name, city.country)) }
             }
@@ -118,12 +118,8 @@ fun RoutePicker(
                     if (mapArchive != null) {
                         PickerMap(
                             mapArchive,
-                            selected?.let { NearbyCoordinate.from(it.latitude, it.longitude) },
-                            onNearest = { coordinate ->
-                                mapMessage = null
-                                onNearest(coordinate)
-                            },
-                            onInvalidLongPress = { mapMessage = it },
+                            state.selected?.let { NearbyCoordinate.from(it.latitude, it.longitude) },
+                            onNearest = onNearest,
                         )
                     } else {
                         Text(stringResource(R.string.route_picker_map_unavailable))
@@ -131,14 +127,13 @@ fun RoutePicker(
                 }
             }
         }
-        mapMessage?.let { Text(it) }
-        selected?.let { city -> Text(stringResource(R.string.route_selected_city, city.name, city.country)) }
-        if (selectionError) Text(stringResource(R.string.route_invalid_city))
+        state.selected?.let { city -> Text(stringResource(R.string.route_selected_city, city.name, city.country)) }
+        if (state.selectionInvalid) Text(stringResource(R.string.route_invalid_city))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
             TextButton(onClick = onCancel, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.route_cancel)) }
             Button(
-                onClick = { selected?.let { city -> if (validCity(city) && !onConfirm(city)) selectionError = true } },
-                enabled = selected != null && validCity(selected!!) && !loading,
+                onClick = onConfirm,
+                enabled = state.canConfirm,
                 modifier = Modifier.heightIn(min = 48.dp),
             ) {
                 Text(stringResource(R.string.route_confirm))
@@ -151,8 +146,7 @@ fun RoutePicker(
 private fun PickerMap(
     archive: File,
     selectedCoordinate: NearbyCoordinate?,
-    onNearest: (NearbyCoordinate) -> Unit,
-    onInvalidLongPress: (String) -> Unit,
+    onNearest: (NearbyCoordinate?) -> Unit,
 ) {
     val context = LocalContext.current
     var draftMarker by remember { mutableStateOf<Marker?>(null) }
@@ -174,12 +168,7 @@ private fun PickerMap(
                             override fun singleTapConfirmedHelper(p: GeoPoint): Boolean = false
 
                             override fun longPressHelper(p: GeoPoint): Boolean {
-                                val coordinate = NearbyCoordinate.from(p.latitude, p.longitude)
-                                if (coordinate == null) {
-                                    onInvalidLongPress(context.getString(R.string.route_no_city_at_location))
-                                } else {
-                                    onNearest(coordinate)
-                                }
+                                onNearest(NearbyCoordinate.from(p.latitude, p.longitude))
                                 return true
                             }
                         },

@@ -40,6 +40,8 @@ import kniezrec.com.flightinfo.nearby.NearbyCityState
 import kniezrec.com.flightinfo.route.RouteDetails
 import kniezrec.com.flightinfo.route.RouteEndpoint
 import kniezrec.com.flightinfo.route.RouteOverlay
+import kniezrec.com.flightinfo.route.RoutePickerError
+import kniezrec.com.flightinfo.route.RoutePickerState
 import kniezrec.com.flightinfo.route.RouteState
 import kniezrec.com.flightinfo.ui.route.RouteCard
 import kniezrec.com.flightinfo.ui.route.RoutePicker
@@ -328,26 +330,23 @@ class GnssStatusScreenTest {
 
     @Test fun routePickerSupportsDraftSelectionAndExplicitCancel() {
         val city = NearbyCityRecord(7L, "Berlin", "Germany", 52.5, 13.4, "Europe/Berlin")
+        var state by mutableStateOf(RoutePickerState(endpoint = RouteEndpoint.DEPARTURE, results = listOf(city)))
         var confirmed = false
         var cancelled = false
         composeRule.setContent {
             RoutePicker(
-                endpoint = RouteEndpoint.DEPARTURE,
-                initial = null,
-                results = listOf(city),
-                loading = false,
-                error = null,
+                state = state,
                 mapArchive = null,
+                onQueryChange = {},
                 onSearch = {},
                 onNearest = {},
-                onConfirm = {
-                    confirmed = true
-                    true
-                },
+                onSelect = { state = state.copy(selected = it) },
+                onConfirm = { confirmed = true },
                 onCancel = { cancelled = true },
                 onRetry = {},
             )
         }
+        composeRule.onNodeWithText("Confirm").assertIsNotEnabled()
         composeRule.onNodeWithText("Berlin (Germany)").assertIsDisplayed().performClick()
         composeRule.onNodeWithText("Confirm").assertIsEnabled().performClick()
         composeRule.runOnIdle { assertTrue(confirmed) }
@@ -361,18 +360,13 @@ class GnssStatusScreenTest {
         var confirmed = false
         composeRule.setContent {
             RoutePicker(
-                endpoint = RouteEndpoint.DEPARTURE,
-                initial = existing,
-                results = emptyList(),
-                loading = false,
-                error = null,
+                state = RoutePickerState(endpoint = RouteEndpoint.DEPARTURE, selected = existing),
                 mapArchive = null,
+                onQueryChange = {},
                 onSearch = {},
                 onNearest = {},
-                onConfirm = {
-                    confirmed = true
-                    true
-                },
+                onSelect = {},
+                onConfirm = { confirmed = true },
                 onCancel = { cancelled = true },
                 onRetry = {},
             )
@@ -385,19 +379,18 @@ class GnssStatusScreenTest {
         }
     }
 
-    @Test fun routePickerImeSearchUsesTrimmedQuery() {
+    @Test fun routePickerImeSearchUsesTheTypedQuery() {
+        var state by mutableStateOf(RoutePickerState(endpoint = RouteEndpoint.DESTINATION))
         var searched: String? = null
         composeRule.setContent {
             RoutePicker(
-                endpoint = RouteEndpoint.DESTINATION,
-                initial = null,
-                results = emptyList(),
-                loading = false,
-                error = null,
+                state = state,
                 mapArchive = null,
+                onQueryChange = { state = state.copy(query = it) },
                 onSearch = { searched = it },
                 onNearest = {},
-                onConfirm = { true },
+                onSelect = {},
+                onConfirm = {},
                 onCancel = {},
                 onRetry = {},
             )
@@ -427,25 +420,22 @@ class GnssStatusScreenTest {
         composeRule.onNodeWithText("Destination: Destination city with a deliberately long name").assertIsDisplayed()
     }
 
-    @Test fun routePickerNearestInvalidCoordinateIsReportedWithoutSelectingCity() {
-        var nearestCalls = 0
+    @Test fun routePickerNearestNoCityIsReportedWithoutSelectingCity() {
         composeRule.setContent {
             RoutePicker(
-                endpoint = RouteEndpoint.DEPARTURE,
-                initial = null,
-                results = emptyList(),
-                loading = false,
-                error = null,
+                state = RoutePickerState(endpoint = RouteEndpoint.DEPARTURE, error = RoutePickerError.NoCityAtLocation),
                 mapArchive = null,
+                onQueryChange = {},
                 onSearch = {},
-                onNearest = { nearestCalls++ },
-                onConfirm = { true },
+                onNearest = {},
+                onSelect = {},
+                onConfirm = {},
                 onCancel = {},
                 onRetry = {},
             )
         }
+        composeRule.onNodeWithText("No city found at this location.").assertIsDisplayed()
         composeRule.onNodeWithText("Confirm").assertIsNotEnabled()
-        composeRule.runOnIdle { assertTrue(nearestCalls == 0) }
     }
 
     @Test fun routePickerNearestCityIsImmediatelyConfirmableDraft() {
@@ -453,19 +443,14 @@ class GnssStatusScreenTest {
         var confirmed = false
         composeRule.setContent {
             RoutePicker(
-                endpoint = RouteEndpoint.DESTINATION,
-                initial = null,
-                results = emptyList(),
-                loading = false,
-                error = null,
+                // The state of a found nearest city (RoutePickerViewModel.nearest).
+                state = RoutePickerState(endpoint = RouteEndpoint.DESTINATION, results = listOf(city), selected = city),
                 mapArchive = null,
+                onQueryChange = {},
                 onSearch = {},
                 onNearest = {},
-                nearestDraft = city,
-                onConfirm = {
-                    confirmed = true
-                    true
-                },
+                onSelect = {},
+                onConfirm = { confirmed = true },
                 onCancel = {},
                 onRetry = {},
             )
@@ -478,22 +463,20 @@ class GnssStatusScreenTest {
     @Test fun routePickerKeepsMultipleResultsUnselectedUntilExplicitChoiceAndSupportsRetry() {
         val first = NearbyCityRecord(9L, "Springfield", "US", 39.8, -89.6, "UTC")
         val second = first.copy(id = 10L, country = "CA")
-        var selected: NearbyCityRecord? = null
+        var state by mutableStateOf(
+            RoutePickerState(endpoint = RouteEndpoint.DEPARTURE, results = listOf(first, second), error = RoutePickerError.SearchFailed),
+        )
         var retried = false
+        var confirmed: NearbyCityRecord? = null
         composeRule.setContent {
             RoutePicker(
-                endpoint = RouteEndpoint.DEPARTURE,
-                initial = null,
-                results = listOf(first, second),
-                loading = false,
-                error = "database unavailable",
+                state = state,
                 mapArchive = null,
+                onQueryChange = {},
                 onSearch = {},
                 onNearest = {},
-                onConfirm = {
-                    selected = it
-                    true
-                },
+                onSelect = { state = state.copy(selected = it) },
+                onConfirm = { confirmed = state.selected },
                 onCancel = {},
                 onRetry = { retried = true },
             )
@@ -504,7 +487,7 @@ class GnssStatusScreenTest {
         composeRule.onNodeWithText("Retry").performClick()
         composeRule.runOnIdle { assertTrue(retried) }
         composeRule.onNodeWithText("Confirm").performClick()
-        composeRule.runOnIdle { assertTrue(selected == first) }
+        composeRule.runOnIdle { assertTrue(confirmed == first) }
     }
 
     @Test fun routeCardExposesEndpointAndDetailSemanticsWithLargeTextContent() {
