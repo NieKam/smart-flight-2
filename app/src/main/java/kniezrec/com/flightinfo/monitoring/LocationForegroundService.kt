@@ -29,20 +29,32 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+/**
+ * Keeps the location registration alive while the dashboard is hidden, until the first usable fix.
+ *
+ * Rules, re-evaluated whenever visibility, the notification setting or the fix state changes:
+ * - hidden after a usable fix of this run: stop;
+ * - not eligible (permission or providers lost): stop;
+ * - hidden with the background notification turned off: stop;
+ * - otherwise show the notification, with the "waiting" copy when hidden without a fix and
+ *   notifications may be posted.
+ */
 @AndroidEntryPoint
-internal open class LocationForegroundService :
-    Service(),
-    BackgroundMonitoringService {
-    // Injected in super.onCreate() (Hilt_LocationForegroundService); test subclasses inherit it.
+internal open class LocationForegroundService : Service() {
+    // Injected in super.onCreate() (Hilt_LocationForegroundService); test subclasses inherit them.
+    // Tests replace the observed dependencies after onCreate() (before onStartCommand).
     @Inject lateinit var backgroundNotificationSettingsRepository: BackgroundNotificationSettingsRepository
 
     @Inject lateinit var locationManager: LocationManager
 
-    // Replaced by tests after onCreate() (before onStartCommand) with a repository over a fake source.
     @Inject lateinit var locationRepository: LocationRepository
+
+    @Inject lateinit var appVisibility: AppVisibility
 
     @MainDispatcher
     @Inject
@@ -52,13 +64,15 @@ internal open class LocationForegroundService :
     private var providerReceiver: BroadcastReceiver? = null
     private var started = false
     private var monitoringScope: CoroutineScope? = null
-    private var bridgeGeneration: Long? = null
+
+    /** Whether the current run has received a fix; a new run starts without one. */
+    private val hasUsableFix = MutableStateFlow(false)
 
     private val eligibilityCheck =
         object : Runnable {
             override fun run() {
                 if (!isMonitoringEligible()) {
-                    stopForEligibility()
+                    stopRun()
                 } else {
                     handler.postDelayed(this, CHECK_INTERVAL_MS)
                 }
@@ -87,14 +101,13 @@ internal open class LocationForegroundService :
                 return START_NOT_STICKY
             }
             started = true
-            val generation = BackgroundMonitoringBridge.attach(this)
-            bridgeGeneration = generation
             if (!locationRepository.isLocationEnabled() || !locationRepository.hasGnssHardware()) {
                 stopMonitoring()
                 stopSelf()
                 return START_NOT_STICKY
             }
-            collectLocation(generation)
+            hasUsableFix.value = false
+            startRun()
             registerProviderReceiver()
             handler.post(eligibilityCheck)
         }
@@ -105,8 +118,6 @@ internal open class LocationForegroundService :
 
     override fun onDestroy() {
         stopMonitoring()
-        bridgeGeneration?.let { BackgroundMonitoringBridge.detach(this, it) }
-        bridgeGeneration = null
         super.onDestroy()
     }
 
@@ -116,32 +127,19 @@ internal open class LocationForegroundService :
         super.onTaskRemoved(rootIntent)
     }
 
-    override fun reconcile(
+    /** Applies the rules in the class documentation to the current state. */
+    private fun applyRules(
         activityVisible: Boolean,
+        showBackgroundNotification: Boolean,
         hasUsableFix: Boolean,
     ) {
-        if (!started || !isMonitoringEligible()) {
-            if (!isMonitoringEligible()) {
-                stopForEligibility()
-            }
-            return
+        if (!started) return
+        when {
+            !activityVisible && hasUsableFix -> stopRun()
+            !isMonitoringEligible() -> stopRun()
+            !activityVisible && !showBackgroundNotification -> stopRun()
+            else -> updateNotification(showWaiting = !activityVisible && !hasUsableFix && canPostNotifications())
         }
-        if (!activityVisible && !showBackgroundNotification()) {
-            stopMonitoring()
-            stopSelf()
-            return
-        }
-        updateNotification(showWaiting = !activityVisible && !hasUsableFix && canPostNotifications())
-    }
-
-    override fun onUsableFix() {
-        stopMonitoring()
-        stopSelf()
-    }
-
-    override fun stopForPreferenceDisabled() {
-        stopMonitoring()
-        stopSelf()
     }
 
     protected open fun isMonitoringEligible(): Boolean =
@@ -150,9 +148,6 @@ internal open class LocationForegroundService :
                 locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) ||
                     locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
             )
-
-    protected open fun showBackgroundNotification(): Boolean =
-        backgroundNotificationSettingsRepository.settings.value.showBackgroundNotification
 
     private fun registerProviderReceiver() {
         if (providerReceiver != null) return
@@ -163,15 +158,14 @@ internal open class LocationForegroundService :
                     intent: Intent,
                 ) {
                     if (intent.action == LocationManager.PROVIDERS_CHANGED_ACTION && !isMonitoringEligible()) {
-                        stopForEligibility()
+                        stopRun()
                     }
                 }
             }
         registerReceiver(providerReceiver, IntentFilter(LocationManager.PROVIDERS_CHANGED_ACTION))
     }
 
-    private fun stopForEligibility() {
-        BackgroundMonitoringBridge.notifyEligibilityLost()
+    private fun stopRun() {
         stopMonitoring()
         stopSelf()
     }
@@ -211,29 +205,32 @@ internal open class LocationForegroundService :
     }
 
     /**
-     * Forwards fixes and satellites to the bridge until [stopMonitoring]. A registration failure
-     * (reported asynchronously, after the first collection starts) stops the service, as a failed
-     * registration in [onStartCommand] did before.
+     * Holds the repository's fix and satellite registrations until [stopMonitoring] (the dashboard
+     * collects the same registrations itself) and applies the rules on every state change. A
+     * registration failure (reported asynchronously, after the first collection starts) stops the
+     * service, as a failed registration in [onStartCommand] did before.
      */
-    private fun collectLocation(generation: Long) {
+    private fun startRun() {
         val scope = CoroutineScope(SupervisorJob() + mainDispatcher)
         monitoringScope = scope
         scope.launch {
             try {
                 coroutineScope {
-                    launch {
-                        locationRepository.fixes.collect { fix -> BackgroundMonitoringBridge.forwardLocation(generation, fix) }
-                    }
-                    launch {
-                        locationRepository.satellites.collect { status -> BackgroundMonitoringBridge.forwardGnssStatus(generation, status) }
-                    }
+                    launch { locationRepository.fixes.collect { hasUsableFix.value = true } }
+                    // Values unused here: collecting keeps the GNSS registration of the run alive.
+                    launch { locationRepository.satellites.collect { } }
                 }
             } catch (_: LocationRegistrationException) {
-                if (monitoringScope === scope) {
-                    stopMonitoring()
-                    stopSelf()
-                }
+                if (monitoringScope === scope) stopRun()
             }
+        }
+        scope.launch {
+            combine(
+                appVisibility.visible,
+                backgroundNotificationSettingsRepository.settings,
+                hasUsableFix,
+            ) { visible, settings, fix -> Triple(visible, settings.showBackgroundNotification, fix) }
+                .collect { (visible, showNotification, fix) -> applyRules(visible, showNotification, fix) }
         }
     }
 

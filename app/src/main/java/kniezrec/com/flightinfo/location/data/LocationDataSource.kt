@@ -7,8 +7,7 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 
 /**
- * Platform boundary for GPS fixes, GNSS satellite status and the location-services switch
- * (successor of `FlightLocationPlatform` / `GnssStatusPlatform`).
+ * Platform boundary for GPS fixes, GNSS satellite status and the location-services switch.
  *
  * Every returned flow is cold: each collection registers its own platform callback and the
  * callback is unregistered when the collection ends. A registration the platform refuses or

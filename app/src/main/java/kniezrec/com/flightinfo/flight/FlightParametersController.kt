@@ -1,79 +1,33 @@
 package kniezrec.com.flightinfo.flight
 
-/** Narrow, testable boundary around foreground GPS location registration. */
-internal interface FlightLocationPlatform {
-    fun areLocationServicesEnabled(): Boolean
-
-    fun hasGnssHardware(): Boolean
-
-    fun registerLocationListener(onLocation: (FlightLocationFix) -> Unit): Boolean
-
-    fun unregisterLocationListener()
-}
-
-/** Owns one foreground location listener and altitude history for one observation session. */
+/**
+ * Turns the fixes of the shared location registration into flight readings. Fixes are accepted
+ * between [start] and [stop]; every session starts with an empty altitude history.
+ */
 internal class FlightParametersController(
-    private val platform: FlightLocationPlatform,
     private val onStateChanged: (FlightParametersState) -> Unit,
     private val onLocationFix: (FlightLocationFix) -> Unit = {},
-    private val onRegistrationFailed: () -> Unit = {},
 ) {
-    private var registered = false
-    private var activeSession: Long? = null
-    private var nextSession = 0L
+    private var active = false
     private var previousAltitudeSample: AltitudeSample? = null
     private var hasReceivedDisplayableReading = false
-    private var externalSession = false
 
-    /** Starts a foreground location session and reports whether listener registration succeeded. */
-    fun start(): Boolean {
+    /** Starts a new session: readings reset to waiting and fixes are accepted until [stop]. */
+    fun start() {
         stop()
-        if (externalSession) {
-            registered = true
-            activeSession = ++nextSession
-            return true
-        }
-        if (!platform.areLocationServicesEnabled() || !platform.hasGnssHardware()) return false
-        val session = ++nextSession
-        activeSession = session
-        registered =
-            try {
-                platform.registerLocationListener { fix ->
-                    if (registered && activeSession == session) onLocation(fix)
-                }
-            } catch (_: SecurityException) {
-                false
-            } catch (_: RuntimeException) {
-                false
-            }
-        if (!registered) {
-            activeSession = null
-            onRegistrationFailed()
-            return false
-        }
-        return true
+        active = true
     }
 
+    /** Ends the session: readings reset to waiting and later fixes are ignored. */
     fun stop() {
-        activeSession = null
-        if (registered && !externalSession) platform.unregisterLocationListener()
-        registered = false
+        active = false
         previousAltitudeSample = null
         hasReceivedDisplayableReading = false
         onStateChanged(FlightParametersState.Waiting)
     }
 
-    /** Accepts a fix from the service-owned monitoring session. */
     fun acceptLocationFix(fix: FlightLocationFix) {
-        if (registered) onLocation(fix)
-    }
-
-    /** Marks this controller as consuming an already-registered shared session. */
-    fun attachToExternalSession() {
-        stop()
-        externalSession = true
-        registered = true
-        activeSession = ++nextSession
+        if (active) onLocation(fix)
     }
 
     private fun onLocation(fix: FlightLocationFix) {

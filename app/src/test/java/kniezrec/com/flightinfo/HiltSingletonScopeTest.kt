@@ -6,7 +6,6 @@ import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import kniezrec.com.flightinfo.monitoring.BackgroundMonitoringBridge
 import kniezrec.com.flightinfo.monitoring.LocationForegroundService
 import org.junit.After
 import org.junit.Assert.assertNotSame
@@ -40,8 +39,6 @@ class HiltSingletonScopeTest {
     @After
     fun tearDown() {
         scenario?.close()
-        BackgroundMonitoringBridge.clear()
-        BackgroundMonitoringBridge.clearEventHandlers()
         previousCreateActivityContexts?.let { System.setProperty(CREATE_ACTIVITY_CONTEXTS, it) }
             ?: System.clearProperty(CREATE_ACTIVITY_CONTEXTS)
     }
@@ -67,16 +64,20 @@ class HiltSingletonScopeTest {
         assertSame(first.nearbyCityRepository, second.nearbyCityRepository)
         assertSame(first.mapArchiveRepository, second.mapArchiveRepository)
         assertSame(first.clock, second.clock)
+        assertSame(first.locationRepository, second.locationRepository)
+        assertSame(first.appVisibility, second.appVisibility)
     }
 
     @Test
-    fun activityAndServiceShareTheNotificationSettingsRepository() {
+    fun activityAndServiceShareTheirObservedState() {
         val activity = ActivityScenario.launch(MainActivity::class.java).also { scenario = it }.injected()
         val controller = Robolectric.buildService(LocationForegroundService::class.java).create()
         try {
             val service = controller.get()
 
             assertSame(activity.backgroundNotificationSettingsRepository, service.backgroundNotificationSettingsRepository)
+            assertSame(activity.locationRepository, service.locationRepository)
+            assertSame(activity.appVisibility, service.appVisibility)
             assertSame(application.getSystemService(LocationManager::class.java), service.locationManager)
         } finally {
             controller.destroy()
@@ -108,6 +109,8 @@ class HiltSingletonScopeTest {
                     nearbyCityRepository = it.nearbyCityRepository,
                     mapArchiveRepository = it.mapArchiveRepository,
                     clock = it.clock,
+                    locationRepository = it.locationRepository,
+                    appVisibility = it.appVisibility,
                 )
         }
         return checkNotNull(result)
@@ -122,6 +125,8 @@ class HiltSingletonScopeTest {
         val nearbyCityRepository: Any,
         val mapArchiveRepository: Any,
         val clock: Any,
+        val locationRepository: Any,
+        val appVisibility: Any,
     )
 
     private companion object {

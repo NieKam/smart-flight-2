@@ -10,14 +10,11 @@ internal class ForegroundCourseObservationCoordinator(
     private val nearbyCityController: NearbyCityController? = null,
 ) {
     fun start() {
-        // Clear old course data before a new location registration can report its outcome.
+        // Clear old course data before the new session starts.
         courseController.stop()
         nearbyCityController?.start()
-        if (flightParametersController.start()) {
-            courseController.start()
-        } else {
-            nearbyCityController?.stop()
-        }
+        flightParametersController.start()
+        courseController.start()
     }
 
     fun stop() {
