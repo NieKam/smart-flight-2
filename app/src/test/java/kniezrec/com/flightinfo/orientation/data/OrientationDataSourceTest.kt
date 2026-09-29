@@ -17,6 +17,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Shadows.shadowOf
@@ -31,6 +32,12 @@ class OrientationDataSourceTest {
     private val sensorManager: SensorManager = application.getSystemService(SensorManager::class.java)
     private val shadowSensorManager: ShadowSensorManager = shadowOf(sensorManager)
     private val displayRotation = FakeDisplayRotationProvider()
+
+    @Before
+    fun letRegistrationsSucceed() {
+        // The flag is static in ShadowSensorManager; do not depend on its reset between tests.
+        shadowSensorManager.setForceListenersToFail(false)
+    }
 
     @Test
     fun `two collectors share one sensor listener, released when both stop`() =
@@ -98,7 +105,9 @@ class OrientationDataSourceTest {
             sendIdentityRotation(sensor)
             runCurrent()
 
-            assertEquals(listOf(0.0, 180.0), samples.map { it.headingDegrees })
+            assertEquals(2, samples.size)
+            assertEquals(0.0, samples[0].headingDegrees, 0.001)
+            assertEquals(180.0, samples[1].headingDegrees, 0.001)
         }
 
     @Test
