@@ -31,9 +31,8 @@ import kniezrec.com.flightinfo.displayunits.UnitPreferences
 import kniezrec.com.flightinfo.displayunits.VerticalSpeedUnit
 import kniezrec.com.flightinfo.flight.FlightParametersState
 import kniezrec.com.flightinfo.gnss.GnssStatusState
-import kniezrec.com.flightinfo.map.MapSessionRules
+import kniezrec.com.flightinfo.map.ui.MapUiState
 import kniezrec.com.flightinfo.ui.gnss.GnssStatusScreen
-import kniezrec.com.flightinfo.ui.gnss.MapCardState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
 import org.junit.Rule
@@ -208,9 +207,7 @@ class UnitSettingsScreenTest {
                         onOpenLocationSettings = {},
                         onRetry = {},
                         onOpenSettings = { showSettings = true },
-                        mapState = MapCardState.Ready(archive),
-                        mapRules = MapSessionRules(),
-                        largerMapZoom = displayPreferences.largerMapZoom,
+                        mapState = MapUiState.Ready(archive, largerMapZoom = displayPreferences.largerMapZoom),
                     )
                     if (showSettings) {
                         UnitSettingsScreen(

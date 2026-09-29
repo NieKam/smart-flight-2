@@ -43,14 +43,11 @@ import kniezrec.com.flightinfo.course.ui.CourseViewModel
 import kniezrec.com.flightinfo.display.data.DisplaySettingsRepository
 import kniezrec.com.flightinfo.display.ui.applyDisplayPreferences
 import kniezrec.com.flightinfo.displayunits.data.UnitSettingsRepository
-import kniezrec.com.flightinfo.flight.FlightLocationFix
 import kniezrec.com.flightinfo.flight.ui.FlightParametersViewModel
 import kniezrec.com.flightinfo.gnss.ui.GnssStatusViewModel
 import kniezrec.com.flightinfo.horizon.ui.HorizonViewModel
-import kniezrec.com.flightinfo.location.data.LocationRegistrationException
-import kniezrec.com.flightinfo.location.data.LocationRepository
-import kniezrec.com.flightinfo.map.MapArchiveRepository
-import kniezrec.com.flightinfo.map.MapSessionRules
+import kniezrec.com.flightinfo.map.ui.MapUiState
+import kniezrec.com.flightinfo.map.ui.MapViewModel
 import kniezrec.com.flightinfo.monitoring.AppVisibility
 import kniezrec.com.flightinfo.monitoring.LocationForegroundService
 import kniezrec.com.flightinfo.monitoring.data.BackgroundNotificationSettingsRepository
@@ -64,13 +61,11 @@ import kniezrec.com.flightinfo.route.ui.RoutePickerViewModel
 import kniezrec.com.flightinfo.route.ui.RouteViewModel
 import kniezrec.com.flightinfo.ui.about.AboutDialog
 import kniezrec.com.flightinfo.ui.gnss.GnssStatusScreen
-import kniezrec.com.flightinfo.ui.gnss.MapCardState
 import kniezrec.com.flightinfo.ui.permission.PermissionOnboardingScreen
 import kniezrec.com.flightinfo.ui.permission.smartFlightPageColor
 import kniezrec.com.flightinfo.ui.settings.UnitSettingsScreen
 import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -85,20 +80,12 @@ class MainActivity : ComponentActivity() {
 
     @Inject lateinit var permissionRequestHistory: LocationPermissionRequestHistory
 
-    @Inject lateinit var mapArchiveRepository: MapArchiveRepository
-
-    @Inject lateinit var locationRepository: LocationRepository
-
     @Inject lateinit var appVisibility: AppVisibility
 
     private var permissionState by mutableStateOf(LocationPermissionState.Requestable)
     private var announcementVersion by mutableIntStateOf(0)
-    private var mapState by mutableStateOf<MapCardState>(MapCardState.Inactive)
     private var showUnitSettings by mutableStateOf(false)
     private var showAbout by mutableStateOf(false)
-    private val mapRules = MapSessionRules()
-    private var mapLoadToken = 0L
-    private var mapPositionVersion by mutableIntStateOf(0)
     private var isForeground by mutableStateOf(false)
     private val permissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
@@ -118,12 +105,6 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 displaySettingsRepository.display.collect { applyDisplayPreferences(it) }
-            }
-        }
-        lifecycleScope.launch {
-            // Starts after onResume (observation already started) and ends before onPause.
-            repeatOnLifecycle(Lifecycle.State.RESUMED) {
-                if (permissionState == LocationPermissionState.Granted) collectLocation()
             }
         }
         setContent {
@@ -153,12 +134,14 @@ class MainActivity : ComponentActivity() {
                             val nearbyCityViewModel: NearbyCityViewModel = hiltViewModel()
                             val routeViewModel: RouteViewModel = hiltViewModel()
                             val routePickerViewModel: RoutePickerViewModel = hiltViewModel()
+                            val mapViewModel: MapViewModel = hiltViewModel()
                             val gnssState by gnssStatusViewModel.state.collectAsStateWithLifecycle()
                             val flightParametersState by flightParametersViewModel.state.collectAsStateWithLifecycle()
                             val courseState by courseViewModel.state.collectAsStateWithLifecycle()
                             val horizonState by horizonViewModel.state.collectAsStateWithLifecycle()
                             val nearbyCityState by nearbyCityViewModel.state.collectAsStateWithLifecycle()
                             val routeState by routeViewModel.state.collectAsStateWithLifecycle()
+                            val mapState by mapViewModel.state.collectAsStateWithLifecycle()
                             // Immediate, so the search field shows each typed character before the next input event.
                             val routePickerState by routePickerViewModel.state.collectAsStateWithLifecycle(
                                 context = Dispatchers.Main.immediate,
@@ -202,11 +185,9 @@ class MainActivity : ComponentActivity() {
                                     nearbyCityState = nearbyCityState,
                                     onNearbyCityRetry = nearbyCityViewModel::retry,
                                     mapState = mapState,
-                                    mapRules = mapRules,
-                                    largerMapZoom = displayPreferences.largerMapZoom,
-                                    mapPositionVersion = mapPositionVersion,
-                                    onMapRetry = { startMapLoad() },
-                                    onMapUnavailable = { mapState = MapCardState.Unavailable },
+                                    onMapRetry = mapViewModel::retry,
+                                    onMapUnavailable = mapViewModel::onMapOpenFailed,
+                                    onMapCentered = mapViewModel::onCentered,
                                     routeState = routeState,
                                     onRouteChoose = routePickerViewModel::open,
                                     onRouteClear = routeViewModel::clear,
@@ -220,7 +201,7 @@ class MainActivity : ComponentActivity() {
                                     onRouteConfirm = { routePickerViewModel.confirm() },
                                     onRouteCancel = routePickerViewModel::close,
                                     onRouteRetry = routePickerViewModel::retry,
-                                    routePickerMapArchive = (mapState as? MapCardState.Ready)?.archive,
+                                    routePickerMapArchive = (mapState as? MapUiState.Ready)?.archive,
                                     onOpenSettings = { showUnitSettings = true },
                                     onOpenAbout = { showAbout = true },
                                     unitPreferences = unitPreferences,
@@ -233,7 +214,8 @@ class MainActivity : ComponentActivity() {
                                             }
                                         }
                                     },
-                                    onRetry = { if (isForeground) startObservation() },
+                                    // As before: restarts the map observation (the GNSS card has no retry of its own).
+                                    onRetry = mapViewModel::retry,
                                     modifier = Modifier.padding(innerPadding).safeDrawingPadding(),
                                 )
                             }
@@ -285,7 +267,6 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onPause() {
-        stopMap()
         isForeground = false
         appVisibility.setVisible(false)
         super.onPause()
@@ -300,12 +281,7 @@ class MainActivity : ComponentActivity() {
 
     private fun refreshPermissionState(announceChange: Boolean = false) {
         permissionState = permissionStateController.currentState()
-        if (isForeground && permissionState == LocationPermissionState.Granted) {
-            startObservation()
-        } else if (permissionState != LocationPermissionState.Granted || isForeground) {
-            stopMap()
-            stopBackgroundMonitoring()
-        }
+        if (permissionState != LocationPermissionState.Granted) stopBackgroundMonitoring()
         if (announceChange) announcementVersion++
     }
 
@@ -358,49 +334,5 @@ class MainActivity : ComponentActivity() {
 
     private fun stopBackgroundMonitoring() {
         stopService(Intent(this, LocationForegroundService::class.java))
-    }
-
-    private fun startObservation() {
-        startMapLoad()
-    }
-
-    /**
-     * Feeds the fixes of the shared location registration (the service and the card ViewModels
-     * collect the same one) to the map. While the location is
-     * switched off the fixes are not collected. A registration failure stops the feed until the
-     * next resume.
-     */
-    private suspend fun collectLocation() {
-        try {
-            locationRepository.confirmedLocationEnabled.collectLatest { enabled ->
-                if (enabled) locationRepository.fixes.collect { onLocationFix(it) }
-            }
-        } catch (_: LocationRegistrationException) {
-            // Cards keep their state, as when the service failed to register before.
-        }
-    }
-
-    private fun onLocationFix(fix: FlightLocationFix) {
-        if (mapRules.accept(fix)) mapPositionVersion++
-    }
-
-    private fun startMapLoad() {
-        if (!isForeground || permissionState != LocationPermissionState.Granted) return
-        val token = ++mapLoadToken
-        mapRules.reset()
-        mapPositionVersion++
-        mapState = MapCardState.Loading
-        mapArchiveRepository.prepare { result ->
-            mainExecutor.execute {
-                if (token != mapLoadToken || !isForeground || permissionState != LocationPermissionState.Granted) return@execute
-                mapState = result.fold({ MapCardState.Ready(it) }, { MapCardState.Unavailable })
-            }
-        }
-    }
-
-    private fun stopMap() {
-        mapLoadToken++
-        mapRules.reset()
-        mapState = MapCardState.Inactive
     }
 }

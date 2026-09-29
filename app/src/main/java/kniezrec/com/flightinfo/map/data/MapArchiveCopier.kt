@@ -1,4 +1,4 @@
-package kniezrec.com.flightinfo.map
+package kniezrec.com.flightinfo.map.data
 
 import kniezrec.com.flightinfo.data.AssetExtractor
 import java.io.File

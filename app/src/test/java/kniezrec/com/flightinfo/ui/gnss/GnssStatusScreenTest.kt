@@ -34,7 +34,7 @@ import kniezrec.com.flightinfo.displayunits.VerticalSpeedUnit
 import kniezrec.com.flightinfo.flight.FlightParametersState
 import kniezrec.com.flightinfo.gnss.GnssSatellite
 import kniezrec.com.flightinfo.gnss.GnssStatusState
-import kniezrec.com.flightinfo.map.MapSessionRules
+import kniezrec.com.flightinfo.map.ui.MapUiState
 import kniezrec.com.flightinfo.nearby.NearbyCityRecord
 import kniezrec.com.flightinfo.nearby.NearbyCityState
 import kniezrec.com.flightinfo.route.RouteDetails
@@ -46,7 +46,6 @@ import kniezrec.com.flightinfo.route.RouteState
 import kniezrec.com.flightinfo.ui.route.RouteCard
 import kniezrec.com.flightinfo.ui.route.RoutePicker
 import org.junit.Assert.assertTrue
-import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -251,8 +250,7 @@ class GnssStatusScreenTest {
     @Test fun unavailableMapShowsRetryActionAndDoesNotExposeMapControls() {
         composeRule.setContent {
             MapCard(
-                MapCardState.Unavailable,
-                MapSessionRules(),
+                MapUiState.Unavailable,
                 {},
             )
         }
@@ -276,8 +274,7 @@ class GnssStatusScreenTest {
         try {
             composeRule.setContent {
                 MapCard(
-                    MapCardState.Ready(archive),
-                    MapSessionRules(),
+                    MapUiState.Ready(archive),
                     {},
                 )
             }
@@ -303,10 +300,7 @@ class GnssStatusScreenTest {
         }
     }
 
-    @Ignore(
-        "Production bug: osmdroid's ArchiveFileFactory swallows the ZipException, so MapCard never " +
-            "calls onUnavailable for an unreadable archive. Re-enable when MapCard reports it.",
-    )
+    // TASK-014 (F1): osmdroid skips an unreadable archive without throwing; MapCard reports it.
     @Test
     fun invalidOfflineArchiveReportsOpenFailureWithoutUsingNetworkFallback() {
         val archive = File(composeRule.activity.cacheDir, "invalid-map-test.zip")
@@ -315,8 +309,7 @@ class GnssStatusScreenTest {
         try {
             composeRule.setContent {
                 MapCard(
-                    MapCardState.Ready(archive),
-                    MapSessionRules(),
+                    MapUiState.Ready(archive),
                     {},
                     onUnavailable = { failed = true },
                 )
@@ -526,7 +519,7 @@ class GnssStatusScreenTest {
             zip.write(byteArrayOf(0))
             zip.closeEntry()
         }
-        var mapState by mutableStateOf<MapCardState>(MapCardState.Loading)
+        var mapState by mutableStateOf<MapUiState>(MapUiState.Loading)
         var overlay by mutableStateOf<RouteOverlay?>(
             RouteOverlay(
                 kniezrec.com.flightinfo.nearby
@@ -539,9 +532,9 @@ class GnssStatusScreenTest {
         )
         try {
             composeRule.setContent {
-                MapCard(mapState, MapSessionRules(), {}, routeOverlay = overlay)
+                MapCard(mapState, {}, routeOverlay = overlay)
             }
-            composeRule.runOnIdle { mapState = MapCardState.Ready(archive) }
+            composeRule.runOnIdle { mapState = MapUiState.Ready(archive) }
             composeRule.onNodeWithContentDescription("Route overlay from Alpha to Beta").assertExists()
             composeRule.onNodeWithTag("map-content").assertExists()
             composeRule.runOnIdle {
