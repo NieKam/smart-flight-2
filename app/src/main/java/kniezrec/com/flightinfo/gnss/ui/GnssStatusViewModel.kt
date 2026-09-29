@@ -43,7 +43,7 @@ class GnssStatusViewModel
                             .onStart { emit(GnssStatusState.Waiting) }
                             .catch { cause -> if (cause !is LocationRegistrationException) throw cause }
                     } else {
-                        emptyFlow()
+                        emptyFlow<GnssStatusState>()
                     }
                 }.onStart { emit(GnssStatusState.Waiting) }
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), GnssStatusState.Waiting)
