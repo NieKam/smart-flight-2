@@ -9,7 +9,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Qualifier
 
-/** The `route` SharedPreferences file (persisted departure/destination ids). */
+/** The `route` SharedPreferences file (persisted departure/destination ids), owned by `RouteRepository`. */
 @Qualifier
 @Retention(AnnotationRetention.BINARY)
 annotation class RoutePreferences
