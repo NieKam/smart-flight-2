@@ -3,6 +3,7 @@ package kniezrec.com.flightinfo
 import android.Manifest
 import android.app.Application
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.hardware.Sensor
 import android.hardware.SensorManager
@@ -316,6 +317,26 @@ class MainActivityCharacterizationTest {
         assertEquals(1, gpsListeners().size)
         forward(flightFix(speedMetresPerSecond = 10.0)) { hasText(speedKmh("36.0")) }
         assertEquals(1, gpsListeners().size)
+    }
+
+    // TASK-008 review B1: switching location off stops the cards; after a trip to the location
+    // settings (pause, location back on, resume) the replayed "off" value must not stop them again.
+    @Test
+    fun locationBackOnAfterPauseLetsFixesReachFlightCard() {
+        val activity = launch()
+        forward(flightFix(speedMetresPerSecond = 10.0, elapsedSeconds = 1L)) { hasText(speedKmh("36.0")) }
+
+        locationManager.setLocationEnabled(false)
+        application.sendBroadcast(Intent(LocationManager.PROVIDERS_CHANGED_ACTION))
+        waitUntil { !hasText(speedKmh("36.0")) }
+        assertFlightCardWaiting()
+
+        activity.moveToState(Lifecycle.State.STARTED)
+        locationManager.setLocationEnabled(true)
+        activity.moveToState(Lifecycle.State.RESUMED)
+
+        forward(flightFix(speedMetresPerSecond = 30.0, elapsedSeconds = 3L)) { hasText(speedKmh("108.0")) }
+        composeRule.onNodeWithText(speedKmh("108.0")).assertIsDisplayed()
     }
 
     private fun launch(grantLocation: Boolean = true): ActivityScenario<MainActivity> {

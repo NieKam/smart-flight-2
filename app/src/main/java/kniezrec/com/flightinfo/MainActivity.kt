@@ -563,11 +563,15 @@ class MainActivity : ComponentActivity() {
         try {
             coroutineScope {
                 launch {
-                    // Location switched off: the cards stay waiting until observation restarts.
-                    locationRepository.locationEnabled.filter { enabled -> !enabled }.collect {
-                        flightParametersController.stop()
-                        gnssStatusController.stop()
-                    }
+                    // Location switched off: the cards stay waiting until observation restarts. The
+                    // StateFlow first replays the value cached by an earlier subscription (possibly
+                    // stale after a trip to the location settings), so "off" is confirmed by a fresh read.
+                    locationRepository.locationEnabled
+                        .filter { enabled -> !enabled && !locationRepository.isLocationEnabled() }
+                        .collect {
+                            flightParametersController.stop()
+                            gnssStatusController.stop()
+                        }
                 }
                 launch { locationRepository.fixes.collect { flightParametersController.acceptLocationFix(it) } }
                 launch { locationRepository.satellites.collect { gnssStatusController.acceptStatus(it) } }
