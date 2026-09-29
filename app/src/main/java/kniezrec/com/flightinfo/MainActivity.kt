@@ -5,7 +5,6 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.content.res.Configuration
-import android.hardware.SensorManager
 import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
@@ -33,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.zIndex
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
@@ -47,12 +47,9 @@ import kniezrec.com.flightinfo.course.ForegroundCourseObservationCoordinator
 import kniezrec.com.flightinfo.display.data.DisplaySettingsRepository
 import kniezrec.com.flightinfo.display.ui.applyDisplayPreferences
 import kniezrec.com.flightinfo.displayunits.data.UnitSettingsRepository
-import kniezrec.com.flightinfo.flight.AndroidPressurePlatform
-import kniezrec.com.flightinfo.flight.FlightParametersController
-import kniezrec.com.flightinfo.flight.FlightParametersState
-import kniezrec.com.flightinfo.flight.PressureController
-import kniezrec.com.flightinfo.gnss.GnssStatusController
-import kniezrec.com.flightinfo.gnss.GnssStatusState
+import kniezrec.com.flightinfo.flight.FlightLocationFix
+import kniezrec.com.flightinfo.flight.ui.FlightParametersViewModel
+import kniezrec.com.flightinfo.gnss.ui.GnssStatusViewModel
 import kniezrec.com.flightinfo.horizon.HorizonController
 import kniezrec.com.flightinfo.horizon.HorizonState
 import kniezrec.com.flightinfo.location.data.LocationRegistrationException
@@ -86,8 +83,7 @@ import kniezrec.com.flightinfo.ui.permission.PermissionOnboardingScreen
 import kniezrec.com.flightinfo.ui.permission.smartFlightPageColor
 import kniezrec.com.flightinfo.ui.settings.UnitSettingsScreen
 import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.time.Clock
 import java.util.concurrent.Executors
@@ -120,9 +116,6 @@ class MainActivity : ComponentActivity() {
 
     private var permissionState by mutableStateOf(LocationPermissionState.Requestable)
     private var announcementVersion by mutableIntStateOf(0)
-    private var gnssState by mutableStateOf<GnssStatusState>(GnssStatusState.Waiting)
-    private var flightParametersState by mutableStateOf<FlightParametersState>(FlightParametersState.Waiting)
-    private var pressureMillibars: Double? = null
     private var courseState by mutableStateOf<CourseState>(CourseState.Waiting)
     private var horizonState by mutableStateOf<HorizonState>(HorizonState.Waiting)
     private var nearbyCityState by mutableStateOf<NearbyCityState>(NearbyCityState.WaitingForPosition)
@@ -186,6 +179,10 @@ class MainActivity : ComponentActivity() {
                         snackbarHost = { SnackbarHost(snackbarHostState) },
                     ) { innerPadding ->
                         if (permissionState == LocationPermissionState.Granted) {
+                            val gnssStatusViewModel: GnssStatusViewModel = hiltViewModel()
+                            val flightParametersViewModel: FlightParametersViewModel = hiltViewModel()
+                            val gnssState by gnssStatusViewModel.state.collectAsStateWithLifecycle()
+                            val flightParametersState by flightParametersViewModel.state.collectAsStateWithLifecycle()
                             // Settings is an overlay so the dashboard's AndroidView-backed map remains
                             // composed. This preserves its viewport, overlays, and in-place zoom policy.
                             Box(Modifier.fillMaxSize()) {
@@ -392,8 +389,7 @@ class MainActivity : ComponentActivity() {
     override fun onPause() {
         stopMap()
         isForeground = false
-        pressureController.stop()
-        courseObservationCoordinator.stopForegroundOnly()
+        courseObservationCoordinator.stop()
         routeController.stop()
         horizonController.stop()
         appVisibility.setVisible(false)
@@ -401,7 +397,6 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
-        pressureController.stop()
         cityLookupExecutor.shutdownNow()
         if (!isChangingConfigurations) {
             stopBackgroundMonitoring()
@@ -414,8 +409,6 @@ class MainActivity : ComponentActivity() {
         if (isForeground && permissionState == LocationPermissionState.Granted) {
             startObservation()
         } else if (permissionState != LocationPermissionState.Granted || isForeground) {
-            gnssStatusController.stop()
-            pressureController.stop()
             courseObservationCoordinator.stop()
             routeController.stop()
             horizonController.stop()
@@ -466,38 +459,6 @@ class MainActivity : ComponentActivity() {
         )
     }
 
-    private val gnssStatusController by lazy {
-        GnssStatusController(onStateChanged = { gnssState = it })
-    }
-
-    private val flightParametersController by lazy {
-        FlightParametersController(
-            onStateChanged = { state ->
-                flightParametersState =
-                    (state as? FlightParametersState.Readings)?.copy(pressureMillibars = pressureMillibars) ?: state
-            },
-            onLocationFix = {
-                courseController.onGpsBearing(it.bearingDegrees)
-                nearbyCityController.onLocationFix(it)
-                routeController.onFix(it)
-                if (mapRules.accept(it)) mapPositionVersion++
-            },
-        )
-    }
-
-    private val pressureController by lazy {
-        PressureController(
-            platform = AndroidPressurePlatform(getSystemService(SensorManager::class.java)),
-            onPressureChanged = { pressure ->
-                pressureMillibars = pressure
-                flightParametersState =
-                    (flightParametersState as? FlightParametersState.Readings)?.copy(
-                        pressureMillibars = pressure,
-                    ) ?: flightParametersState
-            },
-        )
-    }
-
     private val courseController by lazy {
         CourseController(SharedCourseOrientationPlatform(orientationSource)) { courseState = it }
     }
@@ -532,7 +493,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private val courseObservationCoordinator by lazy {
-        ForegroundCourseObservationCoordinator(flightParametersController, courseController, nearbyCityController)
+        ForegroundCourseObservationCoordinator(courseController, nearbyCityController)
     }
 
     private fun startBackgroundMonitoring() {
@@ -546,39 +507,33 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun startObservation() {
-        pressureController.start()
         routeController.start()
-        gnssStatusController.start()
         courseObservationCoordinator.start()
         horizonController.start()
         startMapLoad()
     }
 
     /**
-     * Feeds the flight and GNSS controllers from the shared location registrations (the service
-     * collects the same ones, so there is one registration per data type). A registration failure
-     * leaves the cards as they are until the next resume.
+     * Feeds the fixes of the shared location registration (the service and the GNSS/flight
+     * ViewModels collect the same one) to course, nearby city, route and map. While the location is
+     * switched off the fixes are not collected. A registration failure stops the feed until the
+     * next resume.
      */
     private suspend fun collectLocation() {
         try {
-            coroutineScope {
-                launch {
-                    // Location switched off: the cards stay waiting until observation restarts. The
-                    // StateFlow first replays the value cached by an earlier subscription (possibly
-                    // stale after a trip to the location settings), so "off" is confirmed by a fresh read.
-                    locationRepository.locationEnabled
-                        .filter { enabled -> !enabled && !locationRepository.isLocationEnabled() }
-                        .collect {
-                            flightParametersController.stop()
-                            gnssStatusController.stop()
-                        }
-                }
-                launch { locationRepository.fixes.collect { flightParametersController.acceptLocationFix(it) } }
-                launch { locationRepository.satellites.collect { gnssStatusController.acceptStatus(it) } }
+            locationRepository.confirmedLocationEnabled.collectLatest { enabled ->
+                if (enabled) locationRepository.fixes.collect { onLocationFix(it) }
             }
         } catch (_: LocationRegistrationException) {
             // Cards keep their state, as when the service failed to register before.
         }
+    }
+
+    private fun onLocationFix(fix: FlightLocationFix) {
+        courseController.onGpsBearing(fix.bearingDegrees)
+        nearbyCityController.onLocationFix(fix)
+        routeController.onFix(fix)
+        if (mapRules.accept(fix)) mapPositionVersion++
     }
 
     private fun startMapLoad() {

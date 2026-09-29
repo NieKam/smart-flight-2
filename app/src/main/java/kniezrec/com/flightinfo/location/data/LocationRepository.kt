@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.conflate
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
@@ -55,6 +56,16 @@ class LocationRepository
             dataSource
                 .locationEnabledChanges()
                 .stateIn(scope, SharingStarted.WhileSubscribed(), dataSource.isLocationEnabled())
+
+        /**
+         * [locationEnabled] for reacting to the switch. A new collector of the StateFlow first gets
+         * the value cached by an earlier subscription, possibly stale (e.g. after a trip to the
+         * location settings), so "off" counts only when a fresh read confirms it.
+         */
+        val confirmedLocationEnabled: Flow<Boolean> =
+            locationEnabled
+                .map { enabled -> enabled || dataSource.isLocationEnabled() }
+                .distinctUntilChanged()
 
         fun isLocationEnabled(): Boolean = dataSource.isLocationEnabled()
 
