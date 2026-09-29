@@ -20,13 +20,16 @@ import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextInput
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
 import androidx.test.core.app.ActivityScenario
@@ -336,6 +339,38 @@ class MainActivityCharacterizationTest {
         composeRule.onNodeWithContentDescription(closestCity).assertExists()
         // Neither the flight card nor the nearby-city card (same text) went back to waiting.
         composeRule.onAllNodesWithText(string(R.string.flight_parameters_waiting)).assertCountEquals(0)
+    }
+
+    // TASK-013: the city picker lives in RoutePickerViewModel with its endpoint, query and selection
+    // in saved state, so rotation keeps it open with the typed query and the selected city.
+    @Test
+    fun recreationKeepsTheOpenCityPickerWithQueryAndSelection() {
+        val activity = launch()
+        composeRule
+            .onNodeWithText("${string(R.string.route_departure)}: ${string(R.string.route_choose_departure)}")
+            .performScrollTo()
+            .performClick()
+        composeRule.onNodeWithText(string(R.string.route_city_name)).performTextInput("Warsaw")
+        composeRule.onNodeWithText(string(R.string.route_city_name)).performImeAction()
+        waitUntil { composeRule.onAllNodesWithText("Warsaw (", substring = true).fetchSemanticsNodes().isNotEmpty() }
+        composeRule.onAllNodesWithText("Warsaw (", substring = true)[0].performClick()
+        val selected = "Selected: Warsaw ("
+        waitUntil { composeRule.onAllNodesWithText(selected, substring = true).fetchSemanticsNodes().isNotEmpty() }
+        val selectedText =
+            composeRule
+                .onAllNodesWithText(selected, substring = true)
+                .fetchSemanticsNodes()
+                .single()
+                .config[SemanticsProperties.Text]
+                .single()
+                .text
+
+        activity.recreate()
+
+        composeRule.onNodeWithText(string(R.string.route_picker_departure)).assertIsDisplayed()
+        composeRule.onNodeWithText("Warsaw").assertIsDisplayed()
+        composeRule.onNodeWithText(selectedText).assertIsDisplayed()
+        composeRule.onNodeWithText(string(R.string.route_confirm)).assertIsEnabled()
     }
 
     // Scenario 9. Replaced in TASK-008 (formerly "the activity registers no listener of its own"):

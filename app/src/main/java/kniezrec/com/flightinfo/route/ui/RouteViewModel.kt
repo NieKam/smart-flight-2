@@ -102,16 +102,6 @@ class RouteViewModel
                 )
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), RouteState())
 
-        /** Saves [city] as [endpoint]; false (and nothing changes) when the city is not valid. */
-        fun choose(
-            endpoint: RouteEndpoint,
-            city: NearbyCityRecord,
-        ): Boolean {
-            if (!validCity(city)) return false
-            viewModelScope.launch { routeRepository.set(endpoint, city.id) }
-            return true
-        }
-
         fun clear(endpoint: RouteEndpoint) {
             viewModelScope.launch { routeRepository.clear(endpoint) }
         }
@@ -124,22 +114,6 @@ class RouteViewModel
         fun retryRestore() {
             restoreRetries.tryEmit(Unit)
         }
-
-        /**
-         * Cities whose name contains [query] (see [CityRepository.search]); [reload] copies the city
-         * data again first. Throws when the data cannot be read. Used by the route picker until
-         * TASK-013 gives it its own state holder.
-         */
-        suspend fun search(
-            query: String,
-            reload: Boolean = false,
-        ): List<NearbyCityRecord> {
-            if (reload) cityRepository.reload()
-            return cityRepository.search(query)
-        }
-
-        /** The city nearest to [coordinate]; throws when the data cannot be read. Used by the route picker. */
-        suspend fun nearest(coordinate: NearbyCoordinate): NearbyCityRecord? = cityRepository.nearest(coordinate)
 
         private suspend fun resolve(request: RestoreRequest): ResolvedEndpoints {
             val ids = request.ids
