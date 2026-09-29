@@ -37,8 +37,8 @@ class MainActivityDisplaySettingsTest {
 
     @Before
     fun setUp() {
-        // Same switches as MainActivityCharacterizationTest: AndroidOrientationSource reads
-        // Context.display, and a one-entry map archive skips the large asset copy.
+        // Same switches as MainActivityCharacterizationTest: activities get a display-associated
+        // context, and a one-entry map archive skips the large asset copy.
         previousCreateActivityContexts = System.getProperty(CREATE_ACTIVITY_CONTEXTS)
         System.setProperty(CREATE_ACTIVITY_CONTEXTS, "true")
         ZipOutputStream(FileOutputStream(File(application.cacheDir, "osmdroid.zip"))).use { zip ->

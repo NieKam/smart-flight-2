@@ -90,9 +90,10 @@ class MainActivityCharacterizationTest {
     @Before
     fun giveActivitiesTheirOwnDisplayContext() {
         // By default Robolectric attaches every Activity to the Application's ContextImpl, which is
-        // not a UI context, so Context.getDisplay() throws (AndroidOrientationSource reads it). On a
-        // device the Activity context is display-associated. This Robolectric switch (read in
-        // ShadowActivity.callAttach) creates a real activity ContextImpl, as Android does.
+        // not a UI context, so Context.getDisplay() throws. On a device the Activity context is
+        // display-associated. This Robolectric switch (read in ShadowActivity.callAttach) creates a
+        // real activity ContextImpl, as Android does. (It was introduced for the former
+        // activity-bound orientation source; kept so that activities run as on a device.)
         previousCreateActivityContexts = System.getProperty(CREATE_ACTIVITY_CONTEXTS)
         System.setProperty(CREATE_ACTIVITY_CONTEXTS, "true")
     }
