@@ -39,7 +39,7 @@ The order follows four phases. Every task leaves the app building, tests green a
 | 007 | [Location and GNSS repository (callbackFlow); service collects it](007-location-repository/task.md) | 005 | DONE |
 | 008 | [Remove BackgroundMonitoringBridge and dead foreground paths](008-remove-monitoring-bridge/task.md) | 007 | DONE |
 | 009 | [GNSS status and flight parameters ViewModels](009-gnss-flight-viewmodels/task.md) | 008 | DONE |
-| 010 | [One orientation Flow; Course and Horizon ViewModels](010-orientation-course-horizon/task.md) | 008 | TODO |
+| 010 | [One orientation Flow; Course and Horizon ViewModels](010-orientation-course-horizon/task.md) | 008 | DONE |
 | 011 | [City repository and Nearby city ViewModel](011-city-repository-nearby/task.md) | 005, 008 | TODO |
 | 012 | [Route repository and Route card ViewModel](012-route-repository-viewmodel/task.md) | 006, 011 | TODO |
 | 013 | [Route picker state holder, typed errors, nearest-city draft fix](013-route-picker-state/task.md) | 012 | TODO |
@@ -209,3 +209,7 @@ The order follows four phases. Every task leaves the app building, tests green a
 
 ## Open questions for the human
 1. **Muted label contrast.** The original label color #A1A0C4 has ≈2.5:1 contrast on cards (#5B5999) and ≈3.3:1 on the page (#484685), below WCAG AA. TASK-018 follows your palette decision and keeps it as a documented exception. Do you want a slightly lighter label shade instead (e.g. ≈#B9B8D9, still clearly "muted")? The plan proceeds with the original color unless you say otherwise.
+2. **Orientation sign defects (found in TASK-010, fix planned in TASK-028).** The TASK-010 rotation-matrix tests (`DisplayRelativeOrientationTest`) pin today's values; the correct ones are in the test comments. Please confirm on a device before TASK-028 fixes them.
+   - **Landscape / reverse landscape:** `DisplayRelativeOrientation.calculate` swaps Android's `remapCoordinateSystem` mappings for `ROTATION_90` and `ROTATION_270`. As a result the heading is off by 180° and pitch and roll have the opposite sign. Portrait and reverse portrait are correct.
+   - **Horizon pitch label:** nose-up gives negative pitch, and `HorizonCard` labels positive pitch as "up", so nose-up reads "N° down". The horizon picture itself moves the right way.
+   - **Horizon roll picture:** `rotationZ = +roll` turns the sky/ground layer clockwise when rolling right; an attitude indicator should turn it counter-clockwise. This was checked on paper only; please verify on a device.
