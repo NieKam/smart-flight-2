@@ -8,6 +8,28 @@ import java.io.FileOutputStream
 import javax.inject.Inject
 import javax.inject.Singleton
 
+/**
+ * Legacy blocking city access used only by the route controller; replaced by
+ * `nearby.data.CityRepository` in TASK-012.
+ */
+interface NearbyCityRepository {
+    @Throws(Exception::class)
+    fun findNearest(
+        position: NearbyCoordinate,
+        reload: Boolean = false,
+    ): NearbyCityRecord?
+
+    fun searchByName(
+        query: String,
+        reload: Boolean = false,
+    ): List<NearbyCityRecord> = emptyList()
+
+    fun findById(
+        id: Long,
+        reload: Boolean = false,
+    ): NearbyCityRecord? = null
+}
+
 /** Read-only platform boundary for the immutable legacy city asset. Call only from a worker. */
 @Singleton
 internal class AndroidNearbyCityRepository

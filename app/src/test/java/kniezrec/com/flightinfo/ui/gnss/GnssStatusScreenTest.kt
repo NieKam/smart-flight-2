@@ -164,7 +164,7 @@ class GnssStatusScreenTest {
                 onOpenLocationSettings = {},
                 onRetry = {},
                 unitPreferences = preferences,
-                nearbyCityState = NearbyCityState.Available("Nearby", "US", 10.0, "12:00", 0),
+                nearbyCityState = NearbyCityState.Available("Nearby", "US", 10.0, java.time.ZoneOffset.UTC, java.time.Instant.EPOCH, 0),
                 routeState =
                     RouteState(
                         details = RouteDetails(100.0, 50.0, "10:00", "01:00"),
