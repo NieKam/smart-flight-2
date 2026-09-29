@@ -62,13 +62,13 @@ class NearbyCityViewModel
                         .mapNotNull { fix -> NearbyCoordinate.from(fix.latitude, fix.longitude) }
                         .catch { cause -> if (cause !is LocationRegistrationException) throw cause }
                 } else {
-                    emptyFlow()
+                    emptyFlow<NearbyCoordinate>()
                 }
             }
 
         @OptIn(ExperimentalCoroutinesApi::class)
         val state: StateFlow<NearbyCityState> =
-            flow {
+            flow<NearbyCityState> {
                 // Latest valid position of this observation; a retry looks it up again.
                 var latest: NearbyCoordinate? = null
                 val requests =
@@ -77,7 +77,7 @@ class NearbyCityViewModel
                         retries.map { Request(latest, reload = true) },
                     )
                 emitAll(
-                    requests.transformLatest { request ->
+                    requests.transformLatest<Request, NearbyCityState> { request ->
                         val position = request.position
                         if (position == null) {
                             emit(NearbyCityState.WaitingForPosition)
