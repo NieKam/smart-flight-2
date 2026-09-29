@@ -31,7 +31,7 @@ class HiltSingletonScopeTest {
 
     @Before
     fun giveActivitiesTheirOwnDisplayContext() {
-        // Same switch as MainActivityCharacterizationTest: AndroidOrientationSource reads Context.display.
+        // Same switch as MainActivityCharacterizationTest: activities get a display-associated context.
         previousCreateActivityContexts = System.getProperty(CREATE_ACTIVITY_CONTEXTS)
         System.setProperty(CREATE_ACTIVITY_CONTEXTS, "true")
     }
