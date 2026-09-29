@@ -1,5 +1,6 @@
 package kniezrec.com.flightinfo.data
 
+import kniezrec.com.flightinfo.nearby.data.requireSqliteDatabase
 import org.junit.After
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertFalse
@@ -53,6 +54,29 @@ class AssetExtractorTest {
 
         assertTrue(extract(byteArrayOf(4)) {}.isSuccess)
         assertTrue(destination.isFile)
+    }
+
+    @Test fun `a corrupt existing destination is replaced`() {
+        destination.parentFile!!.mkdirs()
+        destination.writeBytes(byteArrayOf(0, 0, 0))
+
+        val result = extract(sqliteBytes()) { requireSqliteDatabase(it) }
+
+        assertTrue(result.isSuccess)
+        assertArrayEquals(sqliteBytes(), destination.readBytes())
+    }
+
+    @Test fun `sqlite validation accepts only a non-empty file with the SQLite header`() {
+        val file = directory.resolve("check.db")
+        assertFalse(runCatching { requireSqliteDatabase(file) }.isSuccess)
+        file.writeBytes(ByteArray(0))
+        assertFalse(runCatching { requireSqliteDatabase(file) }.isSuccess)
+        file.writeBytes("SQLite format 3".toByteArray(Charsets.US_ASCII))
+        assertFalse(runCatching { requireSqliteDatabase(file) }.isSuccess)
+        file.writeBytes("SQLite format 4\u0000rest".toByteArray(Charsets.US_ASCII))
+        assertFalse(runCatching { requireSqliteDatabase(file) }.isSuccess)
+        file.writeBytes(sqliteBytes())
+        assertTrue(runCatching { requireSqliteDatabase(file) }.isSuccess)
     }
 
     private fun extract(

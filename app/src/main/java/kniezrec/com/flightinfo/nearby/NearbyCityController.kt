@@ -186,6 +186,9 @@ internal class NearbyCityController(
     )
 }
 
+/** Mean Earth radius used by [distanceKilometres]. */
+internal const val EARTH_RADIUS_KILOMETRES = 6_371.0088
+
 internal fun distanceKilometres(
     first: NearbyCoordinate,
     second: NearbyCoordinate,
@@ -196,6 +199,6 @@ internal fun distanceKilometres(
         kotlin.math.sin(latitudeDelta / 2).let { it * it } +
             kotlin.math.cos(Math.toRadians(first.latitude)) * kotlin.math.cos(Math.toRadians(second.latitude)) *
             kotlin.math.sin(longitudeDelta / 2).let { it * it }
-    return (2 * 6_371.0088 * kotlin.math.atan2(kotlin.math.sqrt(a), kotlin.math.sqrt(1 - a))).takeIf(Double::isFinite)
+    return (2 * EARTH_RADIUS_KILOMETRES * kotlin.math.atan2(kotlin.math.sqrt(a), kotlin.math.sqrt(1 - a))).takeIf(Double::isFinite)
         ?: throw IllegalArgumentException("Invalid distance")
 }
