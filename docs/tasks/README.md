@@ -38,7 +38,7 @@ The order follows four phases. Every task leaves the app building, tests green a
 | 006 | [Observable settings repositories](006-settings-repositories/task.md) | 005 | DONE |
 | 007 | [Location and GNSS repository (callbackFlow); service collects it](007-location-repository/task.md) | 005 | DONE |
 | 008 | [Remove BackgroundMonitoringBridge and dead foreground paths](008-remove-monitoring-bridge/task.md) | 007 | DONE |
-| 009 | [GNSS status and flight parameters ViewModels](009-gnss-flight-viewmodels/task.md) | 008 | TODO |
+| 009 | [GNSS status and flight parameters ViewModels](009-gnss-flight-viewmodels/task.md) | 008 | DONE |
 | 010 | [One orientation Flow; Course and Horizon ViewModels](010-orientation-course-horizon/task.md) | 008 | TODO |
 | 011 | [City repository and Nearby city ViewModel](011-city-repository-nearby/task.md) | 005, 008 | TODO |
 | 012 | [Route repository and Route card ViewModel](012-route-repository-viewmodel/task.md) | 006, 011 | TODO |
