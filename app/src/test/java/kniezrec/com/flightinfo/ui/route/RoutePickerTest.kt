@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -32,6 +34,10 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
+import java.io.File
+import java.io.FileOutputStream
+import java.util.zip.ZipEntry
+import java.util.zip.ZipOutputStream
 
 /** Error mapping and selection of the stateless picker; tall window so the whole picker is on screen. */
 @RunWith(AndroidJUnit4::class)
@@ -135,6 +141,40 @@ class RoutePickerTest {
 
         composeRule.onNodeWithText("Confirm").assertDoesNotExist()
         composeRule.runOnIdle { assertEquals(paris.id, preferences.getLong("route_destination_id", Long.MIN_VALUE)) }
+    }
+
+    // TASK-013 CI fix: the map's marker update used to write Compose state it had read, so every
+    // selection re-ran the update without end (out of memory under Robolectric).
+    @Test fun selectingCitiesOnTheOfflineMapSettles() {
+        val archive = File(composeRule.activity.cacheDir, "picker-map-test.zip")
+        ZipOutputStream(FileOutputStream(archive)).use { zip ->
+            zip.putNextEntry(ZipEntry("tile.jpg"))
+            zip.write(byteArrayOf(0))
+            zip.closeEntry()
+        }
+        val berlin = NearbyCityRecord(7L, "Berlin", "Germany", 52.5, 13.4, "Europe/Berlin")
+        var state by mutableStateOf(open().copy(results = listOf(paris, berlin)))
+        try {
+            composeRule.setContent {
+                RoutePicker(
+                    state = state,
+                    mapArchive = archive,
+                    onQueryChange = {},
+                    onSearch = {},
+                    onNearest = {},
+                    onSelect = { state = state.copy(selected = it) },
+                    onConfirm = {},
+                    onCancel = {},
+                    onRetry = {},
+                )
+            }
+            composeRule.onNodeWithText("Paris (France)").performClick()
+            composeRule.onNodeWithText("Selected: Paris (France)").assertIsDisplayed()
+            composeRule.onNodeWithText("Berlin (Germany)").performClick()
+            composeRule.onNodeWithText("Selected: Berlin (Germany)").assertIsDisplayed()
+        } finally {
+            archive.delete()
+        }
     }
 
     private fun open() = RoutePickerState(endpoint = RouteEndpoint.DEPARTURE)

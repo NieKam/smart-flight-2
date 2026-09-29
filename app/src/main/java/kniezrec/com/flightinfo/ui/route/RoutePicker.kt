@@ -19,10 +19,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -149,7 +146,9 @@ private fun PickerMap(
     onNearest: (NearbyCoordinate?) -> Unit,
 ) {
     val context = LocalContext.current
-    var draftMarker by remember { mutableStateOf<Marker?>(null) }
+    // Not Compose state: `update` reads and replaces it, and a state read there would re-run
+    // `update` after every write, creating a new marker without end.
+    val draftMarker = remember { DraftMarkerHolder() }
     AndroidView(
         modifier = Modifier.fillMaxSize().semantics { contentDescription = context.getString(R.string.route_picker_map_description) },
         factory = {
@@ -177,8 +176,8 @@ private fun PickerMap(
             }
         },
         update = { map ->
-            draftMarker?.let { map.overlays.remove(it) }
-            draftMarker =
+            draftMarker.marker?.let { map.overlays.remove(it) }
+            draftMarker.marker =
                 selectedCoordinate?.let { coordinate ->
                     Marker(map).also { marker ->
                         marker.icon =
@@ -192,4 +191,9 @@ private fun PickerMap(
             map.invalidate()
         },
     )
+}
+
+/** The marker of the selected city currently on the picker map. */
+private class DraftMarkerHolder {
+    var marker: Marker? = null
 }
