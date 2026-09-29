@@ -22,3 +22,9 @@ build/
 .DS_Store
 
 .ai/workflow.json
+
+# Signing keys (stored as GitHub environment secrets, never in git)
+*.jks
+*.keystore
+*.b64
+keystore.properties
