@@ -6,7 +6,6 @@ import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.hardware.SensorManager
-import android.location.LocationManager
 import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
@@ -48,19 +47,19 @@ import kniezrec.com.flightinfo.course.ForegroundCourseObservationCoordinator
 import kniezrec.com.flightinfo.display.data.DisplaySettingsRepository
 import kniezrec.com.flightinfo.display.ui.applyDisplayPreferences
 import kniezrec.com.flightinfo.displayunits.data.UnitSettingsRepository
-import kniezrec.com.flightinfo.flight.AndroidFlightLocationPlatform
 import kniezrec.com.flightinfo.flight.AndroidPressurePlatform
 import kniezrec.com.flightinfo.flight.FlightParametersController
 import kniezrec.com.flightinfo.flight.FlightParametersState
 import kniezrec.com.flightinfo.flight.PressureController
-import kniezrec.com.flightinfo.gnss.AndroidGnssStatusPlatform
 import kniezrec.com.flightinfo.gnss.GnssStatusController
 import kniezrec.com.flightinfo.gnss.GnssStatusState
 import kniezrec.com.flightinfo.horizon.HorizonController
 import kniezrec.com.flightinfo.horizon.HorizonState
+import kniezrec.com.flightinfo.location.data.LocationRegistrationException
+import kniezrec.com.flightinfo.location.data.LocationRepository
 import kniezrec.com.flightinfo.map.MapArchiveRepository
 import kniezrec.com.flightinfo.map.MapSessionRules
-import kniezrec.com.flightinfo.monitoring.BackgroundMonitoringBridge
+import kniezrec.com.flightinfo.monitoring.AppVisibility
 import kniezrec.com.flightinfo.monitoring.LocationForegroundService
 import kniezrec.com.flightinfo.monitoring.data.BackgroundNotificationSettingsRepository
 import kniezrec.com.flightinfo.nearby.NearbyCityController
@@ -87,6 +86,8 @@ import kniezrec.com.flightinfo.ui.permission.PermissionOnboardingScreen
 import kniezrec.com.flightinfo.ui.permission.smartFlightPageColor
 import kniezrec.com.flightinfo.ui.settings.UnitSettingsScreen
 import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
 import java.time.Clock
 import java.util.concurrent.Executors
@@ -112,6 +113,10 @@ class MainActivity : ComponentActivity() {
     @Inject lateinit var mapArchiveRepository: MapArchiveRepository
 
     @Inject lateinit var clock: Clock
+
+    @Inject lateinit var locationRepository: LocationRepository
+
+    @Inject lateinit var appVisibility: AppVisibility
 
     private var permissionState by mutableStateOf(LocationPermissionState.Requestable)
     private var announcementVersion by mutableIntStateOf(0)
@@ -148,19 +153,17 @@ class MainActivity : ComponentActivity() {
             isAppearanceLightNavigationBars = false
         }
         refreshPermissionState()
-        BackgroundMonitoringBridge.setEligibilityLostHandler {
-            flightParametersController.stop()
-            gnssStatusController.stop()
-        }
-        BackgroundMonitoringBridge.setEventHandlers(
-            onLocation = flightParametersController::acceptLocationFix,
-            onGnssStatus = gnssStatusController::acceptStatus,
-        )
         // Synchronous current value: window flags and orientation are set before the first frame.
         applyDisplayPreferences(displaySettingsRepository.display.value)
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 displaySettingsRepository.display.collect { applyDisplayPreferences(it) }
+            }
+        }
+        lifecycleScope.launch {
+            // Starts after onResume (observation already started) and ends before onPause.
+            repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                if (permissionState == LocationPermissionState.Granted) collectLocation()
             }
         }
         setContent {
@@ -200,8 +203,8 @@ class MainActivity : ComponentActivity() {
                                         showBackgroundNotification = backgroundNotificationPreferences.showBackgroundNotification,
                                         onBackgroundNotificationChange = { enabled ->
                                             lifecycleScope.launch {
+                                                // The running service observes the setting itself.
                                                 backgroundNotificationSettingsRepository.setShowBackgroundNotification(enabled)
-                                                BackgroundMonitoringBridge.setNotificationEnabled(enabled)
                                                 if (enabled && isForeground && permissionState == LocationPermissionState.Granted) {
                                                     startBackgroundMonitoring()
                                                 }
@@ -370,8 +373,7 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         isForeground = true
-        BackgroundMonitoringBridge.beginSession()
-        BackgroundMonitoringBridge.setActivityVisible(true)
+        appVisibility.setVisible(true)
         refreshPermissionState()
         if (permissionState == LocationPermissionState.Granted) {
             startBackgroundMonitoring()
@@ -394,7 +396,7 @@ class MainActivity : ComponentActivity() {
         courseObservationCoordinator.stopForegroundOnly()
         routeController.stop()
         horizonController.stop()
-        BackgroundMonitoringBridge.setActivityVisible(false)
+        appVisibility.setVisible(false)
         super.onPause()
     }
 
@@ -402,8 +404,6 @@ class MainActivity : ComponentActivity() {
         pressureController.stop()
         cityLookupExecutor.shutdownNow()
         if (!isChangingConfigurations) {
-            BackgroundMonitoringBridge.clear()
-            BackgroundMonitoringBridge.clearEventHandlers()
             stopBackgroundMonitoring()
         }
         super.onDestroy()
@@ -467,22 +467,16 @@ class MainActivity : ComponentActivity() {
     }
 
     private val gnssStatusController by lazy {
-        GnssStatusController(
-            platform = AndroidGnssStatusPlatform(getSystemService(LocationManager::class.java), packageManager, mainExecutor),
-            onStateChanged = { gnssState = it },
-        )
+        GnssStatusController(onStateChanged = { gnssState = it })
     }
 
     private val flightParametersController by lazy {
         FlightParametersController(
-            platform = AndroidFlightLocationPlatform(getSystemService(LocationManager::class.java), packageManager, mainExecutor),
             onStateChanged = { state ->
                 flightParametersState =
                     (state as? FlightParametersState.Readings)?.copy(pressureMillibars = pressureMillibars) ?: state
             },
-            onRegistrationFailed = { gnssStatusController.showError() },
             onLocationFix = {
-                BackgroundMonitoringBridge.onUsableLocationFix(it)
                 courseController.onGpsBearing(it.bearingDegrees)
                 nearbyCityController.onLocationFix(it)
                 routeController.onFix(it)
@@ -554,15 +548,37 @@ class MainActivity : ComponentActivity() {
     private fun startObservation() {
         pressureController.start()
         routeController.start()
-        gnssStatusController.attachToExternalSession()
-        flightParametersController.attachToExternalSession()
-        if (gnssState is GnssStatusState.Waiting || gnssState is GnssStatusState.Available) {
-            courseObservationCoordinator.start()
-        } else {
-            courseObservationCoordinator.stop()
-        }
+        gnssStatusController.start()
+        courseObservationCoordinator.start()
         horizonController.start()
         startMapLoad()
+    }
+
+    /**
+     * Feeds the flight and GNSS controllers from the shared location registrations (the service
+     * collects the same ones, so there is one registration per data type). A registration failure
+     * leaves the cards as they are until the next resume.
+     */
+    private suspend fun collectLocation() {
+        try {
+            coroutineScope {
+                launch {
+                    // Location switched off: the cards stay waiting until observation restarts. The
+                    // StateFlow first replays the value cached by an earlier subscription (possibly
+                    // stale after a trip to the location settings), so "off" is confirmed by a fresh read.
+                    locationRepository.locationEnabled
+                        .filter { enabled -> !enabled && !locationRepository.isLocationEnabled() }
+                        .collect {
+                            flightParametersController.stop()
+                            gnssStatusController.stop()
+                        }
+                }
+                launch { locationRepository.fixes.collect { flightParametersController.acceptLocationFix(it) } }
+                launch { locationRepository.satellites.collect { gnssStatusController.acceptStatus(it) } }
+            }
+        } catch (_: LocationRegistrationException) {
+            // Cards keep their state, as when the service failed to register before.
+        }
     }
 
     private fun startMapLoad() {

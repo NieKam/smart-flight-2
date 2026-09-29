@@ -3,8 +3,11 @@ package kniezrec.com.flightinfo
 import android.Manifest
 import android.app.Application
 import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
 import android.hardware.Sensor
 import android.hardware.SensorManager
+import android.location.GnssStatus
 import android.location.Location
 import android.location.LocationManager
 import android.os.Looper
@@ -29,13 +32,12 @@ import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kniezrec.com.flightinfo.flight.FlightLocationFix
-import kniezrec.com.flightinfo.gnss.GnssSatellite
-import kniezrec.com.flightinfo.monitoring.BackgroundMonitoringBridge
 import kniezrec.com.flightinfo.monitoring.LocationForegroundService
 import kniezrec.com.flightinfo.testutil.flightFix
 import kniezrec.com.flightinfo.testutil.idleMainLooper
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -43,8 +45,11 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.Robolectric
 import org.robolectric.Shadows.shadowOf
+import org.robolectric.android.controller.ServiceController
 import org.robolectric.shadows.SensorEventBuilder
+import org.robolectric.shadows.ShadowLocationManager
 import org.robolectric.shadows.ShadowSensor
 import java.io.File
 import java.io.FileOutputStream
@@ -62,13 +67,20 @@ import java.util.zip.ZipOutputStream
  *
  * The activity is launched with [ActivityScenario] inside each test (not by the rule) so that
  * permissions, preferences, sensors and the map archive can be prepared before `onCreate`.
+ *
+ * Location data goes through the real Hilt graph (`LocationRepository` over the platform data
+ * source): fixes and satellites are simulated on Robolectric's [ShadowLocationManager]. The
+ * requested `LocationForegroundService` is never created unless a test creates it, so these
+ * scenarios also show that the dashboard does not depend on the service for its data.
  */
 @RunWith(AndroidJUnit4::class)
 class MainActivityCharacterizationTest {
     @get:Rule val composeRule = createEmptyComposeRule()
 
     private val application: Application = ApplicationProvider.getApplicationContext()
+    private val locationManager: ShadowLocationManager = shadowOf(application.getSystemService(LocationManager::class.java))
     private var scenario: ActivityScenario<MainActivity>? = null
+    private var service: ServiceController<LocationForegroundService>? = null
     private var previousCreateActivityContexts: String? = null
 
     @Before
@@ -96,9 +108,8 @@ class MainActivityCharacterizationTest {
 
     @After
     fun tearDown() {
+        service?.destroy()
         scenario?.close()
-        BackgroundMonitoringBridge.clear()
-        BackgroundMonitoringBridge.clearEventHandlers()
         previousCreateActivityContexts?.let { System.setProperty(CREATE_ACTIVITY_CONTEXTS, it) }
             ?: System.clearProperty(CREATE_ACTIVITY_CONTEXTS)
     }
@@ -135,13 +146,14 @@ class MainActivityCharacterizationTest {
         assertEquals(LocationForegroundService::class.java.name, started.component?.className)
     }
 
-    // Scenario 3.
+    // Scenario 3. The service is never started here: the fix reaches the card through the
+    // activity's own collection of the location repository.
     @Test
     fun forwardedFixUpdatesFlightParametersInDefaultUnits() {
         launch()
         assertFlightCardWaiting()
 
-        forward(flightFix(speedMetresPerSecond = 10.0, altitudeMetres = 100.0))
+        forward(flightFix(speedMetresPerSecond = 10.0, altitudeMetres = 100.0)) { hasText(speedKmh("36.0")) }
 
         composeRule.onNodeWithText(speedKmh("36.0")).assertIsDisplayed()
         composeRule.onNodeWithText(altitudeMetres("100.0")).assertIsDisplayed()
@@ -161,10 +173,10 @@ class MainActivityCharacterizationTest {
     fun forwardedFixWithCoordinatesUpdatesNearbyCityCard() {
         launch()
 
-        forward(flightFix(latitude = WARSAW_LATITUDE, longitude = WARSAW_LONGITUDE))
-
         val closestCity = string(R.string.card_row_description, string(R.string.nearby_city_closest), "Warsaw")
-        waitUntil { composeRule.onAllNodesWithContentDescription(closestCity).fetchSemanticsNodes().isNotEmpty() }
+        forward(flightFix(latitude = WARSAW_LATITUDE, longitude = WARSAW_LONGITUDE)) {
+            composeRule.onAllNodesWithContentDescription(closestCity).fetchSemanticsNodes().isNotEmpty()
+        }
         composeRule.onNodeWithContentDescription(closestCity).performScrollTo().assertIsDisplayed()
     }
 
@@ -173,15 +185,21 @@ class MainActivityCharacterizationTest {
     fun forwardedSatellitesUpdateGnssCardUsedCount() {
         launch()
 
-        composeRule.runOnIdle {
-            BackgroundMonitoringBridge.forwardGnssStatus(
-                listOf(GnssSatellite(usedInFix = true), GnssSatellite(usedInFix = true), GnssSatellite(usedInFix = false)),
-            )
+        val usedCount = application.resources.getQuantityString(R.plurals.gnss_satellites_used, 2, 2)
+        val status =
+            GnssStatus
+                .Builder()
+                .addSatellite(GnssStatus.CONSTELLATION_GPS, 1, 30f, 45f, 90f, true, true, true, false, 0f, false, 0f)
+                .addSatellite(GnssStatus.CONSTELLATION_GPS, 2, 25f, 30f, 180f, true, true, true, false, 0f, false, 0f)
+                .addSatellite(GnssStatus.CONSTELLATION_GPS, 3, 10f, 10f, 270f, false, false, false, false, 0f, false, 0f)
+                .build()
+        // Re-sent until the activity's GNSS registration (made asynchronously) receives it.
+        waitUntil {
+            locationManager.simulateGnssStatus(status)
+            hasText(usedCount)
         }
 
-        composeRule
-            .onNodeWithText(application.resources.getQuantityString(R.plurals.gnss_satellites_used, 2, 2))
-            .assertIsDisplayed()
+        composeRule.onNodeWithText(usedCount).assertIsDisplayed()
         composeRule.onAllNodesWithText(string(R.string.gnss_waiting)).assertCountEquals(0)
     }
 
@@ -204,7 +222,7 @@ class MainActivityCharacterizationTest {
         composeRule.onAllNodesWithText(string(R.string.flight_pressure)).assertCountEquals(0)
         assertFlightCardWaiting()
 
-        forward(flightFix())
+        forward(flightFix()) { hasText(speedKmh("36.0")) }
 
         composeRule.onNodeWithText(speedKmh("36.0")).assertIsDisplayed()
         composeRule.onNodeWithText(pressureMbar(PRESSURE_TEXT)).assertIsDisplayed()
@@ -214,7 +232,7 @@ class MainActivityCharacterizationTest {
     @Test
     fun changingSpeedUnitInSettingsPersistsItAndRerendersFlightCard() {
         launch()
-        forward(flightFix(speedMetresPerSecond = 10.0))
+        forward(flightFix(speedMetresPerSecond = 10.0)) { hasText(speedKmh("36.0")) }
         composeRule.onNodeWithText(speedKmh("36.0")).assertIsDisplayed()
 
         composeRule.onNodeWithText(string(R.string.settings_title)).performClick()
@@ -257,56 +275,68 @@ class MainActivityCharacterizationTest {
         composeRule.onNodeWithText(string(R.string.route_distance)).performScrollTo().assertIsDisplayed()
     }
 
-    // Scenario 8. CURRENT behavior: onPause does not stop the flight-parameters controller, so a
-    // fix forwarded while paused still updates the card; onResume resets the card to waiting and
-    // the next forwarded fix shows again.
+    // Scenario 8. Changed in TASK-008: the activity collects fixes only while RESUMED, so pausing
+    // releases its registration and a fix arriving while paused no longer reaches the flight card
+    // (it keeps its last reading). onResume still resets the card to waiting and the next fix shows.
     @Test
-    fun pauseKeepsAcceptingForwardedFixesAndResumeResetsFlightCard() {
+    fun pauseStopsCollectingFixesAndResumeResetsFlightCard() {
         val activity = launch()
-        forward(flightFix(speedMetresPerSecond = 10.0, elapsedSeconds = 1L))
-        composeRule.onNodeWithText(speedKmh("36.0")).assertExists()
+        forward(flightFix(speedMetresPerSecond = 10.0, elapsedSeconds = 1L)) { hasText(speedKmh("36.0")) }
 
         activity.moveToState(Lifecycle.State.STARTED)
+        assertTrue("Pausing should release the activity's location registration", pollUntil { gpsListeners().isEmpty() })
+        locationManager.simulateLocation(flightFix(speedMetresPerSecond = 20.0, elapsedSeconds = 2L).toLocation())
         // The Compose test finders only see roots whose lifecycle is RESUMED (ComposeRootRegistry),
         // so while paused the card is read straight from the activity's semantics tree instead.
-        BackgroundMonitoringBridge.forwardLocation(flightFix(speedMetresPerSecond = 20.0, elapsedSeconds = 2L))
         val shownWhilePaused = pumpFramesUntil { pausedScreenTexts(activity).contains(speedKmh("72.0")) }
-        assertTrue("A fix forwarded while paused should update the flight card", shownWhilePaused)
+        assertFalse("A fix while paused should not reach the flight card", shownWhilePaused)
+        assertTrue(pausedScreenTexts(activity).contains(speedKmh("36.0")))
 
         activity.moveToState(Lifecycle.State.RESUMED)
-        composeRule.onAllNodesWithText(speedKmh("72.0")).assertCountEquals(0)
+        composeRule.onAllNodesWithText(speedKmh("36.0")).assertCountEquals(0)
         assertFlightCardWaiting()
 
-        forward(flightFix(speedMetresPerSecond = 30.0, elapsedSeconds = 3L))
+        forward(flightFix(speedMetresPerSecond = 30.0, elapsedSeconds = 3L)) { hasText(speedKmh("108.0")) }
         composeRule.onNodeWithText(speedKmh("108.0")).assertIsDisplayed()
     }
 
-    // Scenario 9 (architecture F7): the foreground path depends only on service-forwarded fixes.
-    @Suppress("DEPRECATION") // getLocationUpdateListeners is the only way to inspect registrations.
+    // Scenario 9. Replaced in TASK-008 (formerly "the activity registers no listener of its own"):
+    // the activity and the service collect the same repository, so there is exactly one platform
+    // registration, and fixes still reach the dashboard.
     @Test
-    fun activityRegistersNoLocationListenerOfItsOwn() {
+    fun activityAndServiceShareOneLocationRegistration() {
+        shadowOf(application.packageManager).setSystemFeature(PackageManager.FEATURE_LOCATION_GPS, true)
+        launch()
+        assertTrue("The activity should register for fixes", pollUntil { gpsListeners().isNotEmpty() })
+
+        val controller = Robolectric.buildService(LocationForegroundService::class.java).create().also { service = it }
+        controller.startCommand(0, 1)
+        idleMainLooper()
+
+        assertFalse(shadowOf(controller.get()).isStoppedBySelf)
+        assertEquals(1, gpsListeners().size)
+        forward(flightFix(speedMetresPerSecond = 10.0)) { hasText(speedKmh("36.0")) }
+        assertEquals(1, gpsListeners().size)
+    }
+
+    // TASK-008 review B1: switching location off stops the cards; after a trip to the location
+    // settings (pause, location back on, resume) the replayed "off" value must not stop them again.
+    @Test
+    fun locationBackOnAfterPauseLetsFixesReachFlightCard() {
         val activity = launch()
-        // Under Robolectric the requested LocationForegroundService is recorded, never created.
+        forward(flightFix(speedMetresPerSecond = 10.0, elapsedSeconds = 1L)) { hasText(speedKmh("36.0")) }
 
-        activity.onActivity { current ->
-            val activityLocationManager = current.getSystemService(LocationManager::class.java)
-            val applicationLocationManager = application.getSystemService(LocationManager::class.java)
-            assertTrue(shadowOf(activityLocationManager).locationUpdateListeners.isEmpty())
-            assertTrue(shadowOf(applicationLocationManager).locationUpdateListeners.isEmpty())
-            shadowOf(activityLocationManager).simulateLocation(
-                Location(LocationManager.GPS_PROVIDER).apply {
-                    latitude = WARSAW_LATITUDE
-                    longitude = WARSAW_LONGITUDE
-                    speed = 10f
-                    altitude = 100.0
-                    time = System.currentTimeMillis()
-                    elapsedRealtimeNanos = 1_000_000_000L
-                },
-            )
-        }
-
+        locationManager.setLocationEnabled(false)
+        application.sendBroadcast(Intent(LocationManager.PROVIDERS_CHANGED_ACTION))
+        waitUntil { !hasText(speedKmh("36.0")) }
         assertFlightCardWaiting()
-        composeRule.onAllNodesWithText(speedKmh("36.0")).assertCountEquals(0)
+
+        activity.moveToState(Lifecycle.State.STARTED)
+        locationManager.setLocationEnabled(true)
+        activity.moveToState(Lifecycle.State.RESUMED)
+
+        forward(flightFix(speedMetresPerSecond = 30.0, elapsedSeconds = 3L)) { hasText(speedKmh("108.0")) }
+        composeRule.onNodeWithText(speedKmh("108.0")).assertIsDisplayed()
     }
 
     private fun launch(grantLocation: Boolean = true): ActivityScenario<MainActivity> {
@@ -319,8 +349,46 @@ class MainActivityCharacterizationTest {
         return ActivityScenario.launch(MainActivity::class.java).also { scenario = it }
     }
 
-    private fun forward(fix: FlightLocationFix) {
-        composeRule.runOnIdle { BackgroundMonitoringBridge.forwardLocation(fix) }
+    /**
+     * Simulates [fix] on the platform until [delivered] holds. Re-sending is harmless: the shadow
+     * drops a location less than the request interval after the last delivered one.
+     */
+    private fun forward(
+        fix: FlightLocationFix,
+        delivered: () -> Boolean,
+    ) {
+        val location = fix.toLocation()
+        waitUntil {
+            locationManager.simulateLocation(location)
+            delivered()
+        }
+    }
+
+    private fun FlightLocationFix.toLocation(): Location =
+        Location(LocationManager.GPS_PROVIDER).also { location ->
+            speedMetresPerSecond?.let { location.speed = it.toFloat() }
+            altitudeMetres?.let { location.altitude = it }
+            bearingDegrees?.let { location.bearing = it.toFloat() }
+            location.latitude = latitude ?: WARSAW_LATITUDE
+            location.longitude = longitude ?: WARSAW_LONGITUDE
+            location.time = System.currentTimeMillis()
+            location.elapsedRealtimeNanos = elapsedRealtimeNanos
+        }
+
+    @Suppress("DEPRECATION") // getLocationUpdateListeners is the only way to inspect registrations.
+    private fun gpsListeners() = locationManager.getLocationUpdateListeners(LocationManager.GPS_PROVIDER)
+
+    private fun hasText(text: String): Boolean = composeRule.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty()
+
+    /** Polls in real time: repository sharing runs on a background dispatcher. Works in any lifecycle state. */
+    private fun pollUntil(condition: () -> Boolean): Boolean {
+        val deadline = System.currentTimeMillis() + ASYNC_TIMEOUT_MILLIS
+        while (System.currentTimeMillis() < deadline) {
+            idleMainLooper()
+            if (condition()) return true
+            Thread.sleep(POLL_MILLIS)
+        }
+        return condition()
     }
 
     /**
@@ -401,6 +469,7 @@ class MainActivityCharacterizationTest {
         const val ASYNC_TIMEOUT_MILLIS = 20_000L
         const val PAUSED_FRAME_ATTEMPTS = 50
         const val FRAME_MILLIS = 16L
+        const val POLL_MILLIS = 10L
         const val WARSAW_ID = 31395L
         const val BERLIN_ID = 10409L
         const val WARSAW_LATITUDE = 52.22977

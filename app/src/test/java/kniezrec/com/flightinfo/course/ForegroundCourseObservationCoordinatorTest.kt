@@ -1,44 +1,59 @@
 package kniezrec.com.flightinfo.course
 
 import kniezrec.com.flightinfo.flight.FlightLocationFix
-import kniezrec.com.flightinfo.flight.FlightLocationPlatform
 import kniezrec.com.flightinfo.flight.FlightParametersController
+import kniezrec.com.flightinfo.flight.FlightParametersState
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ForegroundCourseObservationCoordinatorTest {
-    @Test fun `failed location registration leaves compass cleared and unobserved`() {
-        val coursePlatform = FakeCoursePlatform()
-        val courseStates = mutableListOf<CourseState>()
-        val courseController = CourseController(coursePlatform, courseStates::add)
+    private val coursePlatform = FakeCoursePlatform()
+    private val courseStates = mutableListOf<CourseState>()
+    private val courseController = CourseController(coursePlatform, courseStates::add)
+    private val flightStates = mutableListOf<FlightParametersState>()
+    private val flightController = FlightParametersController(flightStates::add)
+    private val coordinator = ForegroundCourseObservationCoordinator(flightController, courseController)
+
+    @Test fun `start clears old compass data and starts a flight session and compass observation`() {
         courseController.start()
         coursePlatform.heading(42.0)
-        val locationPlatform = FakeLocationPlatform(registerResult = false)
-        val flightController = FlightParametersController(locationPlatform, {})
 
-        ForegroundCourseObservationCoordinator(flightController, courseController).start()
+        coordinator.start()
 
-        assertEquals(1, coursePlatform.registers)
+        assertEquals(2, coursePlatform.registers)
         assertEquals(1, coursePlatform.unregisters)
         assertEquals(CourseState.Waiting, courseStates.last())
+        flightController.acceptLocationFix(FIX)
+        assertTrue(flightStates.last() is FlightParametersState.Readings)
     }
 
-    private class FakeLocationPlatform(
-        private val registerResult: Boolean,
-    ) : FlightLocationPlatform {
-        override fun areLocationServicesEnabled() = true
+    @Test fun `stop ends the flight session and compass observation`() {
+        coordinator.start()
 
-        override fun hasGnssHardware() = true
+        coordinator.stop()
+        flightController.acceptLocationFix(FIX)
 
-        override fun registerLocationListener(onLocation: (FlightLocationFix) -> Unit) = registerResult
+        assertEquals(FlightParametersState.Waiting, flightStates.last())
+        assertEquals(1, coursePlatform.unregisters)
+    }
 
-        override fun unregisterLocationListener() = Unit
+    @Test fun `stopping foreground-only sensors keeps the flight session accepting fixes`() {
+        coordinator.start()
+
+        coordinator.stopForegroundOnly()
+        flightController.acceptLocationFix(FIX)
+
+        assertEquals(1, coursePlatform.unregisters)
+        assertTrue(flightStates.last() is FlightParametersState.Readings)
     }
 
     private class FakeCoursePlatform : CourseOrientationPlatform {
         var registers = 0
 
         var unregisters = 0
+
+        private var callback: ((Double) -> Unit)? = null
 
         override fun isOrientationAvailable() = true
 
@@ -48,13 +63,15 @@ class ForegroundCourseObservationCoordinatorTest {
             return true
         }
 
-        private var callback: ((Double) -> Unit)? = null
-
         fun heading(heading: Double) = callback?.invoke(heading)
 
         override fun unregisterOrientationListener() {
             unregisters++
             callback = null
         }
+    }
+
+    private companion object {
+        val FIX = FlightLocationFix(10.0, 100.0, 1_000_000_000L)
     }
 }

@@ -90,7 +90,7 @@ internal class AndroidLocationDataSource
             }.distinctUntilChanged()
     }
 
-/** GPS updates every second; the request the former `AndroidFlightLocationPlatform` used. */
+/** GPS updates every second. */
 internal fun gpsLocationRequest(): LocationRequest = LocationRequest.Builder(GPS_UPDATE_INTERVAL_MILLIS).build()
 
 internal const val GPS_UPDATE_INTERVAL_MILLIS = 1_000L

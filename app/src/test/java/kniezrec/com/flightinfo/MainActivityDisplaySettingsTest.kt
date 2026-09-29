@@ -14,7 +14,6 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import kniezrec.com.flightinfo.monitoring.BackgroundMonitoringBridge
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Before
@@ -56,8 +55,6 @@ class MainActivityDisplaySettingsTest {
     @After
     fun tearDown() {
         scenario?.close()
-        BackgroundMonitoringBridge.clear()
-        BackgroundMonitoringBridge.clearEventHandlers()
         previousCreateActivityContexts?.let { System.setProperty(CREATE_ACTIVITY_CONTEXTS, it) }
             ?: System.clearProperty(CREATE_ACTIVITY_CONTEXTS)
     }
