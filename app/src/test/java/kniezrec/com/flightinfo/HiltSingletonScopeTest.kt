@@ -61,9 +61,7 @@ class HiltSingletonScopeTest {
         assertSame(first.unitSettingsRepository, second.unitSettingsRepository)
         assertSame(first.backgroundNotificationSettingsRepository, second.backgroundNotificationSettingsRepository)
         assertSame(first.permissionRequestHistory, second.permissionRequestHistory)
-        assertSame(first.nearbyCityRepository, second.nearbyCityRepository)
         assertSame(first.mapArchiveRepository, second.mapArchiveRepository)
-        assertSame(first.clock, second.clock)
         assertSame(first.locationRepository, second.locationRepository)
         assertSame(first.appVisibility, second.appVisibility)
     }
@@ -106,9 +104,7 @@ class HiltSingletonScopeTest {
                     unitSettingsRepository = it.unitSettingsRepository,
                     backgroundNotificationSettingsRepository = it.backgroundNotificationSettingsRepository,
                     permissionRequestHistory = it.permissionRequestHistory,
-                    nearbyCityRepository = it.nearbyCityRepository,
                     mapArchiveRepository = it.mapArchiveRepository,
-                    clock = it.clock,
                     locationRepository = it.locationRepository,
                     appVisibility = it.appVisibility,
                 )
@@ -122,9 +118,7 @@ class HiltSingletonScopeTest {
         val unitSettingsRepository: Any,
         val backgroundNotificationSettingsRepository: Any,
         val permissionRequestHistory: Any,
-        val nearbyCityRepository: Any,
         val mapArchiveRepository: Any,
-        val clock: Any,
         val locationRepository: Any,
         val appVisibility: Any,
     )

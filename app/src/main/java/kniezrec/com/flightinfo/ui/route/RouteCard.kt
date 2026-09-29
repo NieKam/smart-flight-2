@@ -12,7 +12,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -22,10 +24,14 @@ import kniezrec.com.flightinfo.R
 import kniezrec.com.flightinfo.displayunits.DistanceUnit
 import kniezrec.com.flightinfo.displayunits.convertDistance
 import kniezrec.com.flightinfo.displayunits.formatUnitNumber
+import kniezrec.com.flightinfo.route.RouteDetails
 import kniezrec.com.flightinfo.route.RouteEndpoint
 import kniezrec.com.flightinfo.route.RouteState
 import kniezrec.com.flightinfo.ui.permission.actionCyan
 import kniezrec.com.flightinfo.ui.permission.cardPurple
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
+import java.util.Locale
 
 @Composable
 fun RouteCard(
@@ -66,7 +72,7 @@ fun RouteCard(
                 )
                 Detail(
                     R.string.route_arrival,
-                    details.arrival?.let { a -> "$a (${details.duration})" } ?: stringResource(R.string.route_waiting_speed),
+                    arrivalText(details) ?: stringResource(R.string.route_waiting_speed),
                 )
             }
             if (state.departure != null ||
@@ -202,3 +208,28 @@ private fun formatDistanceSpoken(
             },
         ),
     )
+
+/**
+ * "<arrival> (<duration>)": the arrival as a short date-time of the current locale in the
+ * destination's time zone, and the remaining flight time as hours:minutes; null while unknown.
+ */
+@Composable
+private fun arrivalText(details: RouteDetails): String? {
+    val locale = LocalConfiguration.current.locales[0]
+    val arrival = details.arrival
+    val duration = details.duration
+    val zone = details.destinationZone
+    return remember(arrival, duration, zone, locale) {
+        if (arrival == null || duration == null) {
+            null
+        } else {
+            val dateTime =
+                DateTimeFormatter
+                    .ofLocalizedDateTime(FormatStyle.SHORT)
+                    .withLocale(locale)
+                    .format(arrival.atZone(zone))
+            val hoursMinutes = "%02d:%02d".format(Locale.ROOT, duration.toHours(), duration.toMinutesPart())
+            "$dateTime ($hoursMinutes)"
+        }
+    }
+}
