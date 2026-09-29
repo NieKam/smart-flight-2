@@ -4,6 +4,7 @@ import android.app.NotificationManager
 import android.content.Context
 import android.content.pm.PackageManager
 import android.hardware.SensorManager
+import android.hardware.display.DisplayManager
 import android.location.LocationManager
 import dagger.Module
 import dagger.Provides
@@ -27,6 +28,12 @@ object SystemServicesModule {
     fun provideSensorManager(
         @ApplicationContext context: Context,
     ): SensorManager = checkNotNull(context.getSystemService(SensorManager::class.java))
+
+    @Provides
+    @Singleton
+    fun provideDisplayManager(
+        @ApplicationContext context: Context,
+    ): DisplayManager = checkNotNull(context.getSystemService(DisplayManager::class.java))
 
     @Provides
     @Singleton

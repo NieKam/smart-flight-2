@@ -4,7 +4,6 @@ import android.Manifest
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
-import android.content.res.Configuration
 import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
@@ -41,17 +40,14 @@ import dagger.hilt.android.AndroidEntryPoint
 import kniezrec.com.flightinfo.about.AboutIntentFactory
 import kniezrec.com.flightinfo.about.AndroidAppVersionProvider
 import kniezrec.com.flightinfo.about.AndroidExternalIntentLauncher
-import kniezrec.com.flightinfo.course.CourseController
-import kniezrec.com.flightinfo.course.CourseState
-import kniezrec.com.flightinfo.course.ForegroundCourseObservationCoordinator
+import kniezrec.com.flightinfo.course.ui.CourseViewModel
 import kniezrec.com.flightinfo.display.data.DisplaySettingsRepository
 import kniezrec.com.flightinfo.display.ui.applyDisplayPreferences
 import kniezrec.com.flightinfo.displayunits.data.UnitSettingsRepository
 import kniezrec.com.flightinfo.flight.FlightLocationFix
 import kniezrec.com.flightinfo.flight.ui.FlightParametersViewModel
 import kniezrec.com.flightinfo.gnss.ui.GnssStatusViewModel
-import kniezrec.com.flightinfo.horizon.HorizonController
-import kniezrec.com.flightinfo.horizon.HorizonState
+import kniezrec.com.flightinfo.horizon.ui.HorizonViewModel
 import kniezrec.com.flightinfo.location.data.LocationRegistrationException
 import kniezrec.com.flightinfo.location.data.LocationRepository
 import kniezrec.com.flightinfo.map.MapArchiveRepository
@@ -63,9 +59,6 @@ import kniezrec.com.flightinfo.nearby.NearbyCityController
 import kniezrec.com.flightinfo.nearby.NearbyCityRecord
 import kniezrec.com.flightinfo.nearby.NearbyCityRepository
 import kniezrec.com.flightinfo.nearby.NearbyCityState
-import kniezrec.com.flightinfo.orientation.AndroidOrientationSource
-import kniezrec.com.flightinfo.orientation.SharedCourseOrientationPlatform
-import kniezrec.com.flightinfo.orientation.SharedHorizonOrientationPlatform
 import kniezrec.com.flightinfo.permission.FineLocationPermissionPlatform
 import kniezrec.com.flightinfo.permission.LocationPermissionRequestHistory
 import kniezrec.com.flightinfo.permission.LocationPermissionState
@@ -116,8 +109,6 @@ class MainActivity : ComponentActivity() {
 
     private var permissionState by mutableStateOf(LocationPermissionState.Requestable)
     private var announcementVersion by mutableIntStateOf(0)
-    private var courseState by mutableStateOf<CourseState>(CourseState.Waiting)
-    private var horizonState by mutableStateOf<HorizonState>(HorizonState.Waiting)
     private var nearbyCityState by mutableStateOf<NearbyCityState>(NearbyCityState.WaitingForPosition)
     private var mapState by mutableStateOf<MapCardState>(MapCardState.Inactive)
     private var routeState by mutableStateOf(RouteState())
@@ -181,8 +172,12 @@ class MainActivity : ComponentActivity() {
                         if (permissionState == LocationPermissionState.Granted) {
                             val gnssStatusViewModel: GnssStatusViewModel = hiltViewModel()
                             val flightParametersViewModel: FlightParametersViewModel = hiltViewModel()
+                            val courseViewModel: CourseViewModel = hiltViewModel()
+                            val horizonViewModel: HorizonViewModel = hiltViewModel()
                             val gnssState by gnssStatusViewModel.state.collectAsStateWithLifecycle()
                             val flightParametersState by flightParametersViewModel.state.collectAsStateWithLifecycle()
+                            val courseState by courseViewModel.state.collectAsStateWithLifecycle()
+                            val horizonState by horizonViewModel.state.collectAsStateWithLifecycle()
                             // Settings is an overlay so the dashboard's AndroidView-backed map remains
                             // composed. This preserves its viewport, overlays, and in-place zoom policy.
                             Box(Modifier.fillMaxSize()) {
@@ -215,10 +210,10 @@ class MainActivity : ComponentActivity() {
                                     state = gnssState,
                                     flightParametersState = flightParametersState,
                                     courseState = courseState,
-                                    onCourseRetry = { courseController.retry(isForeground) },
+                                    onCourseRetry = courseViewModel::retry,
                                     horizonState = horizonState,
-                                    onHorizonCalibrate = { horizonController.calibrate() },
-                                    onHorizonRetry = { horizonController.retry(isForeground) },
+                                    onHorizonCalibrate = horizonViewModel::calibrate,
+                                    onHorizonRetry = horizonViewModel::retry,
                                     nearbyCityState = nearbyCityState,
                                     onNearbyCityRetry = { nearbyCityController.retry() },
                                     mapState = mapState,
@@ -379,19 +374,11 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    override fun onConfigurationChanged(newConfig: Configuration) {
-        super.onConfigurationChanged(newConfig)
-        if (isForeground && permissionState == LocationPermissionState.Granted) {
-            horizonController.onDisplayRotationChanged()
-        }
-    }
-
     override fun onPause() {
         stopMap()
         isForeground = false
-        courseObservationCoordinator.stop()
+        nearbyCityController.stop()
         routeController.stop()
-        horizonController.stop()
         appVisibility.setVisible(false)
         super.onPause()
     }
@@ -409,9 +396,8 @@ class MainActivity : ComponentActivity() {
         if (isForeground && permissionState == LocationPermissionState.Granted) {
             startObservation()
         } else if (permissionState != LocationPermissionState.Granted || isForeground) {
-            courseObservationCoordinator.stop()
+            nearbyCityController.stop()
             routeController.stop()
-            horizonController.stop()
             stopMap()
             stopBackgroundMonitoring()
         }
@@ -459,10 +445,6 @@ class MainActivity : ComponentActivity() {
         )
     }
 
-    private val courseController by lazy {
-        CourseController(SharedCourseOrientationPlatform(orientationSource)) { courseState = it }
-    }
-
     private val cityLookupExecutor by lazy { Executors.newSingleThreadExecutor() }
 
     private val routeController by lazy {
@@ -486,16 +468,6 @@ class MainActivity : ComponentActivity() {
         )
     }
 
-    private val orientationSource by lazy { AndroidOrientationSource(this, mainExecutor) }
-
-    private val horizonController by lazy {
-        HorizonController(SharedHorizonOrientationPlatform(orientationSource)) { horizonState = it }
-    }
-
-    private val courseObservationCoordinator by lazy {
-        ForegroundCourseObservationCoordinator(courseController, nearbyCityController)
-    }
-
     private fun startBackgroundMonitoring() {
         runCatching {
             ContextCompat.startForegroundService(this, Intent(this, LocationForegroundService::class.java))
@@ -508,14 +480,13 @@ class MainActivity : ComponentActivity() {
 
     private fun startObservation() {
         routeController.start()
-        courseObservationCoordinator.start()
-        horizonController.start()
+        nearbyCityController.start()
         startMapLoad()
     }
 
     /**
      * Feeds the fixes of the shared location registration (the service and the GNSS/flight
-     * ViewModels collect the same one) to course, nearby city, route and map. While the location is
+     * ViewModels collect the same one) to nearby city, route and map. While the location is
      * switched off the fixes are not collected. A registration failure stops the feed until the
      * next resume.
      */
@@ -530,7 +501,6 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun onLocationFix(fix: FlightLocationFix) {
-        courseController.onGpsBearing(fix.bearingDegrees)
         nearbyCityController.onLocationFix(fix)
         routeController.onFix(fix)
         if (mapRules.accept(fix)) mapPositionVersion++
