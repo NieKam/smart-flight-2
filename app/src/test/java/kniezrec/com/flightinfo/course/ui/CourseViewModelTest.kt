@@ -85,6 +85,26 @@ class CourseViewModelTest {
             assertEquals(CourseState.Available(18, null), viewModel.state.value)
         }
 
+    @Test fun `without location permission the heading works and no location is collected`() =
+        runTest(dispatcher) {
+            val viewModel = viewModel(locationPermitted = false)
+            backgroundScope.launch { viewModel.state.collect {} }
+            runCurrent()
+            orientation.emit(headingDegrees = 90.0)
+            runCurrent()
+
+            assertEquals(CourseState.Available(90, null), viewModel.state.value)
+            assertEquals(0, location.fixRegistrations.registerCount)
+
+            viewModel.setLocationPermitted(true)
+            runCurrent()
+            assertEquals(1, location.fixRegistrations.activeCount)
+
+            viewModel.setLocationPermitted(false)
+            runCurrent()
+            assertEquals(0, location.fixRegistrations.activeCount)
+        }
+
     @Test fun `the GPS bearing supplements the heading and a fix without bearing clears it`() =
         runTest(dispatcher) {
             val viewModel = viewModel()
@@ -241,7 +261,8 @@ class CourseViewModelTest {
             assertEquals(CourseState.Available(10, null), viewModel.state.value)
         }
 
-    private fun TestScope.viewModel() = CourseViewModel(orientation, LocationRepository(location, backgroundScope))
+    private fun TestScope.viewModel(locationPermitted: Boolean = true) =
+        CourseViewModel(orientation, LocationRepository(location, backgroundScope)).also { it.setLocationPermitted(locationPermitted) }
 
     private fun TestScope.subscribe(viewModel: CourseViewModel): Job =
         backgroundScope.launch { viewModel.state.collect {} }.also { runCurrent() }

@@ -35,19 +35,46 @@ import javax.inject.Inject
  * collector leaves, so a configuration change keeps the card. When observation restarts (or on
  * [retry]) the card starts over from waiting, without a bearing. Without a rotation-vector sensor
  * the card is unavailable; a refused sensor registration shows the error until [retry]. While the
- * location is switched off, or after a failed GPS registration, the last bearing stays.
+ * location is switched off, or after a failed GPS registration, the last bearing stays. No
+ * location is collected until [setLocationPermitted] allows it.
  */
 @HiltViewModel
 class CourseViewModel
     @Inject
     constructor(
         private val orientationDataSource: OrientationDataSource,
-        locationRepository: LocationRepository,
+        private val locationRepository: LocationRepository,
     ) : ViewModel() {
         private val restarts = MutableStateFlow(0)
+        private val locationPermitted = MutableStateFlow(false)
 
         @OptIn(ExperimentalCoroutinesApi::class)
         private val gpsBearings: Flow<Int?> =
+            locationPermitted.flatMapLatest { permitted ->
+                if (permitted) locationBearings() else flowOf(null)
+            }
+
+        @OptIn(ExperimentalCoroutinesApi::class)
+        val state: StateFlow<CourseState> =
+            restarts
+                .flatMapLatest { courseStates() }
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), CourseState.Waiting)
+
+        /**
+         * Whether location may be used for the GPS bearing (fine location granted). Until it is set,
+         * no location is collected; revoking it drops the bearing.
+         */
+        fun setLocationPermitted(permitted: Boolean) {
+            locationPermitted.value = permitted
+        }
+
+        /** Starts observation over (after an error). */
+        fun retry() {
+            restarts.update { it + 1 }
+        }
+
+        @OptIn(ExperimentalCoroutinesApi::class)
+        private fun locationBearings(): Flow<Int?> =
             locationRepository.confirmedLocationEnabled.flatMapLatest { enabled ->
                 if (enabled) {
                     locationRepository.fixes
@@ -57,17 +84,6 @@ class CourseViewModel
                     emptyFlow<Int?>()
                 }
             }
-
-        @OptIn(ExperimentalCoroutinesApi::class)
-        val state: StateFlow<CourseState> =
-            restarts
-                .flatMapLatest { courseStates() }
-                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), CourseState.Waiting)
-
-        /** Starts observation over (after an error). */
-        fun retry() {
-            restarts.update { it + 1 }
-        }
 
         private fun courseStates(): Flow<CourseState> {
             if (!orientationDataSource.isAvailable()) return flowOf(CourseState.Unavailable)

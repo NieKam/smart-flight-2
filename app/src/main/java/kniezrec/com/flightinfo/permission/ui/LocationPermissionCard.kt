@@ -2,20 +2,15 @@ package kniezrec.com.flightinfo.permission.ui
 
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -49,40 +44,22 @@ import kniezrec.com.flightinfo.ui.theme.ValueText
 
 internal const val PERMISSION_STATE_CARD_TEST_TAG = "permission_state_card"
 
+/**
+ * The first dashboard card while fine location is not granted (as the original permission card):
+ * why location is needed and the action for [state] (request, or open the app settings after a
+ * permanent denial). A new [state] cross-fades in; after a permission result
+ * ([announceStateChange]) the title is announced.
+ */
 @Composable
-fun PermissionOnboardingScreen(
+fun LocationPermissionCard(
     state: LocationPermissionState,
     onGrantPermission: () -> Unit,
     onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier,
     announceStateChange: Boolean = false,
 ) {
-    Column(modifier = modifier.fillMaxSize()) {
-        Box(
-            // The top bar, as on the dashboard.
-            modifier = Modifier.fillMaxWidth().background(SmartFlightTheme.colors.card).heightIn(min = 56.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = stringResource(R.string.app_name),
-                color = SmartFlightTheme.colors.toolbarTitle,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Medium,
-            )
-        }
-        Column(
-            modifier =
-                Modifier
-                    .weight(1f)
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 12.dp),
-        ) {
-            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
-                Crossfade(targetState = state, animationSpec = tween(180), label = "permission state") { currentState ->
-                    PermissionStateCard(currentState, onGrantPermission, onOpenSettings, announceStateChange)
-                }
-            }
-        }
+    Crossfade(targetState = state, modifier = modifier, animationSpec = tween(180), label = "permission state") { currentState ->
+        PermissionStateCard(currentState, onGrantPermission, onOpenSettings, announceStateChange)
     }
 }
 
@@ -111,13 +88,13 @@ private fun PermissionStateCard(
                     R.string.permission_settings_hint,
                     onOpenSettings,
                 )
-            LocationPermissionState.Granted -> error("Fine location is rendered by the GNSS status screen")
+            LocationPermissionState.Granted -> error("The dashboard shows no permission card once location is granted")
         }
     val actionHint = content.actionHint?.let { stringResource(it) }
     Card(
         modifier =
             Modifier
-                .padding(top = 12.dp, bottom = 12.dp)
+                .padding(top = 12.dp)
                 .widthIn(max = 600.dp)
                 .fillMaxWidth()
                 .heightIn(min = 160.dp)

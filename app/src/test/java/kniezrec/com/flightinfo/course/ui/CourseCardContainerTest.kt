@@ -32,7 +32,7 @@ class CourseCardContainerTest {
     @Test fun retryAfterARefusedSensorRestartsTheHeading() {
         orientation.failRegistration = true
         val viewModel = CourseViewModel(orientation, LocationRepository(FakeLocationDataSource(), repositoryScope))
-        composeRule.setContent { CourseCardContainer(viewModel = viewModel) }
+        composeRule.setContent { CourseCardContainer(locationPermitted = true, viewModel = viewModel) }
         composeRule.onNodeWithText("Unable to read compass").assertIsDisplayed()
 
         orientation.failRegistration = false
