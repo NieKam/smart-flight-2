@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -35,6 +34,10 @@ import androidx.compose.ui.viewinterop.AndroidView
 import kniezrec.com.flightinfo.R
 import kniezrec.com.flightinfo.about.AppVersion
 import kniezrec.com.flightinfo.about.formatAppVersion
+import kniezrec.com.flightinfo.ui.theme.LabelText
+import kniezrec.com.flightinfo.ui.theme.SmartFlightAlertDialog
+import kniezrec.com.flightinfo.ui.theme.ValueText
+import kniezrec.com.flightinfo.ui.theme.smartFlightButtonColors
 
 private enum class AboutFailure { Feedback, Rating }
 
@@ -49,7 +52,7 @@ fun AboutDialog(
     val versionText = formatAppVersion(version).ifEmpty { stringResource(R.string.about_version_unavailable) }
     val feedbackActionDescription = stringResource(R.string.about_feedback_action_description)
     val ratingActionDescription = stringResource(R.string.about_rating_action_description)
-    AlertDialog(
+    SmartFlightAlertDialog(
         onDismissRequest = onDismiss,
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -67,11 +70,12 @@ fun AboutDialog(
         },
         text = {
             Column(Modifier.heightIn(max = 480.dp).verticalScroll(rememberScrollState())) {
-                Text(stringResource(R.string.about_version), style = MaterialTheme.typography.labelLarge)
-                Text(versionText, style = MaterialTheme.typography.bodyLarge)
+                LabelText(stringResource(R.string.about_version), style = MaterialTheme.typography.labelLarge)
+                ValueText(versionText, style = MaterialTheme.typography.bodyLarge)
                 Spacer(Modifier.height(20.dp))
                 Button(
                     onClick = { failure = if (onSendFeedback()) null else AboutFailure.Feedback },
+                    colors = smartFlightButtonColors(),
                     modifier =
                         Modifier.fillMaxWidth().heightIn(min = 48.dp).semantics {
                             role = Role.Button
@@ -81,6 +85,7 @@ fun AboutDialog(
                 Spacer(Modifier.height(12.dp))
                 Button(
                     onClick = { failure = if (onRate()) null else AboutFailure.Rating },
+                    colors = smartFlightButtonColors(),
                     modifier =
                         Modifier.fillMaxWidth().heightIn(min = 48.dp).semantics {
                             role = Role.Button
@@ -101,10 +106,10 @@ fun AboutDialog(
                     )
                 }
                 Spacer(Modifier.height(24.dp))
-                Text(stringResource(R.string.about_disclaimer_heading), style = MaterialTheme.typography.titleMedium)
+                LabelText(stringResource(R.string.about_disclaimer_heading), style = MaterialTheme.typography.titleMedium)
                 Text(stringResource(R.string.about_disclaimer), Modifier.padding(top = 8.dp), style = MaterialTheme.typography.bodyMedium)
                 Spacer(Modifier.height(20.dp))
-                Text(stringResource(R.string.about_attribution_heading), style = MaterialTheme.typography.titleMedium)
+                LabelText(stringResource(R.string.about_attribution_heading), style = MaterialTheme.typography.titleMedium)
                 Text(stringResource(R.string.about_attribution), Modifier.padding(top = 8.dp), style = MaterialTheme.typography.bodyMedium)
             }
         },

@@ -28,7 +28,9 @@ import kniezrec.com.flightinfo.displayunits.ui.labels
 import kniezrec.com.flightinfo.route.RouteDetails
 import kniezrec.com.flightinfo.route.RouteEndpoint
 import kniezrec.com.flightinfo.route.RouteState
+import kniezrec.com.flightinfo.ui.theme.LabelText
 import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
+import kniezrec.com.flightinfo.ui.theme.ValueText
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.util.Locale
@@ -45,11 +47,7 @@ fun RouteCard(
 ) {
     Card(modifier.fillMaxWidth().heightIn(min = 120.dp), colors = CardDefaults.cardColors(containerColor = SmartFlightTheme.colors.card)) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(
-                stringResource(R.string.route_title),
-                color =
-                    SmartFlightTheme.colors.text,
-            )
+            LabelText(stringResource(R.string.route_title))
             EndpointRow(RouteEndpoint.DEPARTURE, state.departure?.name, onChoose, onClear)
             EndpointRow(RouteEndpoint.DESTINATION, state.destination?.name, onChoose, onClear)
             state.details?.let { details ->
@@ -160,16 +158,8 @@ fun RouteCard(
             contentDescription = detailDescription
         },
     ) {
-        Text(
-            stringResource(label),
-            color =
-                SmartFlightTheme.colors.text,
-        )
-        Text(
-            value,
-            color =
-                SmartFlightTheme.colors.text,
-        )
+        LabelText(stringResource(label))
+        ValueText(value)
     }
 }
 

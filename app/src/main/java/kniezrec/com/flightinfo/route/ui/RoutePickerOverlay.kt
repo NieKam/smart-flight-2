@@ -27,7 +27,7 @@ fun RoutePickerOverlay(
     val state by viewModel.state.collectAsStateWithLifecycle(context = Dispatchers.Main.immediate)
     if (state.endpoint == null) return
     val mapState by mapViewModel.state.collectAsStateWithLifecycle()
-    Box(modifier.fillMaxSize().background(SmartFlightTheme.colors.pickerBackground)) {
+    Box(modifier.fillMaxSize().background(SmartFlightTheme.colors.page)) {
         RoutePicker(
             state = state,
             mapArchive = (mapState as? MapUiState.Ready)?.archive,

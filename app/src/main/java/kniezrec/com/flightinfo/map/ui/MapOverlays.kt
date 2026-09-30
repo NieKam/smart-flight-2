@@ -19,6 +19,8 @@ import org.osmdroid.views.overlay.Polyline
  */
 class MapOverlays(
     private val context: Context,
+    /** ARGB color of the route line, a palette token. */
+    private val routeLineColor: Int,
 ) {
     /** The plane marker, once a position has been shown. */
     var planeMarker: Marker? = null
@@ -78,7 +80,7 @@ class MapOverlays(
         if (routeLine == null) {
             routeLine =
                 Polyline(map).also {
-                    it.color = android.graphics.Color.CYAN
+                    it.color = routeLineColor
                     map.overlays.add(it)
                 }
             departureMarker = endpointMarker(map, R.drawable.ic_route_departure)

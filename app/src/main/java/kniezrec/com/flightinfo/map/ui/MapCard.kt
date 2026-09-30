@@ -29,6 +29,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -45,7 +46,9 @@ import kniezrec.com.flightinfo.map.MapRules
 import kniezrec.com.flightinfo.map.MapZoomTarget
 import kniezrec.com.flightinfo.map.applyMapZoomPolicy
 import kniezrec.com.flightinfo.route.RouteOverlay
+import kniezrec.com.flightinfo.ui.theme.LabelText
 import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
+import kniezrec.com.flightinfo.ui.theme.ValueText
 import org.osmdroid.events.MapListener
 import org.osmdroid.events.ScrollEvent
 import org.osmdroid.events.ZoomEvent
@@ -92,7 +95,8 @@ fun MapCard(
                 BoxWithConstraints(Modifier.fillMaxWidth().testTag("map-content")) {
                     val mapHeight = mapHeight(maxWidth, maxHeight, expanded)
                     Box(Modifier.fillMaxWidth().height(mapHeight)) {
-                        val instance = remember(state.archive) { MapInstance(MapOverlays(context)) }
+                        val routeLineColor = SmartFlightTheme.colors.accent.toArgb()
+                        val instance = remember(state.archive) { MapInstance(MapOverlays(context, routeLineColor)) }
                         OfflineMap(
                             state = state,
                             instance = instance,
@@ -106,7 +110,7 @@ fun MapCard(
                             Text(
                                 stringResource(R.string.map_maximum_zoom_warning),
                                 Modifier.align(Alignment.BottomStart).padding(12.dp),
-                                color = SmartFlightTheme.colors.mapOverlayContent,
+                                color = SmartFlightTheme.colors.valueText,
                                 style = MaterialTheme.typography.bodySmall,
                             )
                         }
@@ -162,11 +166,10 @@ private fun MapMessage(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Text(stringResource(title), color = SmartFlightTheme.colors.text, style = MaterialTheme.typography.titleLarge)
-        Text(
+        LabelText(stringResource(title), style = MaterialTheme.typography.titleLarge)
+        ValueText(
             stringResource(body),
             Modifier.padding(top = 12.dp),
-            color = SmartFlightTheme.colors.text,
             style = MaterialTheme.typography.bodyLarge,
         )
         if (retry != null) {
@@ -187,12 +190,12 @@ private fun MapButton(
     IconButton(
         onClick = onClick,
         modifier =
-            modifier.size(48.dp).clip(RoundedCornerShape(8.dp)).background(SmartFlightTheme.colors.mapButtonBackground).semantics {
+            modifier.size(48.dp).clip(RoundedCornerShape(8.dp)).background(SmartFlightTheme.colors.card).semantics {
                 contentDescription = description
                 role = Role.Button
             },
     ) {
-        Text(kind.glyph, color = SmartFlightTheme.colors.mapOverlayContent, style = MaterialTheme.typography.titleLarge)
+        Text(kind.glyph, color = SmartFlightTheme.colors.valueText, style = MaterialTheme.typography.titleLarge)
     }
 }
 

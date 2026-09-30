@@ -1,6 +1,7 @@
 package kniezrec.com.flightinfo.dashboard.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -123,14 +124,15 @@ fun DashboardHeader(
     onOpenAbout: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    BoxWithConstraints(modifier.fillMaxWidth().heightIn(min = 56.dp)) {
+    // The top bar: card color (it continues the status-bar area above it) with white title and actions.
+    BoxWithConstraints(modifier.fillMaxWidth().background(SmartFlightTheme.colors.card).heightIn(min = 56.dp)) {
         val compact = maxWidth < 360.dp
         if (compact) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     stringResource(R.string.app_name),
                     modifier = Modifier.weight(1f).padding(start = 12.dp),
-                    color = SmartFlightTheme.colors.text,
+                    color = SmartFlightTheme.colors.toolbarTitle,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Medium,
                 )
@@ -140,7 +142,7 @@ fun DashboardHeader(
             Text(
                 stringResource(R.string.app_name),
                 modifier = Modifier.align(Alignment.Center),
-                color = SmartFlightTheme.colors.text,
+                color = SmartFlightTheme.colors.toolbarTitle,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Medium,
             )
@@ -158,7 +160,7 @@ private fun DashboardAction(
     onClick: () -> Unit,
 ) {
     TextButton(onClick = onClick, modifier = Modifier.heightIn(min = 48.dp)) {
-        Text(label, color = SmartFlightTheme.colors.accent)
+        Text(label, color = SmartFlightTheme.colors.toolbarTitle)
     }
 }
 
@@ -174,7 +176,7 @@ private fun CompactDashboardActions(
             onClick = { expanded = true },
             modifier = Modifier.heightIn(min = 48.dp),
         ) {
-            Text(stringResource(R.string.dashboard_more_options), color = SmartFlightTheme.colors.accent)
+            Text(stringResource(R.string.dashboard_more_options), color = SmartFlightTheme.colors.toolbarTitle)
         }
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             DropdownMenuItem(

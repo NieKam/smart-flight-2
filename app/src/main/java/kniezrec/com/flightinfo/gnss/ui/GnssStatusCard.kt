@@ -40,7 +40,9 @@ import androidx.compose.ui.unit.sp
 import kniezrec.com.flightinfo.R
 import kniezrec.com.flightinfo.gnss.GnssSatellite
 import kniezrec.com.flightinfo.gnss.GnssStatusState
+import kniezrec.com.flightinfo.ui.theme.LabelText
 import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
+import kniezrec.com.flightinfo.ui.theme.ValueText
 
 /**
  * The stateless GNSS status card; a new [state] cross-fades in.
@@ -138,12 +140,11 @@ private data class StaticState(
     title: Int,
     body: Int,
 ) {
-    Text(
+    LabelText(
         stringResource(title),
         Modifier.semantics {
             liveRegion = LiveRegionMode.Polite
         },
-        color = SmartFlightTheme.colors.text,
         style =
             MaterialTheme.typography.titleLarge.copy(
                 fontSize = 22.sp,
@@ -152,10 +153,9 @@ private data class StaticState(
                 textAlign = TextAlign.Center,
             ),
     )
-    Text(
+    ValueText(
         stringResource(body),
         Modifier.padding(top = 12.dp),
-        color = SmartFlightTheme.colors.text,
         style = MaterialTheme.typography.bodyLarge.copy(fontSize = 18.sp, lineHeight = 25.sp, textAlign = TextAlign.Center),
     )
 }
@@ -163,12 +163,11 @@ private data class StaticState(
 @Composable private fun AvailableContent(satellites: List<GnssSatellite>) {
     val used = satellites.count { it.usedInFix }
     Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 20.dp)) {
-        Text(
+        LabelText(
             stringResource(R.string.gnss_status_title),
             Modifier.semantics {
                 liveRegion = LiveRegionMode.Polite
             },
-            color = SmartFlightTheme.colors.text,
             style =
                 MaterialTheme.typography.titleLarge.copy(
                     fontSize = 22.sp,
@@ -176,10 +175,9 @@ private data class StaticState(
                     fontWeight = FontWeight.Medium,
                 ),
         )
-        Text(
+        ValueText(
             pluralStringResource(R.plurals.gnss_satellites_used, used, used),
             Modifier.padding(top = 12.dp),
-            color = SmartFlightTheme.colors.text,
             style = MaterialTheme.typography.bodyLarge.copy(fontSize = 18.sp, lineHeight = 25.sp),
         )
         satellites.forEachIndexed { index, satellite -> SatelliteRow(index + 1, satellite) }
@@ -192,12 +190,11 @@ private data class StaticState(
 ) {
     val status = if (satellite.usedInFix) R.string.satellite_used else R.string.satellite_not_used
     Column(Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(top = 12.dp)) {
-        Text(
+        LabelText(
             stringResource(R.string.satellite_number, index),
-            color = SmartFlightTheme.colors.text,
             style = MaterialTheme.typography.bodyLarge.copy(fontSize = 18.sp),
         )
-        Text(stringResource(status), color = SmartFlightTheme.colors.text, style = MaterialTheme.typography.bodyMedium)
+        ValueText(stringResource(status), style = MaterialTheme.typography.bodyMedium)
     }
 }
 

@@ -1,61 +1,68 @@
 package kniezrec.com.flightinfo.ui.theme
 
-import android.os.Build
-import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
-import androidx.compose.ui.platform.LocalContext
 
-private val darkColors =
+/**
+ * The one Material color scheme of the app, built from [colors]. Every role is set explicitly so no
+ * Material default (or wallpaper color) leaks into a component. `surfaceTint` equals `surface`, so
+ * tonal elevation does not tint cards.
+ */
+internal fun smartFlightColorScheme(colors: SmartFlightColors): ColorScheme =
     darkColorScheme(
-        primary = Purple80,
-        secondary = PurpleGrey80,
-        tertiary = Pink80,
+        primary = colors.accent,
+        onPrimary = colors.page,
+        primaryContainer = colors.card,
+        onPrimaryContainer = colors.valueText,
+        inversePrimary = colors.accent,
+        secondary = colors.accent,
+        onSecondary = colors.page,
+        secondaryContainer = colors.card,
+        onSecondaryContainer = colors.valueText,
+        tertiary = colors.accentLight,
+        onTertiary = colors.page,
+        tertiaryContainer = colors.card,
+        onTertiaryContainer = colors.valueText,
+        background = colors.page,
+        onBackground = colors.valueText,
+        surface = colors.card,
+        onSurface = colors.valueText,
+        surfaceVariant = colors.card,
+        onSurfaceVariant = colors.labelText,
+        surfaceTint = colors.card,
+        inverseSurface = colors.toastBackground,
+        inverseOnSurface = colors.valueText,
+        error = colors.error,
+        onError = colors.page,
+        errorContainer = colors.card,
+        onErrorContainer = colors.error,
+        outline = colors.labelText,
+        outlineVariant = colors.overlay20,
+        scrim = colors.overlay50,
+        surfaceBright = colors.card,
+        surfaceContainer = colors.card,
+        surfaceContainerHigh = colors.card,
+        surfaceContainerHighest = colors.card,
+        surfaceContainerLow = colors.card,
+        surfaceContainerLowest = colors.card,
+        surfaceDim = colors.page,
     )
 
-private val lightColors =
-    lightColorScheme(
-        primary = Purple40,
-        secondary = PurpleGrey40,
-        tertiary = Pink40,
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-     */
-    )
+private val smartFlightColorScheme = smartFlightColorScheme(DefaultSmartFlightColors)
 
+/**
+ * The app theme: the original Smart Flight palette, identical in light and dark system themes and
+ * with any wallpaper (no dynamic color).
+ */
 @Composable
-fun SmartFlightTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
-    content: @Composable () -> Unit,
-) {
-    val colorScheme =
-        when {
-            dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-                val context = LocalContext.current
-                if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-            }
-
-            darkTheme -> darkColors
-            else -> lightColors
-        }
-
+fun SmartFlightTheme(content: @Composable () -> Unit) {
     CompositionLocalProvider(LocalSmartFlightColors provides DefaultSmartFlightColors) {
         MaterialTheme(
-            colorScheme = colorScheme,
+            colorScheme = smartFlightColorScheme,
             typography = appTypography,
             content = content,
         )

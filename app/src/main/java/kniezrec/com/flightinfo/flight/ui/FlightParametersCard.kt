@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -39,7 +38,9 @@ import kniezrec.com.flightinfo.displayunits.convertVerticalSpeed
 import kniezrec.com.flightinfo.displayunits.formatUnitNumber
 import kniezrec.com.flightinfo.displayunits.ui.labels
 import kniezrec.com.flightinfo.flight.FlightParametersState
+import kniezrec.com.flightinfo.ui.theme.LabelText
 import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
+import kniezrec.com.flightinfo.ui.theme.ValueText
 
 @Composable
 internal fun FlightParametersCard(
@@ -114,12 +115,11 @@ private fun FlightParametersWaiting() {
     ) {
         FlightParametersTitle(textAlign = TextAlign.Center)
 
-        Text(
+        ValueText(
             text =
                 androidx.compose.ui.res
                     .stringResource(R.string.flight_parameters_waiting),
             modifier = Modifier.padding(top = 12.dp),
-            color = SmartFlightTheme.colors.text,
             style =
                 MaterialTheme.typography.bodyLarge.copy(
                     fontSize = 18.sp,
@@ -235,11 +235,10 @@ private fun FlightParametersReadings(
 
 @Composable
 private fun FlightParametersTitle(textAlign: TextAlign = TextAlign.Start) {
-    Text(
+    LabelText(
         text =
             androidx.compose.ui.res
                 .stringResource(R.string.flight_parameters_title),
-        color = SmartFlightTheme.colors.text,
         style =
             MaterialTheme.typography.titleLarge.copy(
                 fontSize = 22.sp,
@@ -278,10 +277,9 @@ private fun ParameterRow(
             },
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
+        LabelText(
             labelText,
             Modifier.weight(1f),
-            color = SmartFlightTheme.colors.text,
             style =
                 MaterialTheme.typography.bodyLarge.copy(
                     fontSize = 18.sp,
@@ -289,9 +287,8 @@ private fun ParameterRow(
                 ),
         )
 
-        Text(
+        ValueText(
             displayedValue,
-            color = SmartFlightTheme.colors.text,
             style =
                 MaterialTheme.typography.bodyLarge.copy(
                     fontSize = 18.sp,
