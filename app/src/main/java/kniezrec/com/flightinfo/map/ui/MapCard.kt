@@ -24,6 +24,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -59,8 +60,9 @@ import org.osmdroid.views.MapView
 private val mapSource = XYTileSource("MapquestOSM", 1, 9, 256, ".jpg", arrayOf())
 
 /**
- * The offline map card. Stateless apart from view-interop state: every new [state] (position,
- * course, center request, zoom setting) and [routeOverlay] re-runs the map's `update`.
+ * The offline map card. Stateless apart from view-interop state and the saved expanded flag: every
+ * new [state] (position, course, center request, zoom setting) and [routeOverlay] re-runs the map's
+ * `update`.
  *
  * @param onUnavailable the map could not open [MapUiState.Ready.archive].
  * @param onCentered the map was centered on [MapUiState.Ready.centerRequest].
@@ -75,7 +77,8 @@ fun MapCard(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
-    var expanded by remember { mutableStateOf(false) }
+    // Saved: the expanded map stays expanded across a configuration change.
+    var expanded by rememberSaveable { mutableStateOf(false) }
     var showMaximumZoomWarning by remember { mutableStateOf(false) }
     Card(
         modifier = modifier.fillMaxWidth().heightIn(min = 240.dp),

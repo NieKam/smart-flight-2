@@ -15,9 +15,9 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kniezrec.com.flightinfo.about.AppVersion
+import kniezrec.com.flightinfo.dashboard.ui.DashboardHeader
 import kniezrec.com.flightinfo.permission.LocationPermissionState
 import kniezrec.com.flightinfo.permission.ui.PermissionOnboardingScreen
-import kniezrec.com.flightinfo.ui.gnss.DashboardHeader
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith

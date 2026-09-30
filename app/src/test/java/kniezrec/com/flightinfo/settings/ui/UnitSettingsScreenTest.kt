@@ -4,6 +4,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -22,6 +23,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import kniezrec.com.flightinfo.dashboard.ui.DashboardHeader
 import kniezrec.com.flightinfo.display.DisplayPreferences
 import kniezrec.com.flightinfo.displayunits.AltitudeUnit
 import kniezrec.com.flightinfo.displayunits.DistanceUnit
@@ -29,10 +31,10 @@ import kniezrec.com.flightinfo.displayunits.PressureUnit
 import kniezrec.com.flightinfo.displayunits.SpeedUnit
 import kniezrec.com.flightinfo.displayunits.UnitPreferences
 import kniezrec.com.flightinfo.displayunits.VerticalSpeedUnit
-import kniezrec.com.flightinfo.flight.FlightParametersState
 import kniezrec.com.flightinfo.gnss.GnssStatusState
+import kniezrec.com.flightinfo.gnss.ui.GnssStatusCard
+import kniezrec.com.flightinfo.map.ui.MapCard
 import kniezrec.com.flightinfo.map.ui.MapUiState
-import kniezrec.com.flightinfo.ui.gnss.GnssStatusScreen
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
 import org.junit.Rule
@@ -173,13 +175,10 @@ class UnitSettingsScreenTest {
             if (showSettings) {
                 UnitSettingsScreen(UnitPreferences(), {}, { showSettings = false })
             } else {
-                GnssStatusScreen(
-                    state = GnssStatusState.Waiting,
-                    flightParametersState = FlightParametersState.Waiting,
-                    onOpenLocationSettings = {},
-                    onRetry = {},
-                    onOpenSettings = { showSettings = true },
-                )
+                Column {
+                    DashboardHeader(onOpenSettings = { showSettings = true }, onOpenAbout = {})
+                    GnssStatusCard(GnssStatusState.Waiting, onOpenLocationSettings = {}, onRetry = {})
+                }
             }
         }
         composeRule.onNodeWithText("Settings").performClick()
@@ -201,14 +200,10 @@ class UnitSettingsScreenTest {
         try {
             composeRule.setContent {
                 Box(Modifier.fillMaxSize()) {
-                    GnssStatusScreen(
-                        state = GnssStatusState.Waiting,
-                        flightParametersState = FlightParametersState.Waiting,
-                        onOpenLocationSettings = {},
-                        onRetry = {},
-                        onOpenSettings = { showSettings = true },
-                        mapState = MapUiState.Ready(archive, largerMapZoom = displayPreferences.largerMapZoom),
-                    )
+                    Column {
+                        DashboardHeader(onOpenSettings = { showSettings = true }, onOpenAbout = {})
+                        MapCard(MapUiState.Ready(archive, largerMapZoom = displayPreferences.largerMapZoom), onRetry = {})
+                    }
                     if (showSettings) {
                         UnitSettingsScreen(
                             preferences = UnitPreferences(),

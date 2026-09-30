@@ -106,7 +106,7 @@ class MainActivityCharacterizationTest {
     fun seedOfflineMapArchive() {
         // MapArchiveRepository skips the 28 MB asset copy when a usable archive is already in the
         // cache directory. A one-entry archive keeps every launch fast; the map card itself is not
-        // under test here (it has its own tests in GnssStatusScreenTest).
+        // under test here (it has its own tests in MapCardTest and MapCardStatesTest).
         val archive = File(application.cacheDir, "osmdroid.zip")
         ZipOutputStream(FileOutputStream(archive)).use { zip ->
             zip.putNextEntry(ZipEntry("tile.jpg"))
