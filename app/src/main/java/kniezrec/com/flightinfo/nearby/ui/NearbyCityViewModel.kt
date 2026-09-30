@@ -9,7 +9,7 @@ import kniezrec.com.flightinfo.nearby.NearbyCityRecord
 import kniezrec.com.flightinfo.nearby.NearbyCityState
 import kniezrec.com.flightinfo.nearby.NearbyCoordinate
 import kniezrec.com.flightinfo.nearby.data.CityRepository
-import kniezrec.com.flightinfo.nearby.distanceKilometres
+import kniezrec.com.flightinfo.nearby.ellipsoidalDistanceKm
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -118,7 +118,7 @@ class NearbyCityViewModel
             return NearbyCityState.Available(
                 cityName = city.name,
                 country = city.country,
-                distanceKilometres = distanceKilometres(position, NearbyCoordinate(city.latitude, city.longitude)),
+                distanceKilometres = ellipsoidalDistanceKm(position, NearbyCoordinate(city.latitude, city.longitude)),
                 zoneId = zone,
                 instant = instant,
                 utcOffsetSeconds = zone.rules.getOffset(instant).totalSeconds,

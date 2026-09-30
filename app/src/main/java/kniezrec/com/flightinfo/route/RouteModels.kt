@@ -2,7 +2,7 @@ package kniezrec.com.flightinfo.route
 
 import kniezrec.com.flightinfo.nearby.NearbyCityRecord
 import kniezrec.com.flightinfo.nearby.NearbyCoordinate
-import kniezrec.com.flightinfo.nearby.distanceKilometres
+import kniezrec.com.flightinfo.nearby.ellipsoidalDistanceKm
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
@@ -69,7 +69,7 @@ fun routeDistance(
     departure: NearbyCityRecord,
     destination: NearbyCityRecord,
 ): Double =
-    distanceKilometres(
+    ellipsoidalDistanceKm(
         NearbyCoordinate(departure.latitude, departure.longitude),
         NearbyCoordinate(destination.latitude, destination.longitude),
     )
@@ -85,7 +85,7 @@ fun routeDetails(
     now: Instant,
 ): RouteDetails {
     val fixed = departure?.let { routeDistance(it, destination) }
-    val remaining = fix?.let { distanceKilometres(it.coordinate, NearbyCoordinate(destination.latitude, destination.longitude)) }
+    val remaining = fix?.let { ellipsoidalDistanceKm(it.coordinate, NearbyCoordinate(destination.latitude, destination.longitude)) }
     val speed = fix?.speedMetresPerSecond?.takeIf { it.isFinite() && it > 0.0 }
     val durationSeconds =
         if (remaining != null &&

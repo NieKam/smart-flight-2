@@ -55,7 +55,7 @@ class NearbyCityViewModelTest {
             assertEquals("Near", available(viewModel).cityName)
         }
 
-    @Test fun `available state has the great-circle distance and raw time values`() =
+    @Test fun `available state has the WGS84 distance and raw time values`() =
         runTest(dispatcher) {
             val viewModel = viewModel(FakeCityDataSource(listOf(city(1, "City", 0.0, 1.0, "Europe/Warsaw"))))
             subscribe(viewModel)
@@ -63,7 +63,8 @@ class NearbyCityViewModelTest {
             fix(latitude = 0.0, longitude = 0.0)
 
             val state = available(viewModel)
-            assertTrue(state.distanceKilometres in 111.0..112.0)
+            // 1 degree of longitude on the WGS84 equator (GeographicLib: 111319.490793 m).
+            assertEquals(111.319490793, state.distanceKilometres, 0.000001)
             assertEquals(ZoneId.of("Europe/Warsaw"), state.zoneId)
             assertEquals(clock.instant(), state.instant)
             assertEquals(3_600, state.utcOffsetSeconds)

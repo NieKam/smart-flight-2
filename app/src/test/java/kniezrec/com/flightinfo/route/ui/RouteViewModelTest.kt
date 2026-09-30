@@ -74,7 +74,7 @@ class RouteViewModelTest {
             assertEquals(alpha, state.departure)
             assertEquals(beta, state.destination)
             assertNotNull(state.overlay)
-            assertEquals(111.2, state.details!!.fixedDistanceKm!!, 0.1)
+            assertEquals(EQUATOR_DEGREE_KM, state.details!!.fixedDistanceKm!!, 0.000001)
             assertNull(state.details!!.remainingDistanceKm)
             assertNull(state.error)
         }
@@ -161,18 +161,18 @@ class RouteViewModelTest {
             val destinationOnly = viewModel.state.value
             assertEquals(beta, destinationOnly.destination)
             assertNull(destinationOnly.details!!.fixedDistanceKm)
-            assertEquals(111.2, destinationOnly.details!!.remainingDistanceKm!!, 0.1)
-            assertEquals(Duration.ofSeconds(1_112), destinationOnly.details!!.duration)
+            assertEquals(EQUATOR_DEGREE_KM, destinationOnly.details!!.remainingDistanceKm!!, 0.000001)
+            assertEquals(Duration.ofSeconds(1_113), destinationOnly.details!!.duration)
             assertNull(destinationOnly.overlay)
 
             choose(RouteEndpoint.DEPARTURE, alpha)
             runCurrent()
 
             assertEquals(
-                111.2,
+                EQUATOR_DEGREE_KM,
                 viewModel.state.value.details!!
                     .fixedDistanceKm!!,
-                0.1,
+                0.000001,
             )
             assertNotNull(viewModel.state.value.overlay)
         }
@@ -213,8 +213,8 @@ class RouteViewModelTest {
 
             val details = viewModel.state.value.details!!
             assertNull(details.fixedDistanceKm)
-            assertEquals(111.2, details.remainingDistanceKm!!, 0.1)
-            assertEquals(clock.instant().plusSeconds(1_112), details.arrival)
+            assertEquals(EQUATOR_DEGREE_KM, details.remainingDistanceKm!!, 0.000001)
+            assertEquals(clock.instant().plusSeconds(1_113), details.arrival)
             assertNull(viewModel.state.value.overlay)
         }
 
@@ -237,9 +237,9 @@ class RouteViewModelTest {
             fix(elapsedSeconds = 1, longitude = 0.0, speed = 100.0)
 
             val details = viewModel.state.value.details!!
-            assertEquals(111.2, details.remainingDistanceKm!!, 0.1)
-            assertEquals(Duration.ofSeconds(1_112), details.duration)
-            assertEquals(clock.instant().plusSeconds(1_112), details.arrival)
+            assertEquals(EQUATOR_DEGREE_KM, details.remainingDistanceKm!!, 0.000001)
+            assertEquals(Duration.ofSeconds(1_113), details.duration)
+            assertEquals(clock.instant().plusSeconds(1_113), details.arrival)
         }
 
     @Test fun `older and invalid fixes cannot replace the newest accepted fix`() =
@@ -270,10 +270,10 @@ class RouteViewModelTest {
             )
             fix(elapsedSeconds = 30, longitude = 0.0)
             assertEquals(
-                111.2,
+                EQUATOR_DEGREE_KM,
                 viewModel.state.value.details!!
                     .remainingDistanceKm!!,
-                0.1,
+                0.000001,
             )
         }
 
@@ -332,10 +332,10 @@ class RouteViewModelTest {
             // The timestamp bar starts over with the observation.
             fix(elapsedSeconds = 10, longitude = 0.0)
             assertEquals(
-                111.2,
+                EQUATOR_DEGREE_KM,
                 viewModel.state.value.details!!
                     .remainingDistanceKm!!,
-                0.1,
+                0.000001,
             )
         }
 
@@ -358,10 +358,10 @@ class RouteViewModelTest {
             runCurrent()
             fix(elapsedSeconds = 2, longitude = 0.5)
             assertEquals(
-                55.6,
+                EQUATOR_DEGREE_KM / 2,
                 viewModel.state.value.details!!
                     .remainingDistanceKm!!,
-                0.1,
+                0.000001,
             )
         }
 
@@ -468,5 +468,8 @@ class RouteViewModelTest {
     private companion object {
         const val DEPARTURE = "route_departure_id"
         const val DESTINATION = "route_destination_id"
+
+        /** 1 degree of longitude on the WGS84 equator (GeographicLib: 111319.490793 m). */
+        const val EQUATOR_DEGREE_KM = 111.319490793
     }
 }

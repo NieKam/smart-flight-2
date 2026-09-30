@@ -28,7 +28,7 @@ class RouteModelsTest {
 
     @Test fun `no fix leaves remaining distance and arrival unavailable`() {
         val details = routeDetails(departure, destination, null, Instant.EPOCH)
-        assertEquals(111.2, details.fixedDistanceKm!!, 0.1)
+        assertEquals(EQUATOR_DEGREE_KM, details.fixedDistanceKm!!, 0.000001)
         assertNull(details.remainingDistanceKm)
         assertNull(details.arrival)
         assertNull(details.duration)
@@ -38,18 +38,18 @@ class RouteModelsTest {
         val details =
             routeDetails(departure, destination, RouteFix(NearbyCoordinate(0.0, 0.0), 100.0), Instant.parse("2020-01-01T00:00:00Z"))
         assertTrue(details.remainingDistanceKm!! > 100.0)
-        // 111.19 km at 100 m/s: 1112 s, rounded to whole seconds.
-        assertEquals(Duration.ofSeconds(1_112), details.duration)
-        assertEquals(Instant.parse("2020-01-01T00:18:32Z"), details.arrival)
+        // 111.3195 km (WGS84) at 100 m/s: 1113.19 s, rounded to whole seconds.
+        assertEquals(Duration.ofSeconds(1_113), details.duration)
+        assertEquals(Instant.parse("2020-01-01T00:18:33Z"), details.arrival)
         assertEquals(ZoneId.of("Europe/Berlin"), details.destinationZone)
     }
 
     @Test fun `destination only gives remaining distance and arrival without the distance between cities`() {
         val details = routeDetails(null, destination, RouteFix(NearbyCoordinate(0.0, 0.0), 100.0), Instant.parse("2020-01-01T00:00:00Z"))
         assertNull(details.fixedDistanceKm)
-        assertEquals(111.2, details.remainingDistanceKm!!, 0.1)
-        assertEquals(Duration.ofSeconds(1_112), details.duration)
-        assertEquals(Instant.parse("2020-01-01T00:18:32Z"), details.arrival)
+        assertEquals(EQUATOR_DEGREE_KM, details.remainingDistanceKm!!, 0.000001)
+        assertEquals(Duration.ofSeconds(1_113), details.duration)
+        assertEquals(Instant.parse("2020-01-01T00:18:33Z"), details.arrival)
         assertEquals(ZoneId.of("Europe/Berlin"), details.destinationZone)
     }
 
@@ -60,7 +60,7 @@ class RouteModelsTest {
         assertNull(noFix.arrival)
 
         val stopped = routeDetails(null, destination, RouteFix(NearbyCoordinate(0.0, 0.0), 0.0), Instant.EPOCH)
-        assertEquals(111.2, stopped.remainingDistanceKm!!, 0.1)
+        assertEquals(EQUATOR_DEGREE_KM, stopped.remainingDistanceKm!!, 0.000001)
         assertNull(stopped.arrival)
         assertNull(stopped.duration)
     }
@@ -83,5 +83,10 @@ class RouteModelsTest {
 
     @Test fun `invalid city cannot produce overlay`() {
         assertNull(routeOverlay(departure, destination.copy(latitude = 91.0)))
+    }
+
+    private companion object {
+        /** 1 degree of longitude on the WGS84 equator (GeographicLib: 111319.490793 m). */
+        const val EQUATOR_DEGREE_KM = 111.319490793
     }
 }
