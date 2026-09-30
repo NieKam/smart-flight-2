@@ -20,12 +20,12 @@ interface LocationDataSource {
     /** Satellites of every GNSS status report. */
     fun satellites(): Flow<List<GnssSatellite>>
 
-    /** Current state of the device location switch. */
+    /** Whether GPS positions can be received now (GPS provider and location switch on). */
     fun isLocationEnabled(): Boolean
 
     fun hasGnssHardware(): Boolean
 
-    /** Current state of the location switch, then every change of it. */
+    /** Current value of [isLocationEnabled], then every change of it. */
     fun locationEnabledChanges(): Flow<Boolean>
 }
 

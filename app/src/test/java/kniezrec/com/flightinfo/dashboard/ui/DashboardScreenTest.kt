@@ -2,6 +2,7 @@ package kniezrec.com.flightinfo.dashboard.ui
 
 import android.Manifest
 import android.app.Application
+import android.content.pm.PackageManager
 import androidx.annotation.StringRes
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
@@ -53,6 +54,7 @@ class DashboardScreenTest {
             zip.write(byteArrayOf(0))
             zip.closeEntry()
         }
+        shadowOf(application.packageManager).setSystemFeature(PackageManager.FEATURE_LOCATION_GPS, true)
         shadowOf(application).grantPermissions(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
         scenario = ActivityScenario.launch(MainActivity::class.java)
     }

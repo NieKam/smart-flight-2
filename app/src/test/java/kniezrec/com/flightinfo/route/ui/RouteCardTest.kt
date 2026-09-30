@@ -1,9 +1,11 @@
 package kniezrec.com.flightinfo.route.ui
 
 import androidx.activity.ComponentActivity
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kniezrec.com.flightinfo.nearby.NearbyCityRecord
@@ -62,10 +64,28 @@ class RouteCardTest {
         composeRule.onNodeWithText("Waiting for usable speed").assertIsDisplayed()
     }
 
-    private fun show(details: RouteDetails) {
+    @Config(qualifiers = "en-rGB-w411dp-h1000dp")
+    @Test
+    fun destinationOnlyShowsRemainingDistanceAndArrivalWithoutDistanceBetweenCities() {
+        show(
+            details(arrival = ARRIVAL, duration = Duration.ofSeconds(1_112)).copy(fixedDistanceKm = null),
+            departure = null,
+        )
+
+        composeRule.onNodeWithText("Distance to destination").assertIsDisplayed()
+        composeRule.onNodeWithText("111.2 km").assertIsDisplayed()
+        composeRule.onNodeWithText("Estimated arrival").assertIsDisplayed()
+        composeRule.onNodeWithText("${shortDateTime(Locale.UK, BERLIN)} (00:18)").assertIsDisplayed()
+        composeRule.onAllNodesWithText("Distance between cities").assertCountEquals(0)
+    }
+
+    private fun show(
+        details: RouteDetails,
+        departure: NearbyCityRecord? = DEPARTURE,
+    ) {
         composeRule.setContent {
             RouteCard(
-                state = RouteState(departure = DEPARTURE, destination = DESTINATION, details = details),
+                state = RouteState(departure = departure, destination = DESTINATION, details = details),
                 onChoose = {},
                 onClear = {},
                 onClearAll = {},

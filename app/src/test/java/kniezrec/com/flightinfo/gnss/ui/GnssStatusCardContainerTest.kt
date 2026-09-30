@@ -31,7 +31,7 @@ class GnssStatusCardContainerTest {
     @Test fun showsWaitingThenTheReportedSatellites() {
         val viewModel = GnssStatusViewModel(LocationRepository(location, repositoryScope))
         composeRule.setContent {
-            GnssStatusCardContainer(onOpenLocationSettings = {}, onRetry = {}, viewModel = viewModel)
+            GnssStatusCardContainer(onOpenLocationSettings = {}, viewModel = viewModel)
         }
         composeRule.onNodeWithText("Waiting for GPS signal…").assertIsDisplayed()
 

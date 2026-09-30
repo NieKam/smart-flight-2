@@ -266,7 +266,7 @@ private fun ParameterRow(
             .stringResource(R.string.flight_unavailable_accessibility)
     val rowDescription =
         androidx.compose.ui.res
-            .stringResource(R.string.flight_value_accessibility, labelText, spokenValue)
+            .stringResource(R.string.flight_row_accessibility, labelText, spokenValue)
 
     Row(
         Modifier

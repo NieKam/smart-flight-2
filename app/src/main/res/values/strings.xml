@@ -13,9 +13,11 @@
     <string name="gnss_status_title">GNSS status</string>
     <string name="gnss_waiting">Waiting for GPS signal…</string>
     <plurals name="gnss_satellites_used"><item quantity="one">Using %d satellite</item><item quantity="other">Using %d satellites</item></plurals>
-    <string name="satellite_number">Satellite %1$d</string><string name="satellite_used">Used for position</string><string name="satellite_not_used">Not used for position</string>
+    <plurals name="gnss_chart_description"><item quantity="one">%1$d satellite visible, %2$d used, strongest signal %3$d dB-Hz</item><item quantity="other">%1$d satellites visible, %2$d used, strongest signal %3$d dB-Hz</item></plurals>
+    <plurals name="gnss_chart_description_no_signal"><item quantity="one">%1$d satellite visible, %2$d used, no signal strength</item><item quantity="other">%1$d satellites visible, %2$d used, no signal strength</item></plurals>
     <string name="location_services_off_title">Location services are off</string><string name="location_services_off_body">Turn on location services to receive a GNSS signal.</string><string name="open_location_settings">Open location settings</string><string name="open_location_settings_hint">Opens location settings</string>
     <string name="gnss_unavailable_title">GNSS unavailable</string><string name="gnss_unavailable_body">This device does not provide GNSS hardware.</string>
+    <string name="enable_gps_title">Enable GPS</string><string name="enable_gps_message">Your GPS seems to be disabled, do you want to enable it?</string><string name="yes">Yes</string><string name="no">No</string>
     <string name="gnss_error_title">Unable to read GNSS status</string><string name="gnss_error_body">Smart Flight could not start GNSS status.</string><string name="gnss_try_again">Try again</string><string name="gnss_try_again_hint">Retries GNSS status</string>
     <string name="location_settings_unavailable">Unable to open location settings.</string>
     <string name="flight_parameters_title">Flight parameters</string>
@@ -157,6 +159,7 @@
     <string name="about_close">OK</string>
     <string name="settings_row_description">%1$s, current value %2$s, double tap to change</string>
     <string name="flight_value_accessibility">%1$s %2$s</string>
+    <string name="flight_row_accessibility">%1$s, %2$s</string>
     <string name="card_row_description">%1$s, %2$s</string>
     <string name="distance_value">%1$s %2$s</string>
     <string name="distance_spoken_value">%1$s %2$s</string>

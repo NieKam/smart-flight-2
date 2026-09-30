@@ -66,7 +66,12 @@ internal class AndroidLocationDataSource
                 )
             }
 
-        override fun isLocationEnabled(): Boolean = locationManager.isLocationEnabled
+        /**
+         * The GPS provider, as the original app checked it. It follows the location switch on
+         * current Android versions; the master switch is read too so that "off" never depends on it.
+         */
+        override fun isLocationEnabled(): Boolean =
+            locationManager.isLocationEnabled && locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
 
         override fun hasGnssHardware(): Boolean = packageManager.hasSystemFeature(PackageManager.FEATURE_LOCATION_GPS)
 
@@ -78,14 +83,14 @@ internal class AndroidLocationDataSource
                             context: Context,
                             intent: Intent,
                         ) {
-                            trySend(locationManager.isLocationEnabled)
+                            trySend(isLocationEnabled())
                         }
                     }
                 // PROVIDERS_CHANGED_ACTION is a protected system broadcast: no export flag is needed
                 // (same registration as LocationForegroundService's provider receiver).
                 context.registerReceiver(receiver, IntentFilter(LocationManager.PROVIDERS_CHANGED_ACTION))
                 // Read after registering so that a change in between is not lost.
-                trySend(locationManager.isLocationEnabled)
+                trySend(isLocationEnabled())
                 awaitClose { context.unregisterReceiver(receiver) }
             }.distinctUntilChanged()
     }

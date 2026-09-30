@@ -74,7 +74,7 @@ import kotlin.math.sin
  * pressure merge, settings and route persistence) before the ViewModel/DI migration.
  *
  * These tests describe CURRENT behavior, including behavior that later tasks change on purpose
- * (TASK-020 pressure without GPS, TASK-024 dashboard without permission). Update them in the task
+ * (TASK-024 dashboard without permission). Update them in the task
  * that changes the behavior, not silently.
  *
  * The activity is launched with [ActivityScenario] inside each test (not by the rule) so that
@@ -174,7 +174,7 @@ class MainActivityCharacterizationTest {
         composeRule
             .onNodeWithContentDescription(
                 string(
-                    R.string.flight_value_accessibility,
+                    R.string.flight_row_accessibility,
                     string(R.string.flight_vertical_speed),
                     string(R.string.flight_unavailable_accessibility),
                 ),
@@ -216,9 +216,10 @@ class MainActivityCharacterizationTest {
         composeRule.onAllNodesWithText(string(R.string.gnss_waiting)).assertCountEquals(0)
     }
 
-    // Scenario 5. TASK-020 changes this on purpose (pressure shown without a GPS fix).
+    // Scenario 5. Changed in TASK-020 (as the original app): pressure is shown before the first GPS
+    // fix, with dashes in the GPS rows, and stays with the readings afterwards.
     @Test
-    fun pressureIsHiddenBeforeFirstFixAndShownAfterIt() {
+    fun pressureIsShownBeforeFirstFixAndKeptAfterIt() {
         val sensorManager = application.getSystemService(SensorManager::class.java)
         val pressureSensor = ShadowSensor.newInstance(Sensor.TYPE_PRESSURE)
         shadowOf(sensorManager).addSensor(pressureSensor)
@@ -233,9 +234,11 @@ class MainActivityCharacterizationTest {
             )
         }
 
-        composeRule.onAllNodesWithText(pressureMbar(PRESSURE_TEXT)).assertCountEquals(0)
-        composeRule.onAllNodesWithText(string(R.string.flight_pressure)).assertCountEquals(0)
-        assertFlightCardWaiting()
+        waitUntil { hasText(pressureMbar(PRESSURE_TEXT)) }
+        composeRule.onNodeWithText(pressureMbar(PRESSURE_TEXT)).assertIsDisplayed()
+        // Readings layout (the Nearby city card still shows the same "Waiting for GPS position…" text).
+        composeRule.onNodeWithText(string(R.string.flight_vertical_speed)).assertExists()
+        composeRule.onAllNodesWithText(speedKmh("36.0")).assertCountEquals(0)
 
         forward(flightFix()) { hasText(speedKmh("36.0")) }
 
@@ -605,6 +608,8 @@ class MainActivityCharacterizationTest {
     }
 
     private fun launch(grantLocation: Boolean = true): ActivityScenario<MainActivity> {
+        // As on a phone (TASK-019: without GNSS hardware the GNSS card shows "GNSS unavailable").
+        shadowOf(application.packageManager).setSystemFeature(PackageManager.FEATURE_LOCATION_GPS, true)
         if (grantLocation) {
             shadowOf(application).grantPermissions(
                 Manifest.permission.ACCESS_FINE_LOCATION,
@@ -751,8 +756,8 @@ class MainActivityCharacterizationTest {
         const val WARSAW_LATITUDE = 52.22977
         const val WARSAW_LONGITUDE = 21.01178
 
-        // Exactly representable as a Float; NumberFormat adds grouping (en-US default locale).
+        // Exactly representable as a Float; no grouping separator, as the original "%.1f".
         const val PRESSURE_MILLIBARS = 1000.5f
-        const val PRESSURE_TEXT = "1,000.5"
+        const val PRESSURE_TEXT = "1000.5"
     }
 }

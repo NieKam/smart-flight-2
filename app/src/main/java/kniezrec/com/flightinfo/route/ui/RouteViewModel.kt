@@ -26,9 +26,9 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.merge
@@ -46,13 +46,15 @@ import javax.inject.Inject
  *   drops a resolution still running, so the latest write wins. An id that no longer resolves to a
  *   valid city (unknown id, bad coordinates or time zone) is dropped and removed from the saved
  *   route. A failed read shows [RouteError.RESTORE]; [retryRestore] copies the city data again.
- * - Details are present only when both endpoints are set. Fixes with invalid coordinates, and fixes
- *   not newer than the last accepted one, are ignored.
+ * - Details are present whenever the destination is set (distance to it and arrival); the
+ *   departure only adds the distance between the cities. Fixes with invalid coordinates, and fixes
+ *   not newer than the last accepted one, are ignored. The map overlay needs both endpoints.
  *
  * Observation runs while [state] is collected and stops [STOP_TIMEOUT_MILLIS] after the last
  * collector leaves, so a configuration change keeps the card. When observation restarts, the route
- * is resolved again and the details wait for a new position. While the location is switched off,
- * or after a failed GPS registration, the last position is kept.
+ * is resolved again and the details wait for a new position. Location switched off drops the
+ * position (the details wait for a new one); after a failed GPS registration the last position is
+ * kept.
  */
 @HiltViewModel
 class RouteViewModel
@@ -77,12 +79,14 @@ class RouteViewModel
             locationRepository.confirmedLocationEnabled
                 .flatMapLatest { enabled ->
                     if (enabled) {
-                        locationRepository.fixes.catch { cause -> if (cause !is LocationRegistrationException) throw cause }
+                        locationRepository.fixes
+                            .catch { cause -> if (cause !is LocationRegistrationException) throw cause }
+                            .latestValidFixes()
                     } else {
-                        emptyFlow<FlightLocationFix>()
+                        // The position is lost: remaining distance and arrival wait for a new fix.
+                        flowOf<RouteFix?>(null)
                     }
-                }.latestValidFixes()
-                .onStart<RouteFix?> { emit(null) }
+                }.onStart { emit(null) }
 
         val state: StateFlow<RouteState> =
             combine(endpoints, fixes) { resolved, fix ->
@@ -91,12 +95,7 @@ class RouteViewModel
                 RouteState(
                     departure = departure,
                     destination = destination,
-                    details =
-                        if (departure != null && destination != null) {
-                            routeDetails(departure, destination, fix, clock.instant())
-                        } else {
-                            null
-                        },
+                    details = destination?.let { routeDetails(departure, it, fix, clock.instant()) },
                     overlay = routeOverlay(departure, destination),
                     error = resolved.error,
                 )

@@ -1,6 +1,9 @@
 package kniezrec.com.flightinfo.flight
 
-/** UI-safe values for the current foreground GPS observation session. */
+/**
+ * UI-safe values for the current foreground observation session. [Readings] exist as soon as a GPS
+ * reading or a pressure value does; the other values stay null until they are known.
+ */
 sealed interface FlightParametersState {
     data object Waiting : FlightParametersState
 

@@ -91,14 +91,30 @@ class FlightParametersViewModelTest {
             assertEquals(0, pressure.registerCount)
         }
 
-    @Test fun `pressure is attached to readings only`() =
+    @Test fun `vertical speed is the average of the last three rates`() =
+        runTest(dispatcher) {
+            val viewModel = viewModel(location)
+            subscribe(viewModel)
+
+            fix(FlightLocationFix(10.0, 100.0, 1_000_000_000L))
+            fix(FlightLocationFix(10.0, 101.0, 2_000_000_000L))
+            assertEquals(1.0, verticalSpeed(viewModel), 1e-9)
+            fix(FlightLocationFix(10.0, 103.0, 3_000_000_000L))
+            assertEquals(1.5, verticalSpeed(viewModel), 1e-9)
+            fix(FlightLocationFix(10.0, 106.0, 4_000_000_000L))
+            assertEquals(2.0, verticalSpeed(viewModel), 1e-9)
+            fix(FlightLocationFix(10.0, 112.0, 5_000_000_000L))
+            assertEquals((2.0 + 3.0 + 6.0) / 3, verticalSpeed(viewModel), 1e-9)
+        }
+
+    @Test fun `pressure before any fix is shown without GPS readings`() =
         runTest(dispatcher) {
             val viewModel = viewModel(location)
             subscribe(viewModel)
 
             pressure.emit(1013.25)
             runCurrent()
-            assertEquals(FlightParametersState.Waiting, viewModel.state.value)
+            assertEquals(FlightParametersState.Readings(null, null, null, 1013.25), viewModel.state.value)
 
             fix(FlightLocationFix(10.0, 100.0, 1_000_000_000L))
             assertEquals(FlightParametersState.Readings(36.0, null, 100.0, 1013.25), viewModel.state.value)
@@ -200,17 +216,36 @@ class FlightParametersViewModelTest {
             assertEquals(FlightParametersState.Readings(36.0, null, 100.0), viewModel.state.value)
         }
 
-    @Test fun `a failed GPS registration leaves the card as it is`() =
+    @Test fun `a failed GPS registration still shows the pressure`() =
         runTest(dispatcher) {
             location.failFixRegistration = true
             val viewModel = viewModel(location)
             subscribe(viewModel)
+            assertEquals(FlightParametersState.Waiting, viewModel.state.value)
+
             pressure.emit(1013.25)
             runCurrent()
 
-            assertEquals(FlightParametersState.Waiting, viewModel.state.value)
+            assertEquals(FlightParametersState.Readings(null, null, null, 1013.25), viewModel.state.value)
             assertEquals(1, pressure.activeCount)
         }
+
+    @Test fun `location switched off drops GPS readings but keeps the pressure`() =
+        runTest(dispatcher) {
+            val viewModel = viewModel(location)
+            subscribe(viewModel)
+            pressure.emit(1013.25)
+            fix(FlightLocationFix(10.0, 100.0, 1_000_000_000L))
+            assertEquals(FlightParametersState.Readings(36.0, null, 100.0, 1013.25), viewModel.state.value)
+
+            location.switchLocation(false)
+            runCurrent()
+
+            assertEquals(FlightParametersState.Readings(null, null, null, 1013.25), viewModel.state.value)
+        }
+
+    private fun verticalSpeed(viewModel: FlightParametersViewModel): Double =
+        checkNotNull((viewModel.state.value as FlightParametersState.Readings).verticalSpeedMetresPerSecond)
 
     private fun TestScope.viewModel(source: FakeLocationDataSource) =
         FlightParametersViewModel(LocationRepository(source, backgroundScope), pressure)
