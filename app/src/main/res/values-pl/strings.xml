@@ -70,7 +70,12 @@
     <string name="course_try_again_hint">Ponawia uruchomienie kompasu</string>
     <string name="course_gps_bearing">Kierunek GPS</string>
     <string name="course_unavailable_spoken">niedostępny</string>
-    <string name="course_heading_spoken">Kurs z kompasu, %1$s stopni, %2$s</string>
+    <plurals name="course_heading_spoken">
+        <item quantity="one">Kurs z kompasu, %1$s stopień, %2$s</item>
+        <item quantity="few">Kurs z kompasu, %1$s stopnie, %2$s</item>
+        <item quantity="many">Kurs z kompasu, %1$s stopni, %2$s</item>
+        <item quantity="other">Kurs z kompasu, %1$s stopnia, %2$s</item>
+    </plurals>
     <string name="course_bearing_spoken">Kierunek GPS, %1$s</string>
     <string name="course_available_announcement">Odczyt kompasu dostępny</string>
     <string name="course_cardinal_north_spoken">północ</string>

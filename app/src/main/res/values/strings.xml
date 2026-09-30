@@ -47,7 +47,7 @@
     <string name="course_unavailable" translatable="false">—</string>
     <string name="course_unavailable_spoken">unavailable</string>
     <string name="course_degree_value" translatable="false">%1$s°</string>
-    <string name="course_heading_spoken">Compass heading, %1$s degrees, %2$s</string>
+    <plurals name="course_heading_spoken"><item quantity="one">Compass heading, %1$s degrees, %2$s</item><item quantity="other">Compass heading, %1$s degrees, %2$s</item></plurals>
     <string name="course_bearing_spoken">GPS bearing, %1$s</string>
     <string name="course_available_announcement">Compass heading available</string>
     <string name="course_cardinal_north" translatable="false">N</string>

@@ -35,6 +35,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
@@ -145,12 +146,12 @@ private fun CourseReading(state: CourseState.Available) {
         BoxWithConstraints(Modifier.fillMaxWidth().padding(top = 16.dp)) {
             if (maxWidth >= 360.dp && LocalDensity.current.fontScale <= 1.3f) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    HeadingValue(heading, headingValue, cardinalValue, cardinalSpoken, Modifier.weight(1f))
+                    HeadingValue(state.headingDegrees, heading, headingValue, cardinalValue, cardinalSpoken, Modifier.weight(1f))
                     CompassRose(state.headingDegrees)
                 }
             } else {
                 Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.Start) {
-                    HeadingValue(heading, headingValue, cardinalValue, cardinalSpoken)
+                    HeadingValue(state.headingDegrees, heading, headingValue, cardinalValue, cardinalSpoken)
                     Box(
                         Modifier.fillMaxWidth().padding(top = 12.dp),
                         contentAlignment = Alignment.Center,
@@ -164,13 +165,15 @@ private fun CourseReading(state: CourseState.Available) {
 
 @Composable
 private fun HeadingValue(
+    headingDegrees: Int,
     heading: String,
     headingValue: String,
     cardinalValue: String,
     cardinalSpoken: String,
     modifier: Modifier = Modifier,
 ) {
-    val contentDescription = stringResource(R.string.course_heading_spoken, heading, cardinalSpoken)
+    // A plural: the Polish word for "degrees" depends on the number (stopień, stopnie, stopni).
+    val contentDescription = pluralStringResource(R.plurals.course_heading_spoken, headingDegrees, heading, cardinalSpoken)
     Column(
         modifier.testTag("course-heading").semantics(mergeDescendants = true) {
             this.contentDescription = contentDescription
