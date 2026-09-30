@@ -25,7 +25,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -41,8 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kniezrec.com.flightinfo.R
 import kniezrec.com.flightinfo.horizon.HorizonState
-import kniezrec.com.flightinfo.ui.theme.actionCyan
-import kniezrec.com.flightinfo.ui.theme.cardPurple
+import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
 import java.text.NumberFormat
 
 @Composable
@@ -57,7 +55,7 @@ internal fun HorizonCard(
         shape =
             androidx.compose.foundation.shape
                 .RoundedCornerShape(10.dp),
-        colors = CardDefaults.cardColors(containerColor = cardPurple),
+        colors = CardDefaults.cardColors(containerColor = SmartFlightTheme.colors.card),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
     ) {
         HorizonStateAnnouncement(state)
@@ -114,11 +112,11 @@ private fun HorizonStatic(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(stringResource(title), color = horizonText, style = horizonTitle().copy(textAlign = TextAlign.Center))
+        Text(stringResource(title), color = SmartFlightTheme.colors.text, style = horizonTitle().copy(textAlign = TextAlign.Center))
         Text(
             stringResource(body),
             Modifier.padding(top = 12.dp),
-            color = horizonText,
+            color = SmartFlightTheme.colors.text,
             style = horizonBody().copy(textAlign = TextAlign.Center),
         )
         if (retry != null) HorizonAction(R.string.horizon_try_again, R.string.horizon_try_again_hint, retry)
@@ -135,11 +133,11 @@ private fun HorizonAvailable(
     val summary = stringResource(R.string.horizon_summary, pitch, roll)
     val spoken = stringResource(R.string.horizon_summary_spoken, pitch, roll)
     Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 20.dp)) {
-        Text(stringResource(R.string.horizon_title), color = horizonText, style = horizonTitle())
+        Text(stringResource(R.string.horizon_title), color = SmartFlightTheme.colors.text, style = horizonTitle())
         Text(
             summary,
             Modifier.padding(top = 12.dp).semantics(mergeDescendants = true) { contentDescription = spoken },
-            color = horizonText,
+            color = SmartFlightTheme.colors.text,
             style = horizonBody(),
         )
         HorizonInstrument(state, Modifier.padding(top = 12.dp).fillMaxWidth())
@@ -176,6 +174,9 @@ private fun HorizonInstrument(
     state: HorizonState.Available,
     modifier: Modifier,
 ) {
+    val horizonText = SmartFlightTheme.colors.text
+    val sky = SmartFlightTheme.colors.horizonSky
+    val ground = SmartFlightTheme.colors.horizonGround
     Box(
         modifier.heightIn(min = 160.dp, max = 200.dp).clip(
             androidx.compose.foundation.shape
@@ -189,8 +190,6 @@ private fun HorizonInstrument(
                 rotationZ = state.visualRollDegrees
             },
         ) {
-            val sky = Color(0xFF7775B5)
-            val ground = Color(0xFF3F3D70)
             drawRect(
                 sky,
                 topLeft = Offset(-size.width, -size.height),
@@ -247,7 +246,7 @@ private fun HorizonAction(
                     if (focused) {
                         Modifier.border(
                             2.dp,
-                            actionCyan,
+                            SmartFlightTheme.colors.accent,
                             androidx.compose.foundation.shape
                                 .RoundedCornerShape(4.dp),
                         )
@@ -259,10 +258,8 @@ private fun HorizonAction(
                     role = Role.Button
                     stateDescription = actionHint
                 },
-    ) { Text(stringResource(label), color = actionCyan, style = horizonBody().copy(fontWeight = FontWeight.Medium)) }
+    ) { Text(stringResource(label), color = SmartFlightTheme.colors.accent, style = horizonBody().copy(fontWeight = FontWeight.Medium)) }
 }
-
-private val horizonText = Color(0xFFD9D9ED)
 
 @Composable
 private fun horizonTitle() = MaterialTheme.typography.titleLarge.copy(fontSize = 22.sp, lineHeight = 28.sp, fontWeight = FontWeight.Medium)

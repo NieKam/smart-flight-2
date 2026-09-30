@@ -36,15 +36,11 @@ import kniezrec.com.flightinfo.displayunits.DistanceUnit
 import kniezrec.com.flightinfo.displayunits.convertDistance
 import kniezrec.com.flightinfo.displayunits.formatUnitNumber
 import kniezrec.com.flightinfo.nearby.NearbyCityState
-import kniezrec.com.flightinfo.ui.theme.cardPurple
+import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
-
-private val nearbyTextColor =
-    androidx.compose.ui.graphics
-        .Color(0xFFD9D9ED)
 
 @Composable
 internal fun NearbyCityCard(
@@ -57,7 +53,7 @@ internal fun NearbyCityCard(
     shape =
         androidx.compose.foundation.shape
             .RoundedCornerShape(10.dp),
-    colors = CardDefaults.cardColors(containerColor = cardPurple),
+    colors = CardDefaults.cardColors(containerColor = SmartFlightTheme.colors.card),
     elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
 ) {
     when (state) {
@@ -81,7 +77,7 @@ internal fun NearbyCityCard(
     Text(
         stringResource(body),
         Modifier.padding(top = 12.dp),
-        color = nearbyTextColor,
+        color = SmartFlightTheme.colors.text,
         textAlign = TextAlign.Center,
         style = MaterialTheme.typography.bodyLarge.copy(fontSize = 18.sp, lineHeight = 25.sp),
     )
@@ -148,8 +144,7 @@ internal fun NearbyCityCard(
                 .border(
                     if (focused) 2.dp else 0.dp,
                     if (focused) {
-                        androidx.compose.ui.graphics
-                            .Color(0xFF6CF0FF)
+                        SmartFlightTheme.colors.accent
                     } else {
                         androidx.compose.ui.graphics.Color.Transparent
                     },
@@ -206,7 +201,7 @@ private data class UtcOffsetText(
     align: TextAlign = TextAlign.Start,
 ) = Text(
     stringResource(text),
-    color = nearbyTextColor,
+    color = SmartFlightTheme.colors.text,
     textAlign = align,
     style = MaterialTheme.typography.titleLarge.copy(fontSize = 22.sp, lineHeight = 28.sp, fontWeight = FontWeight.Medium),
 )
@@ -224,7 +219,7 @@ private data class UtcOffsetText(
         },
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(name, Modifier.weight(1f), color = nearbyTextColor)
-        Text(value, color = nearbyTextColor, fontWeight = FontWeight.Medium, textAlign = TextAlign.End)
+        Text(name, Modifier.weight(1f), color = SmartFlightTheme.colors.text)
+        Text(value, color = SmartFlightTheme.colors.text, fontWeight = FontWeight.Medium, textAlign = TextAlign.End)
     }
 }

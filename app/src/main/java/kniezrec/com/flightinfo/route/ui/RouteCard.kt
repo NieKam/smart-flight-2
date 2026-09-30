@@ -27,8 +27,7 @@ import kniezrec.com.flightinfo.displayunits.formatUnitNumber
 import kniezrec.com.flightinfo.route.RouteDetails
 import kniezrec.com.flightinfo.route.RouteEndpoint
 import kniezrec.com.flightinfo.route.RouteState
-import kniezrec.com.flightinfo.ui.theme.actionCyan
-import kniezrec.com.flightinfo.ui.theme.cardPurple
+import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.util.Locale
@@ -43,13 +42,12 @@ fun RouteCard(
     distanceUnit: DistanceUnit = DistanceUnit.KILOMETRES,
     modifier: Modifier = Modifier,
 ) {
-    Card(modifier.fillMaxWidth().heightIn(min = 120.dp), colors = CardDefaults.cardColors(containerColor = cardPurple)) {
+    Card(modifier.fillMaxWidth().heightIn(min = 120.dp), colors = CardDefaults.cardColors(containerColor = SmartFlightTheme.colors.card)) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(
                 stringResource(R.string.route_title),
                 color =
-                    androidx.compose.ui.graphics
-                        .Color(0xFFD9D9ED),
+                    SmartFlightTheme.colors.text,
             )
             EndpointRow(RouteEndpoint.DEPARTURE, state.departure?.name, onChoose, onClear)
             EndpointRow(RouteEndpoint.DESTINATION, state.destination?.name, onChoose, onClear)
@@ -79,7 +77,7 @@ fun RouteCard(
                 state.destination != null
             ) {
                 TextButton(onClick = onClearAll, modifier = Modifier.heightIn(min = 48.dp)) {
-                    Text(stringResource(R.string.route_clear_all), color = actionCyan)
+                    Text(stringResource(R.string.route_clear_all), color = SmartFlightTheme.colors.accent)
                 }
             }
             state.error?.let {
@@ -90,13 +88,12 @@ fun RouteCard(
                         },
                     ),
                     color =
-                        androidx.compose.ui.graphics
-                            .Color(0xFFFFB4AB),
+                        SmartFlightTheme.colors.error,
                 )
             }
             if (state.error != null) {
                 TextButton(onClick = onRestoreRetry, modifier = Modifier.heightIn(min = 48.dp)) {
-                    Text(stringResource(R.string.route_retry), color = actionCyan)
+                    Text(stringResource(R.string.route_retry), color = SmartFlightTheme.colors.accent)
                 }
             }
         }
@@ -123,7 +120,7 @@ fun RouteCard(
             R.string.route_destination_icon_description
         }
     Row(Modifier.fillMaxWidth().heightIn(min = 52.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        Icon(painterResource(icon), stringResource(iconDescription), tint = actionCyan)
+        Icon(painterResource(icon), stringResource(iconDescription), tint = SmartFlightTheme.colors.accent)
         TextButton(
             onClick = { onChoose(endpoint) },
             modifier =
@@ -131,16 +128,22 @@ fun RouteCard(
                     contentDescription =
                         "$roleText, ${city ?: chooseText}"
                 },
-        ) { Text("$roleText: ${city ?: chooseText}", color = actionCyan) }
+        ) { Text("$roleText: ${city ?: chooseText}", color = SmartFlightTheme.colors.accent) }
         if (city !=
             null
         ) {
             TextButton(onClick = { onChoose(endpoint) }, modifier = Modifier.heightIn(min = 48.dp)) {
-                Text(stringResource(R.string.route_edit), color = actionCyan)
+                Text(stringResource(R.string.route_edit), color = SmartFlightTheme.colors.accent)
             }
-            TextButton(onClick = {
-                onClear(endpoint)
-            }, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.route_clear), color = actionCyan) }
+            TextButton(
+                onClick = {
+                    onClear(endpoint)
+                },
+                modifier =
+                    Modifier.heightIn(
+                        min = 48.dp,
+                    ),
+            ) { Text(stringResource(R.string.route_clear), color = SmartFlightTheme.colors.accent) }
         }
     }
 }
@@ -159,14 +162,12 @@ fun RouteCard(
         Text(
             stringResource(label),
             color =
-                androidx.compose.ui.graphics
-                    .Color(0xFFD9D9ED),
+                SmartFlightTheme.colors.text,
         )
         Text(
             value,
             color =
-                androidx.compose.ui.graphics
-                    .Color(0xFFD9D9ED),
+                SmartFlightTheme.colors.text,
         )
     }
 }

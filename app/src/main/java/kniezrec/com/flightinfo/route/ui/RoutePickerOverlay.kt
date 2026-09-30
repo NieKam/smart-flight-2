@@ -6,11 +6,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kniezrec.com.flightinfo.map.ui.MapUiState
 import kniezrec.com.flightinfo.map.ui.MapViewModel
+import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
 import kotlinx.coroutines.Dispatchers
 
 /**
@@ -27,7 +27,7 @@ fun RoutePickerOverlay(
     val state by viewModel.state.collectAsStateWithLifecycle(context = Dispatchers.Main.immediate)
     if (state.endpoint == null) return
     val mapState by mapViewModel.state.collectAsStateWithLifecycle()
-    Box(modifier.fillMaxSize().background(Color(0xFF211D46))) {
+    Box(modifier.fillMaxSize().background(SmartFlightTheme.colors.pickerBackground)) {
         RoutePicker(
             state = state,
             mapArchive = (mapState as? MapUiState.Ready)?.archive,

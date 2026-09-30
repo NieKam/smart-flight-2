@@ -29,7 +29,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -46,8 +45,7 @@ import kniezrec.com.flightinfo.map.MapRules
 import kniezrec.com.flightinfo.map.MapZoomTarget
 import kniezrec.com.flightinfo.map.applyMapZoomPolicy
 import kniezrec.com.flightinfo.route.RouteOverlay
-import kniezrec.com.flightinfo.ui.theme.actionCyan
-import kniezrec.com.flightinfo.ui.theme.cardPurple
+import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
 import org.osmdroid.events.MapListener
 import org.osmdroid.events.ScrollEvent
 import org.osmdroid.events.ZoomEvent
@@ -83,7 +81,7 @@ fun MapCard(
     Card(
         modifier = modifier.fillMaxWidth().heightIn(min = 240.dp),
         shape = RoundedCornerShape(10.dp),
-        colors = CardDefaults.cardColors(containerColor = cardPurple),
+        colors = CardDefaults.cardColors(containerColor = SmartFlightTheme.colors.card),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
     ) {
         when (state) {
@@ -108,7 +106,7 @@ fun MapCard(
                             Text(
                                 stringResource(R.string.map_maximum_zoom_warning),
                                 Modifier.align(Alignment.BottomStart).padding(12.dp),
-                                color = Color.White,
+                                color = SmartFlightTheme.colors.mapOverlayContent,
                                 style = MaterialTheme.typography.bodySmall,
                             )
                         }
@@ -164,11 +162,16 @@ private fun MapMessage(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Text(stringResource(title), color = Color(0xFFD9D9ED), style = MaterialTheme.typography.titleLarge)
-        Text(stringResource(body), Modifier.padding(top = 12.dp), color = Color(0xFFD9D9ED), style = MaterialTheme.typography.bodyLarge)
+        Text(stringResource(title), color = SmartFlightTheme.colors.text, style = MaterialTheme.typography.titleLarge)
+        Text(
+            stringResource(body),
+            Modifier.padding(top = 12.dp),
+            color = SmartFlightTheme.colors.text,
+            style = MaterialTheme.typography.bodyLarge,
+        )
         if (retry != null) {
             TextButton(onClick = retry, modifier = Modifier.padding(top = 8.dp).heightIn(min = 48.dp)) {
-                Text(stringResource(R.string.map_try_again), color = actionCyan)
+                Text(stringResource(R.string.map_try_again), color = SmartFlightTheme.colors.accent)
             }
         }
     }
@@ -184,12 +187,12 @@ private fun MapButton(
     IconButton(
         onClick = onClick,
         modifier =
-            modifier.size(48.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xDD25133F)).semantics {
+            modifier.size(48.dp).clip(RoundedCornerShape(8.dp)).background(SmartFlightTheme.colors.mapButtonBackground).semantics {
                 contentDescription = description
                 role = Role.Button
             },
     ) {
-        Text(kind.glyph, color = Color.White, style = MaterialTheme.typography.titleLarge)
+        Text(kind.glyph, color = SmartFlightTheme.colors.mapOverlayContent, style = MaterialTheme.typography.titleLarge)
     }
 }
 
