@@ -16,12 +16,11 @@ import kotlin.math.sin
  * device turned 90° counter-clockwise, `ROTATION_270` (ReverseLandscape) 90° clockwise
  * (`Display.getRotation` documentation).
  *
- * Sign convention of the current code, from the portrait results: nose-up gives NEGATIVE pitch
- * (as `SensorManager.getOrientation`), roll right gives POSITIVE roll.
+ * Sign convention (as `SensorManager.getOrientation`), the same for every display rotation:
+ * nose-up gives NEGATIVE pitch, roll right gives POSITIVE roll.
  *
- * KNOWN DEFECT, pinned here and not fixed (TASK-028 fixes it): in both landscape rotations the
- * remap is the inverse of the one Android's `remapCoordinateSystem` uses for them, so the heading
- * is off by 180° and pitch and roll have the opposite sign of the portrait convention.
+ * TASK-028 fixed the landscape remap, which was the inverse of the one Android's
+ * `remapCoordinateSystem` uses (heading off by 180°, pitch and roll with the opposite sign).
  */
 class DisplayRelativeOrientationTest {
     @Test fun portraitMatchesTheSignConvention() {
@@ -32,14 +31,12 @@ class DisplayRelativeOrientationTest {
         assertPoses(DisplayRotation.ReversePortrait, heading = 0.0, noseUpPitch = -10.0, rollRightRoll = 10.0)
     }
 
-    // Wrong today (see class comment): expected heading 0, pitch -10, roll +10.
-    @Test fun landscapeHasHeadingOffBy180AndInvertedPitchAndRoll() {
-        assertPoses(DisplayRotation.Landscape, heading = 180.0, noseUpPitch = 10.0, rollRightRoll = -10.0)
+    @Test fun landscapeMatchesTheSignConvention() {
+        assertPoses(DisplayRotation.Landscape, heading = 0.0, noseUpPitch = -10.0, rollRightRoll = 10.0)
     }
 
-    // Wrong today (see class comment): expected heading 0, pitch -10, roll +10.
-    @Test fun reverseLandscapeHasHeadingOffBy180AndInvertedPitchAndRoll() {
-        assertPoses(DisplayRotation.ReverseLandscape, heading = 180.0, noseUpPitch = 10.0, rollRightRoll = -10.0)
+    @Test fun reverseLandscapeMatchesTheSignConvention() {
+        assertPoses(DisplayRotation.ReverseLandscape, heading = 0.0, noseUpPitch = -10.0, rollRightRoll = 10.0)
     }
 
     @Test fun deviceMatrixIsRemappedForEachDisplayRotation() {
@@ -49,9 +46,9 @@ class DisplayRelativeOrientationTest {
         val rotations =
             listOf(
                 DisplayRotation.Portrait to ExpectedOrientation(0.0, 12.0, 0.0, 0.0, 0.0, 21.0),
-                DisplayRotation.Landscape to ExpectedOrientation(270.0, 0.0, 12.0, 270.0, -21.0, 0.0),
+                DisplayRotation.Landscape to ExpectedOrientation(90.0, 0.0, -12.0, 90.0, 21.0, 0.0),
                 DisplayRotation.ReversePortrait to ExpectedOrientation(180.0, -12.0, 0.0, 180.0, 0.0, -21.0),
-                DisplayRotation.ReverseLandscape to ExpectedOrientation(90.0, 0.0, -12.0, 90.0, 21.0, 0.0),
+                DisplayRotation.ReverseLandscape to ExpectedOrientation(270.0, 0.0, 12.0, 270.0, -21.0, 0.0),
             )
 
         rotations.forEach { (rotation, expected) ->
