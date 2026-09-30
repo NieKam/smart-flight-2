@@ -72,17 +72,18 @@ class MapCardTest {
         composeRule.onNode(hasStateDescription(string(R.string.map_no_position))).assertExists()
         composeRule.runOnIdle { assertEquals(0, map.overlays.count { it is Marker }) }
 
-        composeRule.runOnIdle { state = state.copy(position = MapCoordinate(10.0, 20.0), markerCourseDegrees = 90f) }
+        composeRule.runOnIdle { state = state.copy(position = MapCoordinate(10.0, 20.0), markerHeadingDegrees = 90f) }
         composeRule.onNode(hasStateDescription(string(R.string.map_position_shown))).assertExists()
         val plane =
             composeRule.runOnIdle {
                 map.overlays.filterIsInstance<Marker>().single().also { plane ->
                     assertEquals(10.0, plane.position.latitude, 0.0)
-                    assertEquals(90f, plane.rotation)
+                    // Heading 90 (east) is osmdroid rotation 270 (counter-clockwise).
+                    assertEquals(270f, plane.rotation)
                 }
             }
 
-        composeRule.runOnIdle { state = state.copy(position = MapCoordinate(-30.0, 40.0), markerCourseDegrees = 180f) }
+        composeRule.runOnIdle { state = state.copy(position = MapCoordinate(-30.0, 40.0), markerHeadingDegrees = 180f) }
         composeRule.runOnIdle {
             assertSame(map, findMapView())
             assertSame(plane, map.overlays.filterIsInstance<Marker>().single())

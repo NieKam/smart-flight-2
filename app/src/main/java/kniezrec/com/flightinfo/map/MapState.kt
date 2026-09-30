@@ -40,25 +40,40 @@ fun normalizeMarkerCourse(course: Double?): Float? {
 
 /**
  * Aircraft position on the map during one observation. [firstFix] is the first valid position of
- * the observation, the one the map centers on once.
+ * the observation, the one the map centers on once. [marker] is the plane marker's heading, chosen
+ * by [markerRotation] from the latest valid fix ([lastFix]) and the latest compass heading
+ * ([compassHeadingDegrees]).
  */
 data class MapTracking(
     val position: MapCoordinate? = null,
-    val markerCourseDegrees: Float = 0f,
     val firstFix: MapCoordinate? = null,
+    val lastFix: FlightLocationFix? = null,
+    val compassHeadingDegrees: Double? = null,
+    val marker: MarkerRotation = MarkerRotation(),
 ) {
+    /** Heading of the plane marker, degrees clockwise from north. */
+    val markerHeadingDegrees: Float get() = marker.headingDegrees
+
     /**
-     * Moves to [fix]'s position with its bearing (0 when absent or not finite). A fix without a
-     * valid position changes nothing, not even the course.
+     * Moves to [fix]'s position and chooses the marker heading again. A fix without a valid
+     * position changes nothing, not even the heading.
      */
     fun accept(fix: FlightLocationFix): MapTracking {
         val coordinate = MapCoordinate.from(fix) ?: return this
-        return MapTracking(
+        return copy(
             position = coordinate,
-            markerCourseDegrees = normalizeMarkerCourse(fix.bearingDegrees) ?: 0f,
             firstFix = firstFix ?: coordinate,
+            lastFix = fix,
+            marker = markerRotation(fix, compassHeadingDegrees, marker),
         )
     }
+
+    /** A new compass heading (degrees clockwise from north, display-relative); chooses the marker heading again. */
+    fun acceptCompass(headingDegrees: Double): MapTracking =
+        copy(
+            compassHeadingDegrees = headingDegrees,
+            marker = markerRotation(lastFix, headingDegrees, marker),
+        )
 }
 
 /** Viewport and zoom rules of the offline map. */

@@ -18,7 +18,9 @@ sealed interface MapUiState {
      * The map can be shown from [archive].
      *
      * @property position latest valid GPS position of this observation, or null before the first.
-     * @property markerCourseDegrees rotation of the plane marker: GPS bearing in [0, 360), 0 when absent.
+     * @property markerHeadingDegrees heading of the plane marker in [0, 360), degrees clockwise from
+     *   north (the map is north-up): the GPS track when moving, the compass when standing still,
+     *   otherwise the previous heading (0 until one is known). See [kniezrec.com.flightinfo.map.markerRotation].
      * @property centerRequest one-shot: the first position of the observation, to center the map on.
      *   The map acknowledges it with [MapViewModel.onCentered]; it is null afterwards.
      * @property largerMapZoom "larger map zoom" setting (maximum zoom 9 instead of 6).
@@ -26,7 +28,7 @@ sealed interface MapUiState {
     data class Ready(
         val archive: File,
         val position: MapCoordinate? = null,
-        val markerCourseDegrees: Float = 0f,
+        val markerHeadingDegrees: Float = 0f,
         val centerRequest: MapCoordinate? = null,
         val largerMapZoom: Boolean = false,
     ) : MapUiState

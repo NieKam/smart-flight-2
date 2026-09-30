@@ -22,6 +22,7 @@ import kniezrec.com.flightinfo.route.RouteEndpoint
 import kniezrec.com.flightinfo.route.data.RouteRepository
 import kniezrec.com.flightinfo.testutil.FakeDisplaySettingsRepository
 import kniezrec.com.flightinfo.testutil.FakeLocationDataSource
+import kniezrec.com.flightinfo.testutil.FakeOrientationDataSource
 import kniezrec.com.flightinfo.testutil.ListCityDataSource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -67,6 +68,7 @@ class RoutePickerOverlayTest {
                 ),
                 LocationRepository(FakeLocationDataSource(), repositoryScope),
                 FakeDisplaySettingsRepository(),
+                FakeOrientationDataSource(),
             )
         composeRule.setContent { RoutePickerOverlay(viewModel = viewModel, mapViewModel = mapViewModel) }
         composeRule.onAllNodesWithText("Choose destination").assertCountEquals(0)

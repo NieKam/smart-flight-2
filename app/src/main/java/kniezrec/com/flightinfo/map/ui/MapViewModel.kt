@@ -3,12 +3,16 @@ package kniezrec.com.flightinfo.map.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kniezrec.com.flightinfo.course.normalizeCourseDegrees
 import kniezrec.com.flightinfo.display.data.DisplaySettingsRepository
 import kniezrec.com.flightinfo.flight.FlightLocationFix
 import kniezrec.com.flightinfo.location.data.LocationRegistrationException
 import kniezrec.com.flightinfo.location.data.LocationRepository
 import kniezrec.com.flightinfo.map.MapTracking
 import kniezrec.com.flightinfo.map.data.MapArchiveRepository
+import kniezrec.com.flightinfo.orientation.HeadingSmoother
+import kniezrec.com.flightinfo.orientation.data.OrientationDataSource
+import kniezrec.com.flightinfo.orientation.data.OrientationRegistrationException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -24,6 +28,7 @@ import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.flow.stateIn
@@ -45,6 +50,12 @@ import javax.inject.Inject
  * keeps the map. When observation restarts, the archive is prepared again and the position waits
  * for a new fix. While the location is switched off, or after a failed GPS registration, the last
  * position is kept.
+ *
+ * The plane marker's heading follows [kniezrec.com.flightinfo.map.markerRotation]: the GPS track
+ * while moving, the compass heading (the Course card's value: display-relative, averaged over the
+ * last 10 sensor headings, whole degrees) while standing still, otherwise the previous heading. The
+ * orientation sensor is collected only while the map is observed; without one, or when its
+ * registration is refused, the marker relies on the GPS track alone.
  */
 @HiltViewModel
 class MapViewModel
@@ -53,6 +64,7 @@ class MapViewModel
         private val mapArchiveRepository: MapArchiveRepository,
         private val locationRepository: LocationRepository,
         private val displaySettingsRepository: DisplaySettingsRepository,
+        private val orientationDataSource: OrientationDataSource,
     ) : ViewModel() {
         private val retries = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
 
@@ -121,15 +133,22 @@ class MapViewModel
                     MapUiState.Ready(
                         archive = archive,
                         position = tracking.position,
-                        markerCourseDegrees = tracking.markerCourseDegrees,
+                        markerHeadingDegrees = tracking.markerHeadingDegrees,
                         centerRequest = if (isCentered) null else tracking.firstFix,
                         largerMapZoom = largerMapZoom,
                     )
                 }
             }
 
-        @OptIn(ExperimentalCoroutinesApi::class)
         private fun tracking(): Flow<MapTracking> =
+            merge(
+                fixes().map { fix -> { tracking: MapTracking -> tracking.accept(fix) } },
+                compassHeadings().map { heading -> { tracking: MapTracking -> tracking.acceptCompass(heading) } },
+            ).scan(MapTracking()) { tracking, update -> update(tracking) }
+                .distinctUntilChanged()
+
+        @OptIn(ExperimentalCoroutinesApi::class)
+        private fun fixes(): Flow<FlightLocationFix> =
             locationRepository.confirmedLocationEnabled
                 .flatMapLatest { enabled ->
                     if (enabled) {
@@ -137,8 +156,22 @@ class MapViewModel
                     } else {
                         emptyFlow<FlightLocationFix>()
                     }
-                }.scan(MapTracking()) { tracking, fix -> tracking.accept(fix) }
-                .distinctUntilChanged()
+                }
+
+        /** Compass headings as the Course card shows them; none without an orientation sensor. */
+        private fun compassHeadings(): Flow<Double> {
+            if (!orientationDataSource.isAvailable()) return emptyFlow()
+            return flow {
+                // One smoother per observation, as the Course card.
+                val smoother = HeadingSmoother()
+                orientationDataSource.samples.collect { sample ->
+                    if (sample.headingDegrees.isFinite()) {
+                        normalizeCourseDegrees(smoother.add(sample.headingDegrees))?.let { emit(it.toDouble()) }
+                    }
+                }
+            }.distinctUntilChanged()
+                .catch { cause -> if (cause !is OrientationRegistrationException) throw cause }
+        }
 
         internal companion object {
             /** Longer than a configuration change, shorter than a real trip to the background. */

@@ -62,7 +62,7 @@ private val mapSource = XYTileSource("MapquestOSM", 1, 9, 256, ".jpg", arrayOf()
 
 /**
  * The offline map card. Stateless apart from view-interop state and the saved expanded flag: every
- * new [state] (position, course, center request, zoom setting) and [routeOverlay] re-runs the map's
+ * new [state] (position, marker heading, center request, zoom setting) and [routeOverlay] re-runs the map's
  * `update`.
  *
  * @param onUnavailable the map could not open [MapUiState.Ready.archive].
@@ -95,7 +95,7 @@ fun MapCard(
                 BoxWithConstraints(Modifier.fillMaxWidth().testTag("map-content")) {
                     val mapHeight = mapHeight(maxWidth, maxHeight, expanded)
                     Box(Modifier.fillMaxWidth().height(mapHeight)) {
-                        val routeLineColor = SmartFlightTheme.colors.accent.toArgb()
+                        val routeLineColor = SmartFlightTheme.colors.page.toArgb()
                         val instance = remember(state.archive) { MapInstance(MapOverlays(context, routeLineColor)) }
                         OfflineMap(
                             state = state,
