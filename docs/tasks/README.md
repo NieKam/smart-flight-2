@@ -47,7 +47,7 @@ The order follows four phases. Every task leaves the app building, tests green a
 | 015 | [Settings, About and permission state out of the Activity](015-settings-about-permission-state/task.md) | 006 | DONE |
 | 016 | [Dashboard composition, slim MainActivity, state survives rotation](016-dashboard-screen-slim-activity/task.md) | 009, 010, 011, 013, 014, 015 | DONE |
 | 017 | [Design tokens in ui/theme, shared unit labels](017-design-tokens/task.md) | 016 | DONE |
-| 018 | [Original palette on every screen (theme, text hierarchy, dialogs, palette guard)](018-brand-theme/task.md) | 017 | TODO |
+| 018 | [Original palette on every screen (theme, text hierarchy, dialogs, palette guard)](018-brand-theme/task.md) | 017 | DONE |
 | 019 | [GPS-disabled prompt and live GNSS states](019-gps-disabled-prompt/task.md) | 016 | TODO |
 | 020 | [Flight parameters: pressure without GPS, smoothed vertical speed](020-flight-parameters-parity/task.md) | 016 | TODO |
 | 021 | [Route: remaining distance and ETA with only a destination](021-route-destination-only/task.md) | 016 | TODO |
