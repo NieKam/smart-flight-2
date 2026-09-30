@@ -13,5 +13,5 @@ fun HorizonCardContainer(
     viewModel: HorizonViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    HorizonCard(state, viewModel::calibrate, viewModel::retry, modifier)
+    HorizonCard(state, viewModel::calibrate, viewModel::resetToAbsolute, viewModel::retry, modifier)
 }

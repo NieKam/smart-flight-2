@@ -77,6 +77,7 @@
     <string name="horizon_try_again_hint">Retries the attitude sensor.</string>
     <string name="horizon_calibrate">Calibrate</string>
     <string name="horizon_calibrate_hint">Sets the current pitch as level.</string>
+    <string name="horizon_reset_to_level">Reset to level</string>
     <string name="horizon_level">level</string>
     <string name="horizon_up">up</string>
     <string name="horizon_down">down</string>
