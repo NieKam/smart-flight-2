@@ -281,6 +281,8 @@ class MainActivityCharacterizationTest {
     // switching the background notification on while visible and granted requests the service again.
     @Test
     fun enablingBackgroundNotificationInSettingsPersistsItAndRequestsForegroundService() {
+        // TASK-025: without POST_NOTIFICATIONS (Android 13+) the row shows "Notifications are blocked".
+        shadowOf(application).grantPermissions(Manifest.permission.POST_NOTIFICATIONS)
         launch()
         composeRule.onNodeWithText(string(R.string.settings_title)).performClick()
         clickBackgroundNotificationRow(R.string.settings_on)

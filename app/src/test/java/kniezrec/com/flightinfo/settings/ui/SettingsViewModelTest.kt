@@ -156,13 +156,12 @@ class SettingsViewModelTest {
             backgroundScope.launch { viewModel.notificationActions.collect { actions += it } }
             runCurrent()
 
-            viewModel.refreshNotificationAccess(NotificationAccess.Allowed)
-            viewModel.allowNotifications()
-            viewModel.refreshNotificationAccess(NotificationAccess.Requestable)
-            viewModel.allowNotifications()
-            viewModel.refreshNotificationAccess(NotificationAccess.Blocked)
-            viewModel.allowNotifications()
-            runCurrent()
+            // One tap at a time, as from the Settings screen.
+            listOf(NotificationAccess.Allowed, NotificationAccess.Requestable, NotificationAccess.Blocked).forEach { access ->
+                viewModel.refreshNotificationAccess(access)
+                viewModel.allowNotifications()
+                runCurrent()
+            }
 
             assertEquals(listOf(NotificationAction.RequestPermission, NotificationAction.OpenSettings), actions)
         }
