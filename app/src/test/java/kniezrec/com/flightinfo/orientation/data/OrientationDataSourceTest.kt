@@ -129,7 +129,7 @@ class OrientationDataSourceTest {
         }
 
     @Test
-    fun `without a rotation-vector sensor it is unavailable and collection fails`() =
+    fun `without any orientation sensor it is unavailable and collection fails`() =
         runTest {
             val dataSource = dataSource()
             assertFalse(dataSource.isAvailable())
@@ -160,6 +160,69 @@ class OrientationDataSourceTest {
             runCurrent()
             assertEquals(1, shadowSensorManager.listeners.size)
         }
+
+    @Test
+    fun `without a rotation vector, accelerometer and magnetometer give samples`() =
+        runTest {
+            val accelerometer = addSensor(Sensor.TYPE_ACCELEROMETER)
+            val magnetometer = addSensor(Sensor.TYPE_MAGNETIC_FIELD)
+            val dataSource = dataSource()
+            assertTrue(dataSource.isAvailable())
+            val samples = mutableListOf<OrientationSample>()
+            backgroundScope.launch { dataSource.samples.toList(samples) }
+            runCurrent()
+            assertEquals(1, shadowSensorManager.listeners.size)
+
+            // Gravity alone gives no rotation matrix yet.
+            send(accelerometer, floatArrayOf(0f, 0f, 9.81f))
+            runCurrent()
+            assertTrue(samples.isEmpty())
+
+            // Flat, magnetic north along the device's y axis (pointing down into the ground): heading 0.
+            send(magnetometer, floatArrayOf(0f, 22f, -42f))
+            runCurrent()
+            val sample = samples.single()
+            assertEquals(0.0, sample.headingDegrees.let { if (it > 180) it - 360 else it }, 0.5)
+            assertEquals(0.0, sample.pitchDegrees, 0.5)
+            assertEquals(0.0, sample.rollDegrees, 0.5)
+        }
+
+    @Test
+    fun `an accelerometer alone is not enough`() =
+        runTest {
+            addSensor(Sensor.TYPE_ACCELEROMETER)
+            val dataSource = dataSource()
+            assertFalse(dataSource.isAvailable())
+
+            val failure = backgroundScope.async { runCatching { dataSource.samples.first() }.exceptionOrNull() }
+            runCurrent()
+            assertTrue(failure.await() is OrientationRegistrationException)
+        }
+
+    @Test
+    fun `with a rotation vector the fallback sensors are not used`() =
+        runTest {
+            val rotationVector = addRotationVectorSensor()
+            val accelerometer = addSensor(Sensor.TYPE_ACCELEROMETER)
+            val magnetometer = addSensor(Sensor.TYPE_MAGNETIC_FIELD)
+            val dataSource = dataSource()
+            backgroundScope.launch { dataSource.samples.collect {} }
+            runCurrent()
+
+            val listener = shadowSensorManager.listeners.single()
+            assertTrue(shadowSensorManager.hasListener(listener, rotationVector))
+            assertFalse(shadowSensorManager.hasListener(listener, accelerometer))
+            assertFalse(shadowSensorManager.hasListener(listener, magnetometer))
+        }
+
+    private fun addSensor(type: Int): Sensor = ShadowSensor.newInstance(type).also(shadowSensorManager::addSensor)
+
+    private fun send(
+        sensor: Sensor,
+        values: FloatArray,
+    ) {
+        shadowSensorManager.sendSensorEventToListeners(SensorEventBuilder.newBuilder(sensor, values).setTimestamp(1L).build(), sensor)
+    }
 
     private fun TestScope.dataSource() = AndroidOrientationDataSource(sensorManager, displayRotation, backgroundScope)
 
