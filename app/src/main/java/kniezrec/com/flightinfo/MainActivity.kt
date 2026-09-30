@@ -1,8 +1,6 @@
 package kniezrec.com.flightinfo
 
-import android.Manifest
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
@@ -11,6 +9,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -21,7 +20,6 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -42,7 +40,6 @@ import kniezrec.com.flightinfo.about.AppVersionProvider
 import kniezrec.com.flightinfo.course.ui.CourseViewModel
 import kniezrec.com.flightinfo.display.data.DisplaySettingsRepository
 import kniezrec.com.flightinfo.display.ui.applyDisplayPreferences
-import kniezrec.com.flightinfo.displayunits.data.UnitSettingsRepository
 import kniezrec.com.flightinfo.flight.ui.FlightParametersViewModel
 import kniezrec.com.flightinfo.gnss.ui.GnssStatusViewModel
 import kniezrec.com.flightinfo.horizon.ui.HorizonViewModel
@@ -50,15 +47,15 @@ import kniezrec.com.flightinfo.map.ui.MapUiState
 import kniezrec.com.flightinfo.map.ui.MapViewModel
 import kniezrec.com.flightinfo.monitoring.AppVisibility
 import kniezrec.com.flightinfo.monitoring.LocationForegroundService
-import kniezrec.com.flightinfo.monitoring.data.BackgroundNotificationSettingsRepository
 import kniezrec.com.flightinfo.nearby.ui.NearbyCityViewModel
-import kniezrec.com.flightinfo.permission.FineLocationPermissionPlatform
-import kniezrec.com.flightinfo.permission.LocationPermissionRequestHistory
+import kniezrec.com.flightinfo.permission.AndroidFineLocationPermissionPlatform
 import kniezrec.com.flightinfo.permission.LocationPermissionState
-import kniezrec.com.flightinfo.permission.LocationPermissionStateController
 import kniezrec.com.flightinfo.permission.locationPermissionRequest
+import kniezrec.com.flightinfo.permission.snapshot
+import kniezrec.com.flightinfo.permission.ui.LocationPermissionViewModel
 import kniezrec.com.flightinfo.route.ui.RoutePickerViewModel
 import kniezrec.com.flightinfo.route.ui.RouteViewModel
+import kniezrec.com.flightinfo.settings.ui.SettingsViewModel
 import kniezrec.com.flightinfo.ui.about.AboutDialog
 import kniezrec.com.flightinfo.ui.gnss.GnssStatusScreen
 import kniezrec.com.flightinfo.ui.permission.PermissionOnboardingScreen
@@ -74,21 +71,15 @@ class MainActivity : ComponentActivity() {
     // Injected in super.onCreate(); nothing below may touch them earlier.
     @Inject lateinit var displaySettingsRepository: DisplaySettingsRepository
 
-    @Inject lateinit var unitSettingsRepository: UnitSettingsRepository
-
-    @Inject lateinit var backgroundNotificationSettingsRepository: BackgroundNotificationSettingsRepository
-
-    @Inject lateinit var permissionRequestHistory: LocationPermissionRequestHistory
-
     @Inject lateinit var appVersionProvider: AppVersionProvider
 
     @Inject lateinit var appVisibility: AppVisibility
 
-    private var permissionState by mutableStateOf(LocationPermissionState.Requestable)
-    private var announcementVersion by mutableIntStateOf(0)
+    private val permissionViewModel: LocationPermissionViewModel by viewModels()
+    private val settingsViewModel: SettingsViewModel by viewModels()
+    private val permissionPlatform = AndroidFineLocationPermissionPlatform(this)
     private var showUnitSettings by mutableStateOf(false)
     private var showAbout by mutableStateOf(false)
-    private var isForeground by mutableStateOf(false)
     private val permissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
             refreshPermissionState(announceChange = true)
@@ -109,12 +100,19 @@ class MainActivity : ComponentActivity() {
                 displaySettingsRepository.display.collect { applyDisplayPreferences(it) }
             }
         }
+        lifecycleScope.launch {
+            // Resumed only, as before: switching the notification on starts monitoring while visible.
+            repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                settingsViewModel.backgroundMonitoringRequests.collect {
+                    if (permissionViewModel.state.value == LocationPermissionState.Granted) startBackgroundMonitoring()
+                }
+            }
+        }
         setContent {
             SmartFlightTheme {
-                val unitPreferences by unitSettingsRepository.units.collectAsStateWithLifecycle()
-                val displayPreferences by displaySettingsRepository.display.collectAsStateWithLifecycle()
-                val backgroundNotificationPreferences by
-                    backgroundNotificationSettingsRepository.settings.collectAsStateWithLifecycle()
+                val permissionState by permissionViewModel.state.collectAsStateWithLifecycle()
+                val announcePermissionChange by permissionViewModel.announceChange.collectAsStateWithLifecycle()
+                val settingsState by settingsViewModel.state.collectAsStateWithLifecycle()
                 BackHandler(enabled = showUnitSettings) { showUnitSettings = false }
                 BackHandler(enabled = showAbout) { showAbout = false }
                 val snackbarHostState = remember { SnackbarHostState() }
@@ -153,25 +151,13 @@ class MainActivity : ComponentActivity() {
                             Box(Modifier.fillMaxSize()) {
                                 if (showUnitSettings) {
                                     UnitSettingsScreen(
-                                        preferences = unitPreferences,
-                                        onPreferenceChange = { value ->
-                                            lifecycleScope.launch { unitSettingsRepository.setUnits(value) }
-                                        },
-                                        displayPreferences = displayPreferences,
-                                        onDisplayPreferenceChange = { value ->
-                                            // Window effects follow from the display collector above.
-                                            lifecycleScope.launch { displaySettingsRepository.set(value) }
-                                        },
-                                        showBackgroundNotification = backgroundNotificationPreferences.showBackgroundNotification,
-                                        onBackgroundNotificationChange = { enabled ->
-                                            lifecycleScope.launch {
-                                                // The running service observes the setting itself.
-                                                backgroundNotificationSettingsRepository.setShowBackgroundNotification(enabled)
-                                                if (enabled && isForeground && permissionState == LocationPermissionState.Granted) {
-                                                    startBackgroundMonitoring()
-                                                }
-                                            }
-                                        },
+                                        preferences = settingsState.units,
+                                        onPreferenceChange = settingsViewModel::setUnits,
+                                        displayPreferences = settingsState.display,
+                                        // Window effects follow from the display collector above.
+                                        onDisplayPreferenceChange = settingsViewModel::setDisplay,
+                                        showBackgroundNotification = settingsState.showBackgroundNotification,
+                                        onBackgroundNotificationChange = settingsViewModel::setShowBackgroundNotification,
                                         onBack = { showUnitSettings = false },
                                         modifier = Modifier.padding(innerPadding).safeDrawingPadding().zIndex(1f),
                                     )
@@ -206,7 +192,7 @@ class MainActivity : ComponentActivity() {
                                     routePickerMapArchive = (mapState as? MapUiState.Ready)?.archive,
                                     onOpenSettings = { showUnitSettings = true },
                                     onOpenAbout = { showAbout = true },
-                                    unitPreferences = unitPreferences,
+                                    unitPreferences = settingsState.units,
                                     onOpenLocationSettings = {
                                         if (!openLocationSettings()) {
                                             scope.launch {
@@ -235,7 +221,7 @@ class MainActivity : ComponentActivity() {
                                     }
                                 },
                                 modifier = Modifier.padding(innerPadding).safeDrawingPadding(),
-                                announceStateChange = announcementVersion > 0,
+                                announceStateChange = announcePermissionChange,
                             )
                         }
                     }
@@ -258,10 +244,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        isForeground = true
         appVisibility.setVisible(true)
-        refreshPermissionState()
-        if (permissionState == LocationPermissionState.Granted) {
+        if (refreshPermissionState() == LocationPermissionState.Granted) {
             startBackgroundMonitoring()
         } else {
             stopBackgroundMonitoring()
@@ -269,7 +253,6 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onPause() {
-        isForeground = false
         appVisibility.setVisible(false)
         super.onPause()
     }
@@ -281,10 +264,11 @@ class MainActivity : ComponentActivity() {
         super.onDestroy()
     }
 
-    private fun refreshPermissionState(announceChange: Boolean = false) {
-        permissionState = permissionStateController.currentState()
-        if (permissionState != LocationPermissionState.Granted) stopBackgroundMonitoring()
-        if (announceChange) announcementVersion++
+    /** Reads the platform permission state now (the rationale check is Activity-bound). */
+    private fun refreshPermissionState(announceChange: Boolean = false): LocationPermissionState {
+        val state = permissionViewModel.refresh(permissionPlatform.snapshot(), announceChange)
+        if (state != LocationPermissionState.Granted) stopBackgroundMonitoring()
+        return state
     }
 
     private fun openAppSettings(): Boolean =
@@ -301,31 +285,8 @@ class MainActivity : ComponentActivity() {
     private fun requestLocationPermission() {
         // Record the launch before invoking the platform dialog so a later process restart can
         // distinguish a first launch from Android's no-rationale, settings-required state.
-        permissionStateController.recordPermissionRequest()
+        permissionViewModel.onRequestLaunched()
         permissionLauncher.launch(locationPermissionRequest)
-    }
-
-    private val permissionStateController by lazy {
-        LocationPermissionStateController(
-            platform =
-                object : FineLocationPermissionPlatform {
-                    override fun isFineLocationGranted(): Boolean =
-                        ContextCompat.checkSelfPermission(
-                            this@MainActivity,
-                            Manifest.permission.ACCESS_FINE_LOCATION,
-                        ) == PackageManager.PERMISSION_GRANTED
-
-                    override fun isCoarseLocationGranted(): Boolean =
-                        ContextCompat.checkSelfPermission(
-                            this@MainActivity,
-                            Manifest.permission.ACCESS_COARSE_LOCATION,
-                        ) == PackageManager.PERMISSION_GRANTED
-
-                    override fun shouldShowFineLocationRationale(): Boolean =
-                        shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_FINE_LOCATION)
-                },
-            requestHistory = permissionRequestHistory,
-        )
     }
 
     private fun startBackgroundMonitoring() {
