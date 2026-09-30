@@ -1,6 +1,8 @@
 package kniezrec.com.flightinfo.course.ui
 
-import androidx.compose.foundation.Canvas
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,26 +16,29 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.hideFromAccessibility
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
@@ -45,6 +50,7 @@ import kniezrec.com.flightinfo.R
 import kniezrec.com.flightinfo.course.CompassCardinal
 import kniezrec.com.flightinfo.course.CourseState
 import kniezrec.com.flightinfo.course.compassCardinal
+import kniezrec.com.flightinfo.course.shortestRotationTarget
 import kniezrec.com.flightinfo.ui.theme.LabelText
 import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
 import kniezrec.com.flightinfo.ui.theme.ValueText
@@ -121,7 +127,7 @@ private fun CourseReading(state: CourseState.Available) {
             if (maxWidth >= 360.dp && LocalDensity.current.fontScale <= 1.3f) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     HeadingValue(heading, headingValue, cardinalValue, cardinalSpoken, Modifier.weight(1f))
-                    CompassDirectionVisual(state.headingDegrees)
+                    CompassRose(state.headingDegrees)
                 }
             } else {
                 Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.Start) {
@@ -129,7 +135,7 @@ private fun CourseReading(state: CourseState.Available) {
                     Box(
                         Modifier.fillMaxWidth().padding(top = 12.dp),
                         contentAlignment = Alignment.Center,
-                    ) { CompassDirectionVisual(state.headingDegrees) }
+                    ) { CompassRose(state.headingDegrees) }
                 }
             }
         }
@@ -146,19 +152,19 @@ private fun HeadingValue(
     modifier: Modifier = Modifier,
 ) {
     val contentDescription = stringResource(R.string.course_heading_spoken, heading, cardinalSpoken)
-    Row(
+    Column(
         modifier.testTag("course-heading").semantics(mergeDescendants = true) {
             this.contentDescription = contentDescription
         },
     ) {
-        ValueText(headingValue, fontSize = 40.sp, fontWeight = FontWeight.Medium)
+        // As the original: the cyan abbreviation above the large heading.
         Text(
             cardinalValue,
-            Modifier.padding(start = 8.dp, top = 14.dp),
             color = SmartFlightTheme.colors.accent,
             fontSize = 18.sp,
             fontWeight = FontWeight.Medium,
         )
+        ValueText(headingValue, fontSize = 48.sp, fontWeight = FontWeight.Medium)
     }
 }
 
@@ -226,36 +232,44 @@ private fun CompassCardinal.spokenResource(): Int =
         CompassCardinal.NorthWest -> R.string.course_cardinal_north_west_spoken
     }
 
+/**
+ * The original compass rose: N, E, S and W fixed around the airplane, which turns to the heading
+ * with a short linear animation the short way round ([shortestRotationTarget]). Decorative: the
+ * heading text carries the description. The rotation is applied in the draw phase only.
+ */
 @Composable
-private fun CompassDirectionVisual(headingDegrees: Int) {
-    // As the original compass: muted ring (the N/E/S/W letters' color), light arrow (the plane's).
-    val ringColor = SmartFlightTheme.colors.labelText
-    val arrowColor = SmartFlightTheme.colors.valueText
+private fun CompassRose(headingDegrees: Int) {
+    var target by remember { mutableFloatStateOf(headingDegrees.toFloat()) }
+    LaunchedEffect(headingDegrees) { target = shortestRotationTarget(target, headingDegrees.toFloat()) }
+    val rotation = animateFloatAsState(target, tween(PLANE_ROTATION_MILLIS, easing = LinearEasing), label = "plane rotation")
     Box(
-        Modifier.size(72.dp).testTag("course-direction-visual"),
+        Modifier.size(COMPASS_ROSE_SIZE).testTag("course-direction-visual").semantics { hideFromAccessibility() },
         contentAlignment = Alignment.Center,
     ) {
-        Canvas(Modifier.matchParentSize()) {
-            drawCircle(ringColor, size.minDimension / 2f, style = Stroke(width = 2.dp.toPx()))
-        }
-        Canvas(Modifier.size(40.dp).graphicsLayer { rotationZ = headingDegrees.toFloat() }) {
-            val centerX = size.width / 2f
-            drawLine(arrowColor, Offset(centerX, size.height * .82f), Offset(centerX, size.height * .18f), strokeWidth = 5.dp.toPx())
-            drawLine(
-                arrowColor,
-                Offset(centerX, size.height * .18f),
-                Offset(size.width * .3f, size.height * .43f),
-                strokeWidth = 5.dp.toPx(),
-            )
-            drawLine(
-                arrowColor,
-                Offset(centerX, size.height * .18f),
-                Offset(size.width * .7f, size.height * .43f),
-                strokeWidth = 5.dp.toPx(),
-            )
-        }
+        CompassLetter(R.string.course_cardinal_north, Modifier.align(Alignment.TopCenter))
+        CompassLetter(R.string.course_cardinal_east, Modifier.align(Alignment.CenterEnd))
+        CompassLetter(R.string.course_cardinal_south, Modifier.align(Alignment.BottomCenter))
+        CompassLetter(R.string.course_cardinal_west, Modifier.align(Alignment.CenterStart))
+        Icon(
+            painterResource(R.drawable.ic_plane),
+            contentDescription = null,
+            modifier = Modifier.size(72.dp).testTag("course-plane").graphicsLayer { rotationZ = rotation.value },
+            tint = SmartFlightTheme.colors.valueText,
+        )
     }
 }
+
+/** A letter of the rose, as the original `CompassLetter` style (28sp, muted). */
+@Composable
+private fun CompassLetter(
+    letter: Int,
+    modifier: Modifier,
+) {
+    LabelText(stringResource(letter), modifier, fontSize = 28.sp)
+}
+
+private val COMPASS_ROSE_SIZE = 156.dp
+private const val PLANE_ROTATION_MILLIS = 200
 
 @Composable
 private fun CourseRetryAction(onRetry: () -> Unit) {
