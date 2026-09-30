@@ -45,7 +45,7 @@ The order follows four phases. Every task leaves the app building, tests green a
 | 013 | [Route picker state holder, typed errors, nearest-city draft fix](013-route-picker-state/task.md) | 012 | DONE |
 | 014 | [Map ViewModel, suspend archive, osmdroid config at startup, marker follows fixes](014-map-viewmodel/task.md) | 006, 008, 011 | DONE |
 | 015 | [Settings, About and permission state out of the Activity](015-settings-about-permission-state/task.md) | 006 | DONE |
-| 016 | [Dashboard composition, slim MainActivity, state survives rotation](016-dashboard-screen-slim-activity/task.md) | 009, 010, 011, 013, 014, 015 | TODO |
+| 016 | [Dashboard composition, slim MainActivity, state survives rotation](016-dashboard-screen-slim-activity/task.md) | 009, 010, 011, 013, 014, 015 | DONE |
 | 017 | [Design tokens in ui/theme, shared unit labels](017-design-tokens/task.md) | 016 | TODO |
 | 018 | [Original palette on every screen (theme, text hierarchy, dialogs, palette guard)](018-brand-theme/task.md) | 017 | TODO |
 | 019 | [GPS-disabled prompt and live GNSS states](019-gps-disabled-prompt/task.md) | 016 | TODO |

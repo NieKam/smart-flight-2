@@ -38,8 +38,10 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import kniezrec.com.flightinfo.flight.FlightLocationFix
 import kniezrec.com.flightinfo.flight.FlightParametersState
 import kniezrec.com.flightinfo.flight.ui.FlightParametersViewModel
+import kniezrec.com.flightinfo.horizon.ui.HorizonViewModel
 import kniezrec.com.flightinfo.monitoring.LocationForegroundService
 import kniezrec.com.flightinfo.nearby.ui.NearbyCityViewModel
+import kniezrec.com.flightinfo.route.ui.RouteViewModel
 import kniezrec.com.flightinfo.testutil.flightFix
 import kniezrec.com.flightinfo.testutil.idleMainLooper
 import org.junit.After
@@ -64,6 +66,8 @@ import java.io.FileOutputStream
 import java.time.Duration
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
+import kotlin.math.cos
+import kotlin.math.sin
 
 /**
  * Pins the observable orchestration of [MainActivity] (permission gate, lifecycle, fix fan-out,
@@ -106,7 +110,7 @@ class MainActivityCharacterizationTest {
     fun seedOfflineMapArchive() {
         // MapArchiveRepository skips the 28 MB asset copy when a usable archive is already in the
         // cache directory. A one-entry archive keeps every launch fast; the map card itself is not
-        // under test here (it has its own tests in GnssStatusScreenTest).
+        // under test here (it has its own tests in MapCardTest and MapCardStatesTest).
         val archive = File(application.cacheDir, "osmdroid.zip")
         ZipOutputStream(FileOutputStream(archive)).use { zip ->
             zip.putNextEntry(ZipEntry("tile.jpg"))
@@ -394,6 +398,88 @@ class MainActivityCharacterizationTest {
         composeRule.onNodeWithText(string(R.string.route_confirm)).assertIsEnabled()
     }
 
+    // TASK-016: the Settings overlay's open flag is saved, so rotation keeps Settings open; back
+    // still returns to the dashboard.
+    @Test
+    fun recreationKeepsTheOpenSettingsOverlay() {
+        val activity = launch()
+        composeRule.onNodeWithText(string(R.string.settings_title)).performClick()
+        composeRule.onNodeWithText(string(R.string.units_section)).assertIsDisplayed()
+
+        activity.recreate()
+
+        composeRule.onNodeWithText(string(R.string.units_section)).assertIsDisplayed()
+        composeRule.onNodeWithContentDescription(string(R.string.navigate_up)).performClick()
+        composeRule.onAllNodesWithText(string(R.string.units_section)).assertCountEquals(0)
+        composeRule.onNodeWithText(string(R.string.gnss_status_title)).assertIsDisplayed()
+    }
+
+    // TASK-016: the map card's expanded flag is saved, so rotation keeps the map expanded.
+    @Test
+    fun recreationKeepsTheExpandedMap() {
+        val activity = launch()
+        val expand = string(R.string.map_expand)
+        val collapse = string(R.string.map_collapse)
+        waitUntil { composeRule.onAllNodesWithContentDescription(expand).fetchSemanticsNodes().isNotEmpty() }
+        composeRule.onNodeWithContentDescription(expand).performScrollTo().performClick()
+        composeRule.onNodeWithContentDescription(collapse).assertExists()
+
+        activity.recreate()
+
+        waitUntil { composeRule.onAllNodesWithContentDescription(collapse).fetchSemanticsNodes().isNotEmpty() }
+        composeRule.onAllNodesWithContentDescription(expand).assertCountEquals(0)
+    }
+
+    // TASK-016: the route card keeps its resolved route across rotation (same ViewModel, no restore
+    // round trip back to empty endpoints).
+    @Test
+    fun recreationKeepsTheRestoredRoute() {
+        application
+            .getSharedPreferences("route", Context.MODE_PRIVATE)
+            .edit()
+            .putLong("route_departure_id", WARSAW_ID)
+            .putLong("route_destination_id", BERLIN_ID)
+            .commit()
+        val activity = launch()
+        val departure = "${string(R.string.route_departure)}: Warsaw"
+        val destination = "${string(R.string.route_destination)}: Berlin"
+        waitUntil { composeRule.onAllNodesWithText(departure).fetchSemanticsNodes().isNotEmpty() }
+        val before = activity.routeViewModel()
+
+        activity.recreate()
+
+        assertSame(before, activity.routeViewModel())
+        composeRule.onNodeWithText(departure).assertExists()
+        composeRule.onNodeWithText(destination).assertExists()
+    }
+
+    // TASK-016: the horizon's level reference is kept across rotation (observation does not restart
+    // within the ViewModel's stop timeout). Were it captured again, the first sample after the
+    // rotation would read as level.
+    @Test
+    fun recreationKeepsTheHorizonCalibrationReference() {
+        val sensorManager = application.getSystemService(SensorManager::class.java)
+        val rotationSensor = ShadowSensor.newInstance(Sensor.TYPE_ROTATION_VECTOR)
+        shadowOf(sensorManager).addSensor(rotationSensor)
+        val activity = launch()
+        waitUntil { shadowOf(sensorManager).listeners.isNotEmpty() }
+        // Device flat: this first sample becomes the level reference.
+        waitUntil {
+            sendRotationAboutX(sensorManager, rotationSensor, degrees = 0.0)
+            hasTextContaining(horizonPitch(string(R.string.horizon_level)))
+        }
+        val before = activity.horizonViewModel()
+
+        activity.recreate()
+
+        assertSame(before, activity.horizonViewModel())
+        // Nose tilted by 20 degrees: shown relative to the reference captured before the rotation.
+        waitUntil {
+            sendRotationAboutX(sensorManager, rotationSensor, degrees = 20.0)
+            hasTextContaining(horizonPitch("20°"))
+        }
+    }
+
     // Scenario 9. Replaced in TASK-008 (formerly "the activity registers no listener of its own"):
     // the activity and the service collect the same repository, so there is exactly one platform
     // registration, and fixes still reach the dashboard.
@@ -460,6 +546,38 @@ class MainActivityCharacterizationTest {
         onActivity { viewModel = ViewModelProvider(it)[FlightParametersViewModel::class.java] }
         return checkNotNull(viewModel)
     }
+
+    private fun ActivityScenario<MainActivity>.routeViewModel(): RouteViewModel {
+        var viewModel: RouteViewModel? = null
+        onActivity { viewModel = ViewModelProvider(it)[RouteViewModel::class.java] }
+        return checkNotNull(viewModel)
+    }
+
+    private fun ActivityScenario<MainActivity>.horizonViewModel(): HorizonViewModel {
+        var viewModel: HorizonViewModel? = null
+        onActivity { viewModel = ViewModelProvider(it)[HorizonViewModel::class.java] }
+        return checkNotNull(viewModel)
+    }
+
+    /** Sends a rotation-vector sample of the device rotated by [degrees] about its x axis (pitch). */
+    private fun sendRotationAboutX(
+        sensorManager: SensorManager,
+        sensor: Sensor,
+        degrees: Double,
+    ) {
+        val half = Math.toRadians(degrees) / 2
+        val values = floatArrayOf(sin(half).toFloat(), 0f, 0f, cos(half).toFloat(), 0f)
+        shadowOf(sensorManager).sendSensorEventToListeners(
+            SensorEventBuilder.newBuilder(sensor, values).setTimestamp(System.nanoTime()).build(),
+            sensor,
+        )
+    }
+
+    /** Start of the horizon summary with the pitch [value] ("Pitch: level", "Pitch: 20° down"…). */
+    private fun horizonPitch(value: String): String = string(R.string.horizon_summary, value, "").substringBefore(" ·")
+
+    private fun hasTextContaining(text: String): Boolean =
+        composeRule.onAllNodesWithText(text, substring = true).fetchSemanticsNodes().isNotEmpty()
 
     private fun ActivityScenario<MainActivity>.nearbyCityViewModel(): NearbyCityViewModel {
         var viewModel: NearbyCityViewModel? = null
