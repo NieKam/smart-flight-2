@@ -8,7 +8,6 @@ import android.view.WindowManager
 import androidx.annotation.StringRes
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
-import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.test.core.app.ActivityScenario
@@ -83,7 +82,7 @@ class MainActivityDisplaySettingsTest {
     @Test
     fun togglingInSettingsAppliesAndPersistsBothDirections() {
         launch()
-        composeRule.onNodeWithText(string(R.string.settings_title)).performClick()
+        composeRule.openFromOverflowMenu(string(R.string.settings_title))
 
         clickDisplayRow(R.string.keep_screen_always_on, R.string.settings_off)
         clickDisplayRow(R.string.portrait_orientation, R.string.orientation_portrait)

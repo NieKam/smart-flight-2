@@ -40,6 +40,8 @@ import kniezrec.com.flightinfo.gnss.GnssStatusState
 import kniezrec.com.flightinfo.gnss.ui.GnssStatusCard
 import kniezrec.com.flightinfo.map.ui.MapCard
 import kniezrec.com.flightinfo.map.ui.MapUiState
+import kniezrec.com.flightinfo.testutil.MORE_OPTIONS
+import kniezrec.com.flightinfo.testutil.openFromOverflowMenu
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertSame
@@ -241,11 +243,11 @@ class UnitSettingsScreenTest {
                 }
             }
         }
-        composeRule.onNodeWithText("Settings").performClick()
+        composeRule.openFromOverflowMenu("Settings")
         composeRule.onNodeWithText("Units").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Navigate up").performClick()
         composeRule.onNodeWithText("GNSS status").assertIsDisplayed()
-        composeRule.onNodeWithText("Settings").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription(MORE_OPTIONS).assertIsDisplayed()
     }
 
     @Test fun settingsFlowRetainsMapViewportAndAppliesLargerZoomPolicyInPlace() {
@@ -284,7 +286,7 @@ class UnitSettingsScreenTest {
                 initialMap.controller.setZoom(8.0)
                 initialMap.controller.setCenter(GeoPoint(48.8566, 2.3522))
             }
-            composeRule.onNodeWithText("Settings").performClick()
+            composeRule.openFromOverflowMenu("Settings")
             composeRule.runOnIdle {
                 assertSame(initialMap, findMapView(composeRule.activity.window.decorView))
                 assertEquals(9.0, initialMap.maxZoomLevel, 0.0)

@@ -16,6 +16,7 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -34,7 +35,9 @@ import kniezrec.com.flightinfo.map.ui.MapViewModel
 import kniezrec.com.flightinfo.settings.ui.LARGER_MAP_ZOOM_ROW_TAG
 import kniezrec.com.flightinfo.settings.ui.SettingHighlighted
 import kniezrec.com.flightinfo.testutil.idleMainLooper
+import kniezrec.com.flightinfo.testutil.openFromOverflowMenu
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -48,7 +51,8 @@ import java.util.zip.ZipOutputStream
 
 /**
  * The dashboard as the app shows it (real Hilt graph, location granted): the card containers in
- * order, and the Settings, About and city-picker overlays hosted at screen level.
+ * order, the top bar's overflow menu, and the Settings, About and city-picker overlays hosted at
+ * screen level.
  */
 @RunWith(AndroidJUnit4::class)
 class DashboardScreenTest {
@@ -81,34 +85,71 @@ class DashboardScreenTest {
             ?: System.clearProperty(CREATE_ACTIVITY_CONTEXTS)
     }
 
-    // Robolectric has no orientation sensor, so Course and Horizon show their missing-sensor messages.
+    // TASK-034: Satellites, Course, Horizon, Flight parameters, Nearby city, Route, Map, below the
+    // top bar. (Robolectric has no orientation sensor: Course and Horizon show their placeholders.)
     @Test
     fun cardsAreListedInTheirOrderBelowTheHeader() {
         val expand = string(R.string.map_expand)
         waitUntil { composeRule.onAllNodesWithContentDescription(expand).fetchSemanticsNodes().isNotEmpty() }
 
+        val header =
+            composeRule
+                .onNodeWithText(string(R.string.app_name))
+                .fetchSemanticsNode()
+                .positionInRoot.y
         val tops =
             listOf(
-                R.string.app_name,
-                R.string.gnss_status_title,
-                R.string.flight_parameters_title,
-                R.string.missing_sensor_course,
-                R.string.missing_sensor_horizon,
-                R.string.nearby_city_title,
-                R.string.route_hint,
-            ).map { title ->
+                DashboardCardTags.SATELLITES,
+                DashboardCardTags.COURSE,
+                DashboardCardTags.HORIZON,
+                DashboardCardTags.FLIGHT_PARAMETERS,
+                DashboardCardTags.NEARBY_CITY,
+                DashboardCardTags.ROUTE,
+                DashboardCardTags.MAP,
+            ).map { tag ->
                 composeRule
-                    .onNodeWithText(string(title))
+                    .onNodeWithTag(tag)
                     .fetchSemanticsNode()
                     .positionInRoot.y
             }
-        val mapTop =
-            composeRule
-                .onNodeWithContentDescription(expand)
-                .fetchSemanticsNode()
-                .positionInRoot.y
 
-        assertTrue("Cards out of order: $tops, map $mapTop", (tops + mapTop).zipWithNext().all { (upper, lower) -> upper < lower })
+        assertTrue(
+            "Cards out of order: header $header, cards $tops",
+            (listOf(header) + tops).zipWithNext().all { (upper, lower) ->
+                upper <
+                    lower
+            },
+        )
+        composeRule.onAllNodesWithTag(DashboardCardTags.PERMISSION).assertCountEquals(0)
+        // The satellite card is the first card, the GNSS status inside it.
+        composeRule
+            .onNode(hasText(string(R.string.gnss_status_title)) and hasAnyAncestor(hasTestTag(DashboardCardTags.SATELLITES)))
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun titleIsCenteredInTheTopBar() {
+        val title =
+            composeRule
+                .onNodeWithText(string(R.string.app_name))
+                .fetchSemanticsNode()
+                .boundsInRoot
+        var width = 0
+        checkNotNull(scenario).onActivity { width = it.window.decorView.width }
+
+        assertEquals(width / 2f, title.center.x, 2f)
+    }
+
+    @Test
+    fun overflowMenuListsSettingsAndAbout() {
+        // The top bar shows only the title and the "⋮" button; Settings and About are in its menu.
+        composeRule.onAllNodesWithText(string(R.string.settings_title)).assertCountEquals(0)
+        composeRule.onAllNodesWithText(string(R.string.about_title)).assertCountEquals(0)
+
+        composeRule.onNodeWithContentDescription(string(R.string.dashboard_more_options)).assertIsDisplayed().performClick()
+
+        composeRule.onNodeWithText(string(R.string.settings_title)).assertIsDisplayed()
+        composeRule.onNodeWithText(string(R.string.about_title)).assertIsDisplayed()
     }
 
     @Test
@@ -132,7 +173,7 @@ class DashboardScreenTest {
         hideButtonOf(courseMessage).performScrollTo().performClick()
         waitUntil { composeRule.onAllNodesWithText(courseMessage).fetchSemanticsNodes().isEmpty() }
 
-        composeRule.onNodeWithText(string(R.string.settings_title)).performClick()
+        composeRule.openFromOverflowMenu(string(R.string.settings_title))
         composeRule.onNodeWithText(string(R.string.hidden_card_course)).performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText(string(R.string.show_hidden_cards)).assertIsEnabled().performClick()
         composeRule.onNodeWithText(string(R.string.no_hidden_cards)).assertExists()
@@ -145,8 +186,8 @@ class DashboardScreenTest {
     }
 
     @Test
-    fun settingsOverlayOpensFromTheHeaderAndSystemBackClosesIt() {
-        composeRule.onNodeWithText(string(R.string.settings_title)).performClick()
+    fun settingsOverlayOpensFromTheOverflowMenuAndSystemBackClosesIt() {
+        composeRule.openFromOverflowMenu(string(R.string.settings_title))
         composeRule.onNodeWithText(string(R.string.units_section)).assertIsDisplayed()
 
         pressBack()
@@ -156,8 +197,8 @@ class DashboardScreenTest {
     }
 
     @Test
-    fun aboutDialogOpensFromTheHeaderAndSystemBackClosesIt() {
-        composeRule.onNodeWithText(string(R.string.about_title)).performClick()
+    fun aboutDialogOpensFromTheOverflowMenuAndSystemBackClosesIt() {
+        composeRule.openFromOverflowMenu(string(R.string.about_title))
         composeRule.onNodeWithText(string(R.string.about_disclaimer_heading)).assertIsDisplayed()
 
         pressBack()

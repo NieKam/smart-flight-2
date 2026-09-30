@@ -43,9 +43,9 @@ class PaletteGuardTest {
     }
 
     @Test
-    fun mapAndRouteCardDrawablesUseOnlyPaletteColors() {
+    fun mapRouteCardAndLauncherDrawablesUseOnlyPaletteColors() {
         val drawables = File("src/main/res/drawable")
-        for (name in MAP_DRAWABLES + ROUTE_CARD_DRAWABLES) {
+        for (name in MAP_DRAWABLES + ROUTE_CARD_DRAWABLES + LAUNCHER_DRAWABLES) {
             val file = File(drawables, "$name.xml")
             assertTrue("Drawable not found: ${file.absolutePath}", file.isFile)
             val colors =
@@ -58,6 +58,19 @@ class PaletteGuardTest {
             assertTrue("$name declares no colors", colors.isNotEmpty())
             val outside = colors.filter { it !in PALETTE }
             assertTrue("$name uses colors outside the palette: ${outside.map(::hex)}", outside.isEmpty())
+        }
+    }
+
+    @Test
+    fun launcherIconsUseThePaletteBackgroundAndThePlaneLayers() {
+        // TASK-034: the original icon, a plane on flat purple_dark, with a themed (monochrome) layer.
+        for (name in listOf("ic_launcher", "ic_launcher_round")) {
+            val file = File("src/main/res/mipmap-anydpi/$name.xml")
+            assertTrue("Launcher icon not found: ${file.absolutePath}", file.isFile)
+            val xml = file.readText()
+            assertTrue("$name background", xml.contains("<background android:drawable=\"@color/purple_dark\""))
+            assertTrue("$name foreground", xml.contains("<foreground android:drawable=\"@drawable/ic_launcher_foreground\""))
+            assertTrue("$name monochrome", xml.contains("<monochrome android:drawable=\"@drawable/ic_launcher_monochrome\""))
         }
     }
 
@@ -119,6 +132,9 @@ class PaletteGuardTest {
 
         /** The original take-off, landing and trash icons of the route card. */
         val ROUTE_CARD_DRAWABLES = listOf("ic_route_take_off", "ic_route_landing", "ic_route_delete")
+
+        /** The launcher icon's plane layers (TASK-034) and the top bar's overflow icon. */
+        val LAUNCHER_DRAWABLES = listOf("ic_launcher_foreground", "ic_launcher_monochrome", "ic_more_vert")
 
         /** A Compose color literal (`Color(0x…)`, `Color(red, …)`) or an Android `Color.parseColor`/`Color.rgb`. */
         val COLOR_LITERAL = Regex("""\bColor\s*\(\s*(0x|\d)|Color\.(parseColor|rgb|argb)\b""")

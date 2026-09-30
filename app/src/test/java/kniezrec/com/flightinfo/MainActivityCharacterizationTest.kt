@@ -44,6 +44,7 @@ import kniezrec.com.flightinfo.nearby.ui.NearbyCityViewModel
 import kniezrec.com.flightinfo.route.ui.RouteViewModel
 import kniezrec.com.flightinfo.testutil.flightFix
 import kniezrec.com.flightinfo.testutil.idleMainLooper
+import kniezrec.com.flightinfo.testutil.openFromOverflowMenu
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -138,8 +139,7 @@ class MainActivityCharacterizationTest {
         composeRule.onNodeWithText(string(R.string.permission_grant)).assertIsDisplayed()
         composeRule.onNodeWithText(string(R.string.missing_sensor_course)).assertIsDisplayed()
         composeRule.onNodeWithText(string(R.string.missing_sensor_horizon)).assertExists()
-        composeRule.onNodeWithText(string(R.string.settings_title)).assertIsDisplayed()
-        composeRule.onNodeWithText(string(R.string.about_title)).assertIsDisplayed()
+        composeRule.onNodeWithContentDescription(string(R.string.dashboard_more_options)).assertIsDisplayed()
         composeRule.onAllNodesWithText(string(R.string.gnss_status_title)).assertCountEquals(0)
         composeRule.onAllNodesWithText(string(R.string.flight_parameters_title)).assertCountEquals(0)
         composeRule.onAllNodesWithText(string(R.string.route_hint)).assertCountEquals(0)
@@ -153,8 +153,7 @@ class MainActivityCharacterizationTest {
 
         composeRule.onNodeWithText(string(R.string.gnss_status_title)).assertIsDisplayed()
         composeRule.onNodeWithText(string(R.string.gnss_waiting)).assertIsDisplayed()
-        composeRule.onNodeWithText(string(R.string.settings_title)).assertIsDisplayed()
-        composeRule.onNodeWithText(string(R.string.about_title)).assertIsDisplayed()
+        composeRule.onNodeWithContentDescription(string(R.string.dashboard_more_options)).assertIsDisplayed()
         assertFlightCardWaiting()
 
         val started = shadowOf(application).nextStartedService
@@ -171,8 +170,8 @@ class MainActivityCharacterizationTest {
 
         forward(flightFix(speedMetresPerSecond = 10.0, altitudeMetres = 100.0)) { hasText(speedKmh("36.0")) }
 
-        composeRule.onNodeWithText(speedKmh("36.0")).assertIsDisplayed()
-        composeRule.onNodeWithText(altitudeMetres("100.0")).assertIsDisplayed()
+        composeRule.onNodeWithText(speedKmh("36.0")).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText(altitudeMetres("100.0")).performScrollTo().assertIsDisplayed()
         // First fix: no vertical speed yet, and no pressure sensor in this test.
         composeRule
             .onNodeWithContentDescription(
@@ -238,15 +237,15 @@ class MainActivityCharacterizationTest {
         }
 
         waitUntil { hasText(pressureMbar(PRESSURE_TEXT)) }
-        composeRule.onNodeWithText(pressureMbar(PRESSURE_TEXT)).assertIsDisplayed()
+        composeRule.onNodeWithText(pressureMbar(PRESSURE_TEXT)).performScrollTo().assertIsDisplayed()
         // Readings layout (the Nearby city card still shows the same "Waiting for GPS position…" text).
         composeRule.onNodeWithText(string(R.string.flight_vertical_speed)).assertExists()
         composeRule.onAllNodesWithText(speedKmh("36.0")).assertCountEquals(0)
 
         forward(flightFix()) { hasText(speedKmh("36.0")) }
 
-        composeRule.onNodeWithText(speedKmh("36.0")).assertIsDisplayed()
-        composeRule.onNodeWithText(pressureMbar(PRESSURE_TEXT)).assertIsDisplayed()
+        composeRule.onNodeWithText(speedKmh("36.0")).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText(pressureMbar(PRESSURE_TEXT)).performScrollTo().assertIsDisplayed()
     }
 
     // Scenario 6.
@@ -254,9 +253,9 @@ class MainActivityCharacterizationTest {
     fun changingSpeedUnitInSettingsPersistsItAndRerendersFlightCard() {
         launch()
         forward(flightFix(speedMetresPerSecond = 10.0)) { hasText(speedKmh("36.0")) }
-        composeRule.onNodeWithText(speedKmh("36.0")).assertIsDisplayed()
+        composeRule.onNodeWithText(speedKmh("36.0")).performScrollTo().assertIsDisplayed()
 
-        composeRule.onNodeWithText(string(R.string.settings_title)).performClick()
+        composeRule.openFromOverflowMenu(string(R.string.settings_title))
         composeRule
             .onNodeWithContentDescription(
                 string(R.string.settings_row_description, string(R.string.unit_speed), string(R.string.unit_kmh)),
@@ -273,6 +272,7 @@ class MainActivityCharacterizationTest {
         // 36 km/h * 0.621371 = 22.37 mph.
         composeRule
             .onNodeWithText(string(R.string.flight_speed_value, "22.4", string(R.string.unit_mph)))
+            .performScrollTo()
             .assertIsDisplayed()
         composeRule.onAllNodesWithText(speedKmh("36.0")).assertCountEquals(0)
     }
@@ -284,7 +284,7 @@ class MainActivityCharacterizationTest {
         // TASK-025: without POST_NOTIFICATIONS (Android 13+) the row shows "Notifications are blocked".
         shadowOf(application).grantPermissions(Manifest.permission.POST_NOTIFICATIONS)
         launch()
-        composeRule.onNodeWithText(string(R.string.settings_title)).performClick()
+        composeRule.openFromOverflowMenu(string(R.string.settings_title))
         clickBackgroundNotificationRow(R.string.settings_on)
         composeRule.waitForIdle()
         val stored = application.getSharedPreferences("monitoring_behavior", Context.MODE_PRIVATE)
@@ -337,7 +337,7 @@ class MainActivityCharacterizationTest {
         assertTrue("A fix while paused should reach the flight card", shownWhilePaused)
 
         activity.moveToState(Lifecycle.State.RESUMED)
-        composeRule.onNodeWithText(speedKmh("72.0")).assertIsDisplayed()
+        composeRule.onNodeWithText(speedKmh("72.0")).performScrollTo().assertIsDisplayed()
 
         activity.moveToState(Lifecycle.State.CREATED)
         shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(LONGER_THAN_STOP_TIMEOUT_MILLIS))
@@ -346,7 +346,7 @@ class MainActivityCharacterizationTest {
         assertFlightCardWaiting()
 
         forward(flightFix(speedMetresPerSecond = 30.0, elapsedSeconds = 3L)) { hasText(speedKmh("108.0")) }
-        composeRule.onNodeWithText(speedKmh("108.0")).assertIsDisplayed()
+        composeRule.onNodeWithText(speedKmh("108.0")).performScrollTo().assertIsDisplayed()
     }
 
     // TASK-009/TASK-011: rotation keeps the ViewModels, so the last readings and the nearby city
@@ -367,7 +367,7 @@ class MainActivityCharacterizationTest {
         assertSame(before, activity.flightParametersViewModel())
         assertSame(nearbyBefore, activity.nearbyCityViewModel())
         assertTrue(before.state.value is FlightParametersState.Readings)
-        composeRule.onNodeWithText(speedKmh("36.0")).assertIsDisplayed()
+        composeRule.onNodeWithText(speedKmh("36.0")).performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText(string(R.string.flight_vertical_speed)).assertExists()
         composeRule.onNodeWithContentDescription(closestCity).assertExists()
         // Neither the flight card nor the nearby-city card (same text) went back to waiting.
@@ -411,7 +411,7 @@ class MainActivityCharacterizationTest {
     @Test
     fun recreationKeepsTheOpenSettingsOverlay() {
         val activity = launch()
-        composeRule.onNodeWithText(string(R.string.settings_title)).performClick()
+        composeRule.openFromOverflowMenu(string(R.string.settings_title))
         composeRule.onNodeWithText(string(R.string.units_section)).assertIsDisplayed()
 
         activity.recreate()
@@ -525,7 +525,7 @@ class MainActivityCharacterizationTest {
         activity.moveToState(Lifecycle.State.RESUMED)
 
         forward(flightFix(speedMetresPerSecond = 30.0, elapsedSeconds = 3L)) { hasText(speedKmh("108.0")) }
-        composeRule.onNodeWithText(speedKmh("108.0")).assertIsDisplayed()
+        composeRule.onNodeWithText(speedKmh("108.0")).performScrollTo().assertIsDisplayed()
     }
 
     // TASK-009: location switched back on while the dashboard is visible lets fixes reach the flight
@@ -540,7 +540,7 @@ class MainActivityCharacterizationTest {
         switchLocation(enabled = true)
 
         forward(flightFix(speedMetresPerSecond = 30.0, elapsedSeconds = 3L)) { hasText(speedKmh("108.0")) }
-        composeRule.onNodeWithText(speedKmh("108.0")).assertIsDisplayed()
+        composeRule.onNodeWithText(speedKmh("108.0")).performScrollTo().assertIsDisplayed()
     }
 
     /** Changes the location switch and sends the broadcast the system sends for it. */
