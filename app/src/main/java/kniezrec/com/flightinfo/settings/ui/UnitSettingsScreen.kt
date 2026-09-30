@@ -1,4 +1,4 @@
-package kniezrec.com.flightinfo.ui.settings
+package kniezrec.com.flightinfo.settings.ui
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement

@@ -1,4 +1,4 @@
-package kniezrec.com.flightinfo.ui.gnss
+package kniezrec.com.flightinfo.course.ui
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.border
@@ -46,8 +46,8 @@ import kniezrec.com.flightinfo.R
 import kniezrec.com.flightinfo.course.CompassCardinal
 import kniezrec.com.flightinfo.course.CourseState
 import kniezrec.com.flightinfo.course.compassCardinal
-import kniezrec.com.flightinfo.ui.permission.actionCyan
-import kniezrec.com.flightinfo.ui.permission.cardPurple
+import kniezrec.com.flightinfo.ui.theme.actionCyan
+import kniezrec.com.flightinfo.ui.theme.cardPurple
 import java.text.NumberFormat
 
 private val textColor = Color(0xFFD9D9ED)

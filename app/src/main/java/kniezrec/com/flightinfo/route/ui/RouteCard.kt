@@ -1,4 +1,4 @@
-package kniezrec.com.flightinfo.ui.route
+package kniezrec.com.flightinfo.route.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -27,8 +27,8 @@ import kniezrec.com.flightinfo.displayunits.formatUnitNumber
 import kniezrec.com.flightinfo.route.RouteDetails
 import kniezrec.com.flightinfo.route.RouteEndpoint
 import kniezrec.com.flightinfo.route.RouteState
-import kniezrec.com.flightinfo.ui.permission.actionCyan
-import kniezrec.com.flightinfo.ui.permission.cardPurple
+import kniezrec.com.flightinfo.ui.theme.actionCyan
+import kniezrec.com.flightinfo.ui.theme.cardPurple
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.util.Locale

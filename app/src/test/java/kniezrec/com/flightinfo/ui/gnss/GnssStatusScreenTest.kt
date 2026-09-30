@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kniezrec.com.flightinfo.course.CourseState
+import kniezrec.com.flightinfo.course.ui.CourseCard
 import kniezrec.com.flightinfo.displayunits.AltitudeUnit
 import kniezrec.com.flightinfo.displayunits.DistanceUnit
 import kniezrec.com.flightinfo.displayunits.PressureUnit
@@ -34,6 +35,7 @@ import kniezrec.com.flightinfo.displayunits.VerticalSpeedUnit
 import kniezrec.com.flightinfo.flight.FlightParametersState
 import kniezrec.com.flightinfo.gnss.GnssSatellite
 import kniezrec.com.flightinfo.gnss.GnssStatusState
+import kniezrec.com.flightinfo.map.ui.MapCard
 import kniezrec.com.flightinfo.map.ui.MapUiState
 import kniezrec.com.flightinfo.nearby.NearbyCityRecord
 import kniezrec.com.flightinfo.nearby.NearbyCityState
@@ -43,8 +45,8 @@ import kniezrec.com.flightinfo.route.RouteOverlay
 import kniezrec.com.flightinfo.route.RoutePickerError
 import kniezrec.com.flightinfo.route.RoutePickerState
 import kniezrec.com.flightinfo.route.RouteState
-import kniezrec.com.flightinfo.ui.route.RouteCard
-import kniezrec.com.flightinfo.ui.route.RoutePicker
+import kniezrec.com.flightinfo.route.ui.RouteCard
+import kniezrec.com.flightinfo.route.ui.RoutePicker
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test

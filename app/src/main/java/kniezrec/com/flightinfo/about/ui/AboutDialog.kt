@@ -1,4 +1,4 @@
-package kniezrec.com.flightinfo.ui.about
+package kniezrec.com.flightinfo.about.ui
 
 import android.widget.ImageView
 import androidx.compose.foundation.layout.Column

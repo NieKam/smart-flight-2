@@ -1,4 +1,4 @@
-package kniezrec.com.flightinfo.ui.about
+package kniezrec.com.flightinfo.about.ui
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.requiredWidth
@@ -16,8 +16,8 @@ import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kniezrec.com.flightinfo.about.AppVersion
 import kniezrec.com.flightinfo.permission.LocationPermissionState
+import kniezrec.com.flightinfo.permission.ui.PermissionOnboardingScreen
 import kniezrec.com.flightinfo.ui.gnss.DashboardHeader
-import kniezrec.com.flightinfo.ui.permission.PermissionOnboardingScreen
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith

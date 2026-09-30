@@ -1,4 +1,4 @@
-package kniezrec.com.flightinfo.ui.permission
+package kniezrec.com.flightinfo.permission.ui
 
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
@@ -44,12 +44,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kniezrec.com.flightinfo.R
 import kniezrec.com.flightinfo.permission.LocationPermissionState
+import kniezrec.com.flightinfo.ui.theme.actionCyan
+import kniezrec.com.flightinfo.ui.theme.cardPurple
 
 private val LightLavender = Color(0xFFD9D9ED)
 
 // The legacy muted lavender does not meet contrast at this size; use the accessible light token.
 private val BodyLavender = Color(0xFFD9D9ED)
-internal val smartFlightPageColor = Color(0xFF484685)
 internal const val PERMISSION_STATE_CARD_TEST_TAG = "permission_state_card"
 
 @Composable

@@ -1,4 +1,4 @@
-package kniezrec.com.flightinfo.ui.gnss
+package kniezrec.com.flightinfo.horizon.ui
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.border
@@ -41,8 +41,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kniezrec.com.flightinfo.R
 import kniezrec.com.flightinfo.horizon.HorizonState
-import kniezrec.com.flightinfo.ui.permission.actionCyan
-import kniezrec.com.flightinfo.ui.permission.cardPurple
+import kniezrec.com.flightinfo.ui.theme.actionCyan
+import kniezrec.com.flightinfo.ui.theme.cardPurple
 import java.text.NumberFormat
 
 @Composable

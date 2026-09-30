@@ -1,4 +1,4 @@
-package kniezrec.com.flightinfo.ui.route
+package kniezrec.com.flightinfo.route.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement

@@ -1,4 +1,4 @@
-package kniezrec.com.flightinfo.ui.gnss
+package kniezrec.com.flightinfo.map.ui
 
 import android.view.View
 import android.view.ViewGroup
@@ -16,7 +16,6 @@ import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kniezrec.com.flightinfo.R
 import kniezrec.com.flightinfo.map.MapCoordinate
-import kniezrec.com.flightinfo.map.ui.MapUiState
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame

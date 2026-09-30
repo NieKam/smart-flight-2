@@ -1,4 +1,4 @@
-package kniezrec.com.flightinfo.ui.gnss
+package kniezrec.com.flightinfo.nearby.ui
 
 import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -36,7 +36,7 @@ import kniezrec.com.flightinfo.displayunits.DistanceUnit
 import kniezrec.com.flightinfo.displayunits.convertDistance
 import kniezrec.com.flightinfo.displayunits.formatUnitNumber
 import kniezrec.com.flightinfo.nearby.NearbyCityState
-import kniezrec.com.flightinfo.ui.permission.cardPurple
+import kniezrec.com.flightinfo.ui.theme.cardPurple
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter

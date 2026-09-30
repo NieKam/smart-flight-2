@@ -49,22 +49,27 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kniezrec.com.flightinfo.R
 import kniezrec.com.flightinfo.course.CourseState
+import kniezrec.com.flightinfo.course.ui.CourseCard
 import kniezrec.com.flightinfo.displayunits.UnitPreferences
 import kniezrec.com.flightinfo.flight.FlightParametersState
+import kniezrec.com.flightinfo.flight.ui.FlightParametersCard
 import kniezrec.com.flightinfo.gnss.GnssSatellite
 import kniezrec.com.flightinfo.gnss.GnssStatusState
 import kniezrec.com.flightinfo.horizon.HorizonState
+import kniezrec.com.flightinfo.horizon.ui.HorizonCard
+import kniezrec.com.flightinfo.map.ui.MapCard
 import kniezrec.com.flightinfo.map.ui.MapUiState
 import kniezrec.com.flightinfo.nearby.NearbyCityRecord
 import kniezrec.com.flightinfo.nearby.NearbyCityState
 import kniezrec.com.flightinfo.nearby.NearbyCoordinate
+import kniezrec.com.flightinfo.nearby.ui.NearbyCityCard
 import kniezrec.com.flightinfo.route.RouteEndpoint
 import kniezrec.com.flightinfo.route.RoutePickerState
 import kniezrec.com.flightinfo.route.RouteState
-import kniezrec.com.flightinfo.ui.permission.actionCyan
-import kniezrec.com.flightinfo.ui.permission.cardPurple
-import kniezrec.com.flightinfo.ui.route.RouteCard
-import kniezrec.com.flightinfo.ui.route.RoutePicker
+import kniezrec.com.flightinfo.route.ui.RouteCard
+import kniezrec.com.flightinfo.route.ui.RoutePicker
+import kniezrec.com.flightinfo.ui.theme.actionCyan
+import kniezrec.com.flightinfo.ui.theme.cardPurple
 import java.io.File
 
 private val textColor = Color(0xFFD9D9ED)

@@ -37,6 +37,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import kniezrec.com.flightinfo.about.AboutIntentFactory
 import kniezrec.com.flightinfo.about.AndroidExternalIntentLauncher
 import kniezrec.com.flightinfo.about.AppVersionProvider
+import kniezrec.com.flightinfo.about.ui.AboutDialog
 import kniezrec.com.flightinfo.course.ui.CourseViewModel
 import kniezrec.com.flightinfo.display.data.DisplaySettingsRepository
 import kniezrec.com.flightinfo.display.ui.applyDisplayPreferences
@@ -53,15 +54,14 @@ import kniezrec.com.flightinfo.permission.LocationPermissionState
 import kniezrec.com.flightinfo.permission.locationPermissionRequest
 import kniezrec.com.flightinfo.permission.snapshot
 import kniezrec.com.flightinfo.permission.ui.LocationPermissionViewModel
+import kniezrec.com.flightinfo.permission.ui.PermissionOnboardingScreen
 import kniezrec.com.flightinfo.route.ui.RoutePickerViewModel
 import kniezrec.com.flightinfo.route.ui.RouteViewModel
 import kniezrec.com.flightinfo.settings.ui.SettingsViewModel
-import kniezrec.com.flightinfo.ui.about.AboutDialog
+import kniezrec.com.flightinfo.settings.ui.UnitSettingsScreen
 import kniezrec.com.flightinfo.ui.gnss.GnssStatusScreen
-import kniezrec.com.flightinfo.ui.permission.PermissionOnboardingScreen
-import kniezrec.com.flightinfo.ui.permission.smartFlightPageColor
-import kniezrec.com.flightinfo.ui.settings.UnitSettingsScreen
 import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
+import kniezrec.com.flightinfo.ui.theme.smartFlightPageColor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import javax.inject.Inject

@@ -1,4 +1,4 @@
-package kniezrec.com.flightinfo.ui.gnss
+package kniezrec.com.flightinfo.horizon.ui
 
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.getValue

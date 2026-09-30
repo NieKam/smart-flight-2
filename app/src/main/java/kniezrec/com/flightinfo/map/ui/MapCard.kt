@@ -1,4 +1,4 @@
-package kniezrec.com.flightinfo.ui.gnss
+package kniezrec.com.flightinfo.map.ui
 
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
@@ -44,11 +44,9 @@ import kniezrec.com.flightinfo.map.MapCoordinate
 import kniezrec.com.flightinfo.map.MapRules
 import kniezrec.com.flightinfo.map.MapZoomTarget
 import kniezrec.com.flightinfo.map.applyMapZoomPolicy
-import kniezrec.com.flightinfo.map.ui.MapOverlays
-import kniezrec.com.flightinfo.map.ui.MapUiState
 import kniezrec.com.flightinfo.route.RouteOverlay
-import kniezrec.com.flightinfo.ui.permission.actionCyan
-import kniezrec.com.flightinfo.ui.permission.cardPurple
+import kniezrec.com.flightinfo.ui.theme.actionCyan
+import kniezrec.com.flightinfo.ui.theme.cardPurple
 import org.osmdroid.events.MapListener
 import org.osmdroid.events.ScrollEvent
 import org.osmdroid.events.ZoomEvent

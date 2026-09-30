@@ -1,10 +1,13 @@
-package kniezrec.com.flightinfo.ui.permission
+package kniezrec.com.flightinfo.ui.theme
 
 import androidx.compose.ui.graphics.Color
 import kotlin.math.pow
 
+// App-wide colors shared by the dashboard, its cards and the permission screen (TASK-017 turns
+// them into theme tokens).
 internal val cardPurple = Color(0xFF5B5999)
 internal val actionCyan = Color(0xFF6CF0FF)
+internal val smartFlightPageColor = Color(0xFF484685)
 
 internal fun contrastRatio(
     foreground: Color,

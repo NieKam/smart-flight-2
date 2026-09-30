@@ -1,4 +1,4 @@
-package kniezrec.com.flightinfo.ui.gnss
+package kniezrec.com.flightinfo.flight.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -39,7 +39,7 @@ import kniezrec.com.flightinfo.displayunits.convertSpeed
 import kniezrec.com.flightinfo.displayunits.convertVerticalSpeed
 import kniezrec.com.flightinfo.displayunits.formatUnitNumber
 import kniezrec.com.flightinfo.flight.FlightParametersState
-import kniezrec.com.flightinfo.ui.permission.cardPurple
+import kniezrec.com.flightinfo.ui.theme.cardPurple
 
 private val textColor = Color(0xFFD9D9ED)
 

@@ -1,4 +1,4 @@
-package kniezrec.com.flightinfo.ui.settings
+package kniezrec.com.flightinfo.settings.ui
 
 import android.view.View
 import android.view.ViewGroup

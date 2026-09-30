@@ -1,4 +1,4 @@
-package kniezrec.com.flightinfo.ui.gnss
+package kniezrec.com.flightinfo.nearby.ui
 
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertHasClickAction

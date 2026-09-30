@@ -1,4 +1,4 @@
-package kniezrec.com.flightinfo.ui.route
+package kniezrec.com.flightinfo.route.ui
 
 import android.content.Context
 import androidx.activity.ComponentActivity
@@ -22,7 +22,6 @@ import kniezrec.com.flightinfo.route.RouteEndpoint
 import kniezrec.com.flightinfo.route.RoutePickerError
 import kniezrec.com.flightinfo.route.RoutePickerState
 import kniezrec.com.flightinfo.route.data.RouteRepository
-import kniezrec.com.flightinfo.route.ui.RoutePickerViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob

@@ -1,4 +1,4 @@
-package kniezrec.com.flightinfo.ui.permission
+package kniezrec.com.flightinfo.permission.ui
 
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.requiredWidth
