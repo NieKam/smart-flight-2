@@ -9,6 +9,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kniezrec.com.flightinfo.displayunits.SpeedUnit
 import kniezrec.com.flightinfo.testutil.FakeBackgroundNotificationSettingsRepository
+import kniezrec.com.flightinfo.testutil.FakeCardVisibilityRepository
 import kniezrec.com.flightinfo.testutil.FakeDisplaySettingsRepository
 import kniezrec.com.flightinfo.testutil.FakeUnitSettingsRepository
 import org.junit.Assert.assertEquals
@@ -24,7 +25,13 @@ class SettingsOverlayTest {
 
     @Test fun choosingASpeedUnitPersistsItAndNavigateUpGoesBack() {
         val units = FakeUnitSettingsRepository()
-        val viewModel = SettingsViewModel(units, FakeDisplaySettingsRepository(), FakeBackgroundNotificationSettingsRepository())
+        val viewModel =
+            SettingsViewModel(
+                units,
+                FakeDisplaySettingsRepository(),
+                FakeBackgroundNotificationSettingsRepository(),
+                FakeCardVisibilityRepository(),
+            )
         var back = false
         composeRule.setContent { SettingsOverlay(onBack = { back = true }, viewModel = viewModel) }
 

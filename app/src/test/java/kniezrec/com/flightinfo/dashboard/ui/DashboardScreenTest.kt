@@ -6,6 +6,8 @@ import android.content.pm.PackageManager
 import androidx.annotation.StringRes
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasAnySibling
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
@@ -110,6 +112,25 @@ class DashboardScreenTest {
         // Only the Course card is gone; the other cards stay.
         composeRule.onNodeWithText(horizonMessage).assertExists()
         composeRule.onNodeWithText(string(R.string.flight_parameters_title)).assertExists()
+    }
+
+    @Test
+    fun showHiddenCardsInSettingsBringsTheCardBack() {
+        val courseMessage = string(R.string.missing_sensor_course)
+        waitUntil { composeRule.onAllNodesWithText(courseMessage).fetchSemanticsNodes().isNotEmpty() }
+        hideButtonOf(courseMessage).performScrollTo().performClick()
+        waitUntil { composeRule.onAllNodesWithText(courseMessage).fetchSemanticsNodes().isEmpty() }
+
+        composeRule.onNodeWithText(string(R.string.settings_title)).performClick()
+        composeRule.onNodeWithText(string(R.string.hidden_card_course)).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText(string(R.string.show_hidden_cards)).assertIsEnabled().performClick()
+        composeRule.onNodeWithText(string(R.string.no_hidden_cards)).assertExists()
+        composeRule.onNodeWithText(string(R.string.show_hidden_cards)).assertIsNotEnabled()
+        pressBack()
+
+        // The sensor is still missing, so the card offers hiding again.
+        waitUntil { composeRule.onAllNodesWithText(courseMessage).fetchSemanticsNodes().isNotEmpty() }
+        hideButtonOf(courseMessage).assertExists()
     }
 
     @Test

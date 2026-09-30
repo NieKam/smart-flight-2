@@ -14,6 +14,8 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.hasContentDescription
@@ -23,6 +25,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import kniezrec.com.flightinfo.dashboard.HideableCard
 import kniezrec.com.flightinfo.dashboard.ui.DashboardHeader
 import kniezrec.com.flightinfo.display.DisplayPreferences
 import kniezrec.com.flightinfo.displayunits.AltitudeUnit
@@ -70,6 +73,38 @@ class UnitSettingsScreenTest {
         composeRule.onNode(hasContentDescription("Vertical speed, current value m/s, double tap to change")).assertExists()
         composeRule.onNode(hasContentDescription("Pressure, current value mbar, double tap to change")).assertExists()
         composeRule.onNodeWithContentDescription("Navigate up").assertExists()
+    }
+
+    @Test fun showHiddenCardsIsDisabledWhileNothingIsHidden() {
+        composeRule.setContent { UnitSettingsScreen(UnitPreferences(), {}, {}) }
+
+        composeRule
+            .onNodeWithText("Show hidden cards")
+            .performScrollTo()
+            .assertIsDisplayed()
+            .assertIsNotEnabled()
+        composeRule.onNodeWithText("No hidden cards").assertExists()
+    }
+
+    @Test fun showHiddenCardsListsTheHiddenCardsAndRestoresThem() {
+        var hidden by mutableStateOf(setOf(HideableCard.Horizon, HideableCard.Course))
+        composeRule.setContent {
+            UnitSettingsScreen(UnitPreferences(), {}, {}, hiddenCards = hidden, onShowHiddenCards = { hidden = emptySet() })
+        }
+        composeRule.onNodeWithText("Compass, Horizon").assertExists()
+
+        composeRule
+            .onNodeWithText("Show hidden cards")
+            .performScrollTo()
+            .assertIsEnabled()
+            .performClick()
+
+        composeRule.onNodeWithText("No hidden cards").assertExists()
+        composeRule.onNodeWithText("Show hidden cards").assertIsNotEnabled()
+        composeRule.runOnIdle { assertEquals(emptySet<HideableCard>(), hidden) }
+
+        composeRule.runOnIdle { hidden = setOf(HideableCard.Horizon) }
+        composeRule.onNodeWithText("Horizon").assertExists()
     }
 
     @Test fun selectingDistanceUpdatesSummaryAndCallbackImmediately() {

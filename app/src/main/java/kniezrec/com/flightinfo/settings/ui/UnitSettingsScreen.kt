@@ -29,10 +29,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
@@ -40,6 +43,7 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.toggleableState
 import androidx.compose.ui.unit.dp
 import kniezrec.com.flightinfo.R
+import kniezrec.com.flightinfo.dashboard.HideableCard
 import kniezrec.com.flightinfo.display.DisplayPreferences
 import kniezrec.com.flightinfo.displayunits.AltitudeUnit
 import kniezrec.com.flightinfo.displayunits.DistanceUnit
@@ -83,6 +87,8 @@ fun UnitSettingsScreen(
     onBackgroundNotificationChange: (Boolean) -> Unit = {},
     notificationsBlocked: Boolean = false,
     onAllowNotifications: () -> Unit = {},
+    hiddenCards: Set<HideableCard> = emptySet(),
+    onShowHiddenCards: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     var selector by remember { mutableStateOf<Selector<*>?>(null) }
@@ -146,6 +152,7 @@ fun UnitSettingsScreen(
                     ) {
                         onDisplayPreferenceChange(displayPreferences.copy(largerMapZoom = !displayPreferences.largerMapZoom))
                     }
+                    ShowHiddenCardsRow(hiddenCards, onShowHiddenCards)
                 }
                 ValueText(
                     stringResource(R.string.monitoring_section),
@@ -255,6 +262,57 @@ private fun displaysettingRow(
         HorizontalDivider()
     }
 }
+
+/**
+ * "Show hidden cards": lists the hidden cards, disabled while nothing is hidden. The confirmation
+ * is the subtitle itself: it turns to "No hidden cards" at once (announced as a polite live
+ * region) and the row disables, so no separate snackbar is needed.
+ */
+@Composable
+private fun ShowHiddenCardsRow(
+    hiddenCards: Set<HideableCard>,
+    onClick: () -> Unit,
+) {
+    val enabled = hiddenCards.isNotEmpty()
+    val summary =
+        if (enabled) {
+            HideableCard.entries
+                .filter { it in hiddenCards }
+                .map { stringResource(it.nameResource()) }
+                .joinToString(", ")
+        } else {
+            stringResource(R.string.no_hidden_cards)
+        }
+    Column {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .heightIn(min = 64.dp)
+                .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
+                .padding(vertical = 12.dp)
+                .alpha(if (enabled) 1f else DISABLED_ROW_ALPHA),
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f)) {
+                ValueText(stringResource(R.string.show_hidden_cards), style = MaterialTheme.typography.bodyLarge)
+                LabelText(
+                    summary,
+                    Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+        }
+        HorizontalDivider()
+    }
+}
+
+private fun HideableCard.nameResource(): Int =
+    when (this) {
+        HideableCard.Course -> R.string.hidden_card_course
+        HideableCard.Horizon -> R.string.hidden_card_horizon
+    }
+
+private const val DISABLED_ROW_ALPHA = 0.5f
 
 @Composable
 private fun settingRow(

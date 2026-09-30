@@ -1,11 +1,13 @@
 package kniezrec.com.flightinfo.settings.ui
 
+import kniezrec.com.flightinfo.dashboard.HideableCard
 import kniezrec.com.flightinfo.display.DisplayPreferences
 import kniezrec.com.flightinfo.displayunits.AltitudeUnit
 import kniezrec.com.flightinfo.displayunits.SpeedUnit
 import kniezrec.com.flightinfo.displayunits.UnitPreferences
 import kniezrec.com.flightinfo.monitoring.NotificationAccess
 import kniezrec.com.flightinfo.testutil.FakeBackgroundNotificationSettingsRepository
+import kniezrec.com.flightinfo.testutil.FakeCardVisibilityRepository
 import kniezrec.com.flightinfo.testutil.FakeDisplaySettingsRepository
 import kniezrec.com.flightinfo.testutil.FakeUnitSettingsRepository
 import kotlinx.coroutines.Dispatchers
@@ -30,6 +32,7 @@ class SettingsViewModelTest {
     private val units = FakeUnitSettingsRepository()
     private val display = FakeDisplaySettingsRepository()
     private val notification = FakeBackgroundNotificationSettingsRepository()
+    private val cards = FakeCardVisibilityRepository()
 
     @Before fun setUp() = Dispatchers.setMain(dispatcher)
 
@@ -125,7 +128,7 @@ class SettingsViewModelTest {
             assertEquals(true, notification.settings.value.showBackgroundNotification)
         }
 
-    private fun viewModel() = SettingsViewModel(units, display, notification)
+    private fun viewModel() = SettingsViewModel(units, display, notification, cards)
 
     @Test
     fun switchingTheNotificationOnAsksForThePermissionOnlyWhenRequestable() =
@@ -181,6 +184,25 @@ class SettingsViewModelTest {
             viewModel.setShowBackgroundNotification(false)
             runCurrent()
             assertFalse(viewModel.shouldRequestNotificationPermission())
+        }
+
+    @Test
+    fun hiddenCardsAreShownAndShowHiddenCardsRestoresThem() =
+        runTest(dispatcher) {
+            cards.hide(HideableCard.Course)
+            val viewModel = viewModel()
+            assertEquals(setOf(HideableCard.Course), viewModel.state.value.hiddenCards)
+            subscribe(viewModel)
+
+            cards.hide(HideableCard.Horizon)
+            runCurrent()
+            assertEquals(setOf(HideableCard.Course, HideableCard.Horizon), viewModel.state.value.hiddenCards)
+
+            viewModel.showHiddenCards()
+            runCurrent()
+
+            assertEquals(emptySet<HideableCard>(), cards.hiddenCards.value)
+            assertEquals(emptySet<HideableCard>(), viewModel.state.value.hiddenCards)
         }
 
     private fun TestScope.subscribe(viewModel: SettingsViewModel) {

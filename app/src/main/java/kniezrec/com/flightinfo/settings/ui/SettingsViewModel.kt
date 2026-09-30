@@ -3,6 +3,8 @@ package kniezrec.com.flightinfo.settings.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kniezrec.com.flightinfo.dashboard.HideableCard
+import kniezrec.com.flightinfo.dashboard.data.CardVisibilityRepository
 import kniezrec.com.flightinfo.display.DisplayPreferences
 import kniezrec.com.flightinfo.display.data.DisplaySettingsRepository
 import kniezrec.com.flightinfo.displayunits.UnitPreferences
@@ -27,6 +29,8 @@ data class SettingsUiState(
     val showBackgroundNotification: Boolean = true,
     /** The background notification cannot be shown (Android 13+ permission or notifications off). */
     val notificationsBlocked: Boolean = false,
+    /** Cards hidden because the device lacks their sensor. */
+    val hiddenCards: Set<HideableCard> = emptySet(),
 )
 
 /** What the Activity does for the background notification's permission. */
@@ -39,9 +43,9 @@ enum class NotificationAction {
 }
 
 /**
- * State and actions of the Settings screen, over the three settings repositories. Every setter
- * persists at once; consumers (window effects, cards, the monitoring service) observe the
- * repositories themselves. The repositories are `internal` so tests can check their singleton scope.
+ * State and actions of the Settings screen, over the settings repositories and the hidden cards.
+ * Every setter persists at once; consumers (window effects, cards, the monitoring service, the
+ * dashboard) observe the repositories themselves. The repositories are `internal` so tests can check their singleton scope.
  */
 @HiltViewModel
 class SettingsViewModel
@@ -50,6 +54,7 @@ class SettingsViewModel
         internal val unitSettingsRepository: UnitSettingsRepository,
         internal val displaySettingsRepository: DisplaySettingsRepository,
         internal val backgroundNotificationSettingsRepository: BackgroundNotificationSettingsRepository,
+        internal val cardVisibilityRepository: CardVisibilityRepository,
     ) : ViewModel() {
         private val backgroundMonitoringRequestEvents = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
         private val notificationActionEvents = MutableSharedFlow<NotificationAction>(extraBufferCapacity = 1)
@@ -61,8 +66,15 @@ class SettingsViewModel
                 displaySettingsRepository.display,
                 backgroundNotificationSettingsRepository.settings,
                 notificationAccess,
-            ) { units, display, notification, access ->
-                SettingsUiState(units, display, notification.showBackgroundNotification, access != NotificationAccess.Allowed)
+                cardVisibilityRepository.hiddenCards,
+            ) { units, display, notification, access, hiddenCards ->
+                SettingsUiState(
+                    units,
+                    display,
+                    notification.showBackgroundNotification,
+                    access != NotificationAccess.Allowed,
+                    hiddenCards,
+                )
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), currentState())
 
         /**
@@ -84,6 +96,11 @@ class SettingsViewModel
 
         fun setDisplay(value: DisplayPreferences) {
             viewModelScope.launch { displaySettingsRepository.set(value) }
+        }
+
+        /** "Show hidden cards": every hidden card returns to the dashboard, persistently. */
+        fun showHiddenCards() {
+            viewModelScope.launch { cardVisibilityRepository.showAll() }
         }
 
         /** Switching it on also asks for the notification permission when it can be requested. */
@@ -124,6 +141,7 @@ class SettingsViewModel
                 display = displaySettingsRepository.display.value,
                 showBackgroundNotification = backgroundNotificationSettingsRepository.settings.value.showBackgroundNotification,
                 notificationsBlocked = notificationAccess.value != NotificationAccess.Allowed,
+                hiddenCards = cardVisibilityRepository.hiddenCards.value,
             )
 
         internal companion object {

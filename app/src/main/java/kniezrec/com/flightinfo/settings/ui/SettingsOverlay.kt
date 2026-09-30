@@ -26,6 +26,8 @@ fun SettingsOverlay(
         onBackgroundNotificationChange = viewModel::setShowBackgroundNotification,
         notificationsBlocked = state.notificationsBlocked,
         onAllowNotifications = viewModel::allowNotifications,
+        hiddenCards = state.hiddenCards,
+        onShowHiddenCards = viewModel::showHiddenCards,
         onBack = onBack,
         modifier = modifier,
     )
