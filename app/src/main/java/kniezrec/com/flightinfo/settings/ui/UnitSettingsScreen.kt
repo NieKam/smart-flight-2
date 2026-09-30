@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -22,6 +21,7 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -48,6 +48,12 @@ import kniezrec.com.flightinfo.displayunits.UnitKey
 import kniezrec.com.flightinfo.displayunits.UnitPreferences
 import kniezrec.com.flightinfo.displayunits.VerticalSpeedUnit
 import kniezrec.com.flightinfo.displayunits.ui.labels
+import kniezrec.com.flightinfo.ui.theme.LabelText
+import kniezrec.com.flightinfo.ui.theme.SmartFlightAlertDialog
+import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
+import kniezrec.com.flightinfo.ui.theme.ValueText
+import kniezrec.com.flightinfo.ui.theme.smartFlightRadioButtonColors
+import kniezrec.com.flightinfo.ui.theme.smartFlightSwitchColors
 
 private sealed class Selector<T : UnitKey>(
     val title: Int,
@@ -77,11 +83,22 @@ fun UnitSettingsScreen(
     modifier: Modifier = Modifier,
 ) {
     var selector by remember { mutableStateOf<Selector<*>?>(null) }
+    val colors = SmartFlightTheme.colors
     Scaffold(
         modifier = modifier,
+        containerColor = colors.page,
+        contentColor = colors.valueText,
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.settings_title)) },
+                colors =
+                    TopAppBarDefaults.topAppBarColors(
+                        containerColor = colors.card,
+                        scrolledContainerColor = colors.card,
+                        navigationIconContentColor = colors.toolbarTitle,
+                        titleContentColor = colors.toolbarTitle,
+                        actionIconContentColor = colors.toolbarTitle,
+                    ),
                 navigationIcon = {
                     IconButton(
                         onClick = onBack,
@@ -102,7 +119,7 @@ fun UnitSettingsScreen(
                 Modifier.fillMaxWidth().widthIn(max = 600.dp),
                 verticalArrangement = Arrangement.spacedBy(0.dp),
             ) {
-                Text(stringResource(R.string.display_section), style = MaterialTheme.typography.titleLarge)
+                ValueText(stringResource(R.string.display_section), style = MaterialTheme.typography.titleLarge)
                 Column(Modifier.padding(top = 8.dp)) {
                     displaysettingRow(
                         R.string.keep_screen_always_on,
@@ -127,7 +144,7 @@ fun UnitSettingsScreen(
                         onDisplayPreferenceChange(displayPreferences.copy(largerMapZoom = !displayPreferences.largerMapZoom))
                     }
                 }
-                Text(
+                ValueText(
                     stringResource(R.string.monitoring_section),
                     Modifier.padding(top = 24.dp),
                     style = MaterialTheme.typography.titleLarge,
@@ -140,7 +157,11 @@ fun UnitSettingsScreen(
                         description = R.string.background_notification_settings_description,
                     ) { onBackgroundNotificationChange(!showBackgroundNotification) }
                 }
-                Text(stringResource(R.string.units_section), Modifier.padding(top = 24.dp), style = MaterialTheme.typography.titleLarge)
+                ValueText(
+                    stringResource(R.string.units_section),
+                    Modifier.padding(top = 24.dp),
+                    style = MaterialTheme.typography.titleLarge,
+                )
                 Column(Modifier.padding(top = 8.dp)) {
                     settingRow(stringResource(R.string.unit_speed), unitText(preferences.speed)) { selector = Selector.Speed() }
                     settingRow(stringResource(R.string.unit_altitude), unitText(preferences.altitude)) { selector = Selector.Altitude() }
@@ -195,13 +216,18 @@ private fun displaysettingRow(
             verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
         ) {
             Column(Modifier.weight(1f)) {
-                Text(labelText, style = MaterialTheme.typography.bodyLarge)
-                Text(summaryText, style = MaterialTheme.typography.bodyMedium)
+                ValueText(labelText, style = MaterialTheme.typography.bodyLarge)
+                LabelText(summaryText, style = MaterialTheme.typography.bodyMedium)
             }
-            androidx.compose.material3.Switch(checked = checked, onCheckedChange = null, modifier = Modifier.padding(start = 12.dp))
+            androidx.compose.material3.Switch(
+                checked = checked,
+                onCheckedChange = null,
+                modifier = Modifier.padding(start = 12.dp),
+                colors = smartFlightSwitchColors(),
+            )
         }
         warning?.let {
-            Text(
+            ValueText(
                 stringResource(it),
                 Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
                 style = MaterialTheme.typography.bodyMedium,
@@ -229,8 +255,8 @@ private fun settingRow(
                     role = Role.Button
                 }.padding(vertical = 12.dp),
         ) {
-            Text(label, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
-            Text(value, style = MaterialTheme.typography.bodyLarge)
+            ValueText(label, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+            LabelText(value, style = MaterialTheme.typography.bodyLarge)
         }
         HorizontalDivider()
     }
@@ -251,7 +277,7 @@ private fun UnitChoiceDialog(
             is Selector.VerticalSpeed -> preferences.verticalSpeed
             is Selector.Pressure -> preferences.pressure
         }
-    AlertDialog(
+    SmartFlightAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(selector.title)) },
         text = {
@@ -270,7 +296,7 @@ private fun UnitChoiceDialog(
                                 this.selected = isSelected
                             },
                     ) {
-                        RadioButton(selected = isSelected, onClick = null)
+                        RadioButton(selected = isSelected, onClick = null, colors = smartFlightRadioButtonColors())
                         Text(optionText(option), Modifier.weight(1f).padding(start = 12.dp).padding(vertical = 14.dp))
                     }
                 }

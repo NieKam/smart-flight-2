@@ -14,11 +14,14 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -34,6 +37,9 @@ import kniezrec.com.flightinfo.nearby.NearbyCoordinate
 import kniezrec.com.flightinfo.route.RouteEndpoint
 import kniezrec.com.flightinfo.route.RoutePickerError
 import kniezrec.com.flightinfo.route.RoutePickerState
+import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
+import kniezrec.com.flightinfo.ui.theme.smartFlightButtonColors
+import kniezrec.com.flightinfo.ui.theme.smartFlightTextFieldColors
 import org.osmdroid.events.MapEventsReceiver
 import org.osmdroid.tileprovider.modules.OfflineTileProvider
 import org.osmdroid.tileprovider.tilesource.XYTileSource
@@ -66,73 +72,85 @@ fun RoutePicker(
     val endpoint = state.endpoint ?: return
     BackHandler(onBack = onCancel)
     val titleDescription = stringResource(R.string.route_picker_title_description)
-    Column(Modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(
-            stringResource(if (endpoint == RouteEndpoint.DEPARTURE) R.string.route_picker_departure else R.string.route_picker_destination),
-            modifier = Modifier.semantics { contentDescription = titleDescription },
-        )
-        OutlinedTextField(
-            value = state.query,
-            onValueChange = onQueryChange,
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text(stringResource(R.string.route_city_name)) },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-            keyboardActions = KeyboardActions(onSearch = { onSearch(state.query) }),
-        )
-        Button(onClick = { onSearch(state.query) }, enabled = !state.loading, modifier = Modifier.heightIn(min = 48.dp)) {
-            Text(stringResource(R.string.route_search))
-        }
-        Text(stringResource(R.string.route_map_instruction))
-        if (state.loading) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                CircularProgressIndicator()
-                Text(stringResource(R.string.route_searching))
+    val title = if (endpoint == RouteEndpoint.DEPARTURE) R.string.route_picker_departure else R.string.route_picker_destination
+    // Plain text on the picker is light (original result and input text), whatever surface hosts it.
+    CompositionLocalProvider(LocalContentColor provides SmartFlightTheme.colors.valueText) {
+        Column(Modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(
+                stringResource(title),
+                modifier = Modifier.semantics { contentDescription = titleDescription },
+            )
+            OutlinedTextField(
+                value = state.query,
+                onValueChange = onQueryChange,
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text(stringResource(R.string.route_city_name)) },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                keyboardActions = KeyboardActions(onSearch = { onSearch(state.query) }),
+                colors = smartFlightTextFieldColors(),
+            )
+            Button(
+                onClick = { onSearch(state.query) },
+                enabled = !state.loading,
+                modifier = Modifier.heightIn(min = 48.dp),
+                colors = smartFlightButtonColors(),
+            ) {
+                Text(stringResource(R.string.route_search))
             }
-        }
-        when (state.error) {
-            RoutePickerError.SearchFailed -> {
-                Text(stringResource(R.string.route_error))
-                TextButton(onClick = onRetry, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.route_retry)) }
+            Text(stringResource(R.string.route_map_instruction))
+            if (state.loading) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    CircularProgressIndicator()
+                    Text(stringResource(R.string.route_searching))
+                }
             }
-            RoutePickerError.NoCityAtLocation -> Text(stringResource(R.string.route_no_city_at_location))
-            RoutePickerError.InvalidCity -> Text(stringResource(R.string.route_invalid_city))
-            null -> Unit
-        }
-        if (!state.loading && state.error == null && state.query.isNotBlank() && state.results.isEmpty()) {
-            Text(stringResource(R.string.route_no_cities))
-        }
-        LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            items(state.results, key = { it.id }) { city ->
-                TextButton(
-                    onClick = { onSelect(city) },
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
-                ) { Text(stringResource(R.string.route_city_result, city.name, city.country)) }
+            when (state.error) {
+                RoutePickerError.SearchFailed -> {
+                    Text(stringResource(R.string.route_error))
+                    TextButton(onClick = onRetry, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.route_retry)) }
+                }
+                RoutePickerError.NoCityAtLocation -> Text(stringResource(R.string.route_no_city_at_location))
+                RoutePickerError.InvalidCity -> Text(stringResource(R.string.route_invalid_city))
+                null -> Unit
             }
-            item {
-                Box(Modifier.fillMaxWidth().heightIn(min = 180.dp)) {
-                    if (mapArchive != null) {
-                        PickerMap(
-                            mapArchive,
-                            state.selected?.let { NearbyCoordinate.from(it.latitude, it.longitude) },
-                            onNearest = onNearest,
-                        )
-                    } else {
-                        Text(stringResource(R.string.route_picker_map_unavailable))
+            if (!state.loading && state.error == null && state.query.isNotBlank() && state.results.isEmpty()) {
+                Text(stringResource(R.string.route_no_cities))
+            }
+            LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                items(state.results, key = { it.id }) { city ->
+                    TextButton(
+                        onClick = { onSelect(city) },
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
+                        colors = ButtonDefaults.textButtonColors(contentColor = SmartFlightTheme.colors.valueText),
+                    ) { Text(stringResource(R.string.route_city_result, city.name, city.country)) }
+                }
+                item {
+                    Box(Modifier.fillMaxWidth().heightIn(min = 180.dp)) {
+                        if (mapArchive != null) {
+                            PickerMap(
+                                mapArchive,
+                                state.selected?.let { NearbyCoordinate.from(it.latitude, it.longitude) },
+                                onNearest = onNearest,
+                            )
+                        } else {
+                            Text(stringResource(R.string.route_picker_map_unavailable))
+                        }
                     }
                 }
             }
-        }
-        state.selected?.let { city -> Text(stringResource(R.string.route_selected_city, city.name, city.country)) }
-        if (state.selectionInvalid) Text(stringResource(R.string.route_invalid_city))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-            TextButton(onClick = onCancel, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.route_cancel)) }
-            Button(
-                onClick = onConfirm,
-                enabled = state.canConfirm,
-                modifier = Modifier.heightIn(min = 48.dp),
-            ) {
-                Text(stringResource(R.string.route_confirm))
+            state.selected?.let { city -> Text(stringResource(R.string.route_selected_city, city.name, city.country)) }
+            if (state.selectionInvalid) Text(stringResource(R.string.route_invalid_city))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                TextButton(onClick = onCancel, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.route_cancel)) }
+                Button(
+                    onClick = onConfirm,
+                    enabled = state.canConfirm,
+                    modifier = Modifier.heightIn(min = 48.dp),
+                    colors = smartFlightButtonColors(),
+                ) {
+                    Text(stringResource(R.string.route_confirm))
+                }
             }
         }
     }

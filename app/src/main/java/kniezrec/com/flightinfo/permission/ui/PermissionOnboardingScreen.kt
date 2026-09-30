@@ -2,6 +2,7 @@ package kniezrec.com.flightinfo.permission.ui
 
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -44,8 +45,8 @@ import androidx.compose.ui.unit.sp
 import kniezrec.com.flightinfo.R
 import kniezrec.com.flightinfo.permission.LocationPermissionState
 import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
+import kniezrec.com.flightinfo.ui.theme.ValueText
 
-// The legacy muted lavender does not meet contrast at this size; use the accessible light token.
 internal const val PERMISSION_STATE_CARD_TEST_TAG = "permission_state_card"
 
 @Composable
@@ -58,12 +59,13 @@ fun PermissionOnboardingScreen(
 ) {
     Column(modifier = modifier.fillMaxSize()) {
         Box(
-            modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
+            // The top bar, as on the dashboard.
+            modifier = Modifier.fillMaxWidth().background(SmartFlightTheme.colors.card).heightIn(min = 56.dp),
             contentAlignment = Alignment.Center,
         ) {
             Text(
                 text = stringResource(R.string.app_name),
-                color = SmartFlightTheme.colors.text,
+                color = SmartFlightTheme.colors.toolbarTitle,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Medium,
             )
@@ -131,10 +133,9 @@ private fun PermissionStateCard(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
-            Text(
+            ValueText(
                 text = stringResource(content.title),
                 modifier = Modifier.semantics { if (announceStateChange) liveRegion = LiveRegionMode.Polite },
-                color = SmartFlightTheme.colors.text,
                 style =
                     MaterialTheme.typography.titleLarge.copy(
                         fontSize = 22.sp,
@@ -143,10 +144,11 @@ private fun PermissionStateCard(
                         textAlign = TextAlign.Center,
                     ),
             )
-            Text(
+            // The original description was a muted label; the light value color keeps this body text
+            // readable (WCAG AA), as the rest of the app's body text.
+            ValueText(
                 text = stringResource(content.body),
                 modifier = Modifier.padding(top = 12.dp),
-                color = SmartFlightTheme.colors.text,
                 style = MaterialTheme.typography.bodyLarge.copy(fontSize = 18.sp, lineHeight = 25.sp, textAlign = TextAlign.Center),
             )
             if (content.action != null && actionHint != null && content.onAction != null) {

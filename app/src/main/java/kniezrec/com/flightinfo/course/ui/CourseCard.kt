@@ -45,7 +45,9 @@ import kniezrec.com.flightinfo.R
 import kniezrec.com.flightinfo.course.CompassCardinal
 import kniezrec.com.flightinfo.course.CourseState
 import kniezrec.com.flightinfo.course.compassCardinal
+import kniezrec.com.flightinfo.ui.theme.LabelText
 import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
+import kniezrec.com.flightinfo.ui.theme.ValueText
 import java.text.NumberFormat
 
 @Composable
@@ -87,15 +89,13 @@ private fun StaticCourse(
         Arrangement.Center,
         Alignment.CenterHorizontally,
     ) {
-        Text(
+        LabelText(
             stringResource(title),
-            color = SmartFlightTheme.colors.text,
             style = MaterialTheme.typography.titleLarge.copy(fontSize = 22.sp, fontWeight = FontWeight.Medium),
         )
-        Text(
+        ValueText(
             stringResource(body),
             Modifier.padding(top = 12.dp),
-            color = SmartFlightTheme.colors.text,
             style = MaterialTheme.typography.bodyLarge.copy(fontSize = 18.sp),
         )
         if (retry != null) CourseRetryAction(retry)
@@ -113,9 +113,8 @@ private fun CourseReading(state: CourseState.Available) {
         state.gpsBearingDegrees?.let { stringResource(R.string.course_degree_value, NumberFormat.getIntegerInstance().format(it)) }
             ?: stringResource(R.string.course_unavailable)
     Column(Modifier.fillMaxWidth().padding(24.dp)) {
-        Text(
+        LabelText(
             stringResource(R.string.course_title),
-            color = SmartFlightTheme.colors.text,
             style = MaterialTheme.typography.titleLarge.copy(fontSize = 22.sp, fontWeight = FontWeight.Medium),
         )
         BoxWithConstraints(Modifier.fillMaxWidth().padding(top = 16.dp)) {
@@ -152,7 +151,7 @@ private fun HeadingValue(
             this.contentDescription = contentDescription
         },
     ) {
-        Text(headingValue, color = SmartFlightTheme.colors.text, fontSize = 40.sp, fontWeight = FontWeight.Medium)
+        ValueText(headingValue, fontSize = 40.sp, fontWeight = FontWeight.Medium)
         Text(
             cardinalValue,
             Modifier.padding(start = 8.dp, top = 14.dp),
@@ -181,8 +180,8 @@ private fun GpsBearing(
         },
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(stringResource(R.string.course_gps_bearing), Modifier.weight(1f), color = SmartFlightTheme.colors.text, fontSize = 18.sp)
-        Text(bearing, color = SmartFlightTheme.colors.text, fontSize = 18.sp)
+        LabelText(stringResource(R.string.course_gps_bearing), Modifier.weight(1f), fontSize = 18.sp)
+        ValueText(bearing, fontSize = 18.sp)
     }
 }
 
@@ -229,25 +228,27 @@ private fun CompassCardinal.spokenResource(): Int =
 
 @Composable
 private fun CompassDirectionVisual(headingDegrees: Int) {
-    val textColor = SmartFlightTheme.colors.text
+    // As the original compass: muted ring (the N/E/S/W letters' color), light arrow (the plane's).
+    val ringColor = SmartFlightTheme.colors.labelText
+    val arrowColor = SmartFlightTheme.colors.valueText
     Box(
         Modifier.size(72.dp).testTag("course-direction-visual"),
         contentAlignment = Alignment.Center,
     ) {
         Canvas(Modifier.matchParentSize()) {
-            drawCircle(textColor.copy(alpha = 0.45f), size.minDimension / 2f, style = Stroke(width = 2.dp.toPx()))
+            drawCircle(ringColor, size.minDimension / 2f, style = Stroke(width = 2.dp.toPx()))
         }
         Canvas(Modifier.size(40.dp).graphicsLayer { rotationZ = headingDegrees.toFloat() }) {
             val centerX = size.width / 2f
-            drawLine(textColor, Offset(centerX, size.height * .82f), Offset(centerX, size.height * .18f), strokeWidth = 5.dp.toPx())
+            drawLine(arrowColor, Offset(centerX, size.height * .82f), Offset(centerX, size.height * .18f), strokeWidth = 5.dp.toPx())
             drawLine(
-                textColor,
+                arrowColor,
                 Offset(centerX, size.height * .18f),
                 Offset(size.width * .3f, size.height * .43f),
                 strokeWidth = 5.dp.toPx(),
             )
             drawLine(
-                textColor,
+                arrowColor,
                 Offset(centerX, size.height * .18f),
                 Offset(size.width * .7f, size.height * .43f),
                 strokeWidth = 5.dp.toPx(),

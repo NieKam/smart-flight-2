@@ -1,9 +1,15 @@
 package kniezrec.com.flightinfo
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -52,6 +58,45 @@ fun AppRoot(
     val settingsUnavailable = stringResource(R.string.settings_unavailable)
     val locationSettingsUnavailable = stringResource(R.string.location_settings_unavailable)
     val feedbackAddress = stringResource(R.string.about_feedback_address)
+    AppScaffold(snackbarHostState) { contentModifier ->
+        if (permissionState == LocationPermissionState.Granted) {
+            DashboardScreen(
+                onOpenLocationSettings = {
+                    if (!onOpenLocationSettings()) {
+                        scope.launch { snackbarHostState.showSnackbar(locationSettingsUnavailable) }
+                    }
+                },
+                aboutVersion = aboutVersion,
+                onSendFeedback = { onSendFeedback(feedbackAddress) },
+                onRate = onRate,
+                modifier = contentModifier,
+            )
+        } else {
+            PermissionOnboardingScreen(
+                state = permissionState,
+                onGrantPermission = onRequestLocationPermission,
+                onOpenSettings = {
+                    if (!onOpenAppSettings()) {
+                        scope.launch { snackbarHostState.showSnackbar(settingsUnavailable) }
+                    }
+                },
+                modifier = contentModifier,
+                announceStateChange = announcePermissionChange,
+            )
+        }
+    }
+}
+
+/**
+ * The window chrome under every screen (edge to edge): the page background, the status-bar area in
+ * the top bar's card color (as the original `colorPrimaryDark`) and the snackbar host. [content]
+ * gets the modifier that keeps it inside the safe drawing area.
+ */
+@Composable
+internal fun AppScaffold(
+    snackbarHostState: SnackbarHostState,
+    content: @Composable (contentModifier: Modifier) -> Unit,
+) {
     Surface(modifier = Modifier.fillMaxSize(), color = SmartFlightTheme.colors.page) {
         Scaffold(
             modifier = Modifier.fillMaxSize(),
@@ -59,30 +104,14 @@ fun AppRoot(
             contentWindowInsets = WindowInsets(0, 0, 0, 0),
             snackbarHost = { SnackbarHost(snackbarHostState) },
         ) { innerPadding ->
-            if (permissionState == LocationPermissionState.Granted) {
-                DashboardScreen(
-                    onOpenLocationSettings = {
-                        if (!onOpenLocationSettings()) {
-                            scope.launch { snackbarHostState.showSnackbar(locationSettingsUnavailable) }
-                        }
-                    },
-                    aboutVersion = aboutVersion,
-                    onSendFeedback = { onSendFeedback(feedbackAddress) },
-                    onRate = onRate,
-                    modifier = Modifier.padding(innerPadding).safeDrawingPadding(),
+            Box(Modifier.fillMaxSize()) {
+                Spacer(
+                    Modifier
+                        .fillMaxWidth()
+                        .windowInsetsTopHeight(WindowInsets.safeDrawing)
+                        .background(SmartFlightTheme.colors.card),
                 )
-            } else {
-                PermissionOnboardingScreen(
-                    state = permissionState,
-                    onGrantPermission = onRequestLocationPermission,
-                    onOpenSettings = {
-                        if (!onOpenAppSettings()) {
-                            scope.launch { snackbarHostState.showSnackbar(settingsUnavailable) }
-                        }
-                    },
-                    modifier = Modifier.padding(innerPadding).safeDrawingPadding(),
-                    announceStateChange = announcePermissionChange,
-                )
+                content(Modifier.padding(innerPadding).safeDrawingPadding())
             }
         }
     }

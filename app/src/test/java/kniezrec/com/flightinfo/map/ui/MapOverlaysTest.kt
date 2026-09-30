@@ -1,10 +1,12 @@
 package kniezrec.com.flightinfo.map.ui
 
 import android.app.Activity
+import androidx.compose.ui.graphics.toArgb
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kniezrec.com.flightinfo.map.MapCoordinate
 import kniezrec.com.flightinfo.nearby.NearbyCoordinate
 import kniezrec.com.flightinfo.route.RouteOverlay
+import kniezrec.com.flightinfo.ui.theme.DefaultSmartFlightColors
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -28,7 +30,7 @@ class MapOverlaysTest {
     private val activity: Activity = Robolectric.buildActivity(Activity::class.java).setup().get()
     private lateinit var archive: File
     private lateinit var map: MapView
-    private val overlays = MapOverlays(activity)
+    private val overlays = MapOverlays(activity, ROUTE_LINE_COLOR)
 
     @Before fun setUp() {
         archive = File(activity.cacheDir, "map-overlays-test.zip")
@@ -77,6 +79,7 @@ class MapOverlaysTest {
         assertEquals(1, map.overlays.count { it is Polyline })
         assertEquals(3, map.overlays.count { it is Marker })
         val line = map.overlays.filterIsInstance<Polyline>().single()
+        assertEquals(ROUTE_LINE_COLOR, line.outlinePaint.color)
         assertEquals(1.0, line.actualPoints.first().latitude, 0.0)
         assertEquals(4.0, line.actualPoints.last().longitude, 0.0)
 
@@ -101,6 +104,7 @@ class MapOverlaysTest {
     private companion object {
         val A = MapCoordinate(10.0, 20.0)
         val B = MapCoordinate(-30.0, 40.0)
+        val ROUTE_LINE_COLOR = DefaultSmartFlightColors.accent.toArgb()
         val ROUTE = RouteOverlay(NearbyCoordinate(1.0, 2.0), NearbyCoordinate(3.0, 4.0), "Alpha", "Beta")
     }
 }

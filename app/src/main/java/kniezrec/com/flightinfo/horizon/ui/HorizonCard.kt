@@ -40,7 +40,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kniezrec.com.flightinfo.R
 import kniezrec.com.flightinfo.horizon.HorizonState
+import kniezrec.com.flightinfo.ui.theme.LabelText
 import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
+import kniezrec.com.flightinfo.ui.theme.ValueText
 import java.text.NumberFormat
 
 @Composable
@@ -112,11 +114,10 @@ private fun HorizonStatic(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(stringResource(title), color = SmartFlightTheme.colors.text, style = horizonTitle().copy(textAlign = TextAlign.Center))
-        Text(
+        LabelText(stringResource(title), style = horizonTitle().copy(textAlign = TextAlign.Center))
+        ValueText(
             stringResource(body),
             Modifier.padding(top = 12.dp),
-            color = SmartFlightTheme.colors.text,
             style = horizonBody().copy(textAlign = TextAlign.Center),
         )
         if (retry != null) HorizonAction(R.string.horizon_try_again, R.string.horizon_try_again_hint, retry)
@@ -133,11 +134,10 @@ private fun HorizonAvailable(
     val summary = stringResource(R.string.horizon_summary, pitch, roll)
     val spoken = stringResource(R.string.horizon_summary_spoken, pitch, roll)
     Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 20.dp)) {
-        Text(stringResource(R.string.horizon_title), color = SmartFlightTheme.colors.text, style = horizonTitle())
-        Text(
+        LabelText(stringResource(R.string.horizon_title), style = horizonTitle())
+        ValueText(
             summary,
             Modifier.padding(top = 12.dp).semantics(mergeDescendants = true) { contentDescription = spoken },
-            color = SmartFlightTheme.colors.text,
             style = horizonBody(),
         )
         HorizonInstrument(state, Modifier.padding(top = 12.dp).fillMaxWidth())
@@ -174,7 +174,7 @@ private fun HorizonInstrument(
     state: HorizonState.Available,
     modifier: Modifier,
 ) {
-    val horizonText = SmartFlightTheme.colors.text
+    val horizonText = SmartFlightTheme.colors.valueText
     val sky = SmartFlightTheme.colors.horizonSky
     val ground = SmartFlightTheme.colors.horizonGround
     Box(

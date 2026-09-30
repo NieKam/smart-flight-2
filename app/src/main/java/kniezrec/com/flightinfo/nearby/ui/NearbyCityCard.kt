@@ -37,7 +37,9 @@ import kniezrec.com.flightinfo.displayunits.convertDistance
 import kniezrec.com.flightinfo.displayunits.formatUnitNumber
 import kniezrec.com.flightinfo.displayunits.ui.labels
 import kniezrec.com.flightinfo.nearby.NearbyCityState
+import kniezrec.com.flightinfo.ui.theme.LabelText
 import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
+import kniezrec.com.flightinfo.ui.theme.ValueText
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -75,10 +77,9 @@ internal fun NearbyCityCard(
     Alignment.CenterHorizontally,
 ) {
     Title(title, TextAlign.Center)
-    Text(
+    ValueText(
         stringResource(body),
         Modifier.padding(top = 12.dp),
-        color = SmartFlightTheme.colors.text,
         textAlign = TextAlign.Center,
         style = MaterialTheme.typography.bodyLarge.copy(fontSize = 18.sp, lineHeight = 25.sp),
     )
@@ -184,9 +185,8 @@ private data class UtcOffsetText(
 @Composable private fun Title(
     text: Int,
     align: TextAlign = TextAlign.Start,
-) = Text(
+) = LabelText(
     stringResource(text),
-    color = SmartFlightTheme.colors.text,
     textAlign = align,
     style = MaterialTheme.typography.titleLarge.copy(fontSize = 22.sp, lineHeight = 28.sp, fontWeight = FontWeight.Medium),
 )
@@ -204,7 +204,7 @@ private data class UtcOffsetText(
         },
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(name, Modifier.weight(1f), color = SmartFlightTheme.colors.text)
-        Text(value, color = SmartFlightTheme.colors.text, fontWeight = FontWeight.Medium, textAlign = TextAlign.End)
+        LabelText(name, Modifier.weight(1f))
+        ValueText(value, fontWeight = FontWeight.Medium, textAlign = TextAlign.End)
     }
 }
