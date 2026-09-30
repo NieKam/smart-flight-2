@@ -5,6 +5,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.lifecycle.SavedStateHandle
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kniezrec.com.flightinfo.testutil.FakeOrientationDataSource
 import org.junit.Rule
@@ -19,7 +20,7 @@ class HorizonCardContainerTest {
     private val orientation = FakeOrientationDataSource()
 
     @Test fun showsPitchRelativeToTheReferenceAndCalibrateResetsIt() {
-        val viewModel = HorizonViewModel(orientation)
+        val viewModel = HorizonViewModel(SavedStateHandle(), orientation)
         composeRule.setContent { HorizonCardContainer(viewModel = viewModel) }
 
         // The first sample becomes the level reference.
