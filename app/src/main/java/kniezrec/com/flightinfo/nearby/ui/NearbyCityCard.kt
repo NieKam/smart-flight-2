@@ -35,6 +35,7 @@ import kniezrec.com.flightinfo.R
 import kniezrec.com.flightinfo.displayunits.DistanceUnit
 import kniezrec.com.flightinfo.displayunits.convertDistance
 import kniezrec.com.flightinfo.displayunits.formatUnitNumber
+import kniezrec.com.flightinfo.displayunits.ui.labels
 import kniezrec.com.flightinfo.nearby.NearbyCityState
 import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
 import java.time.Instant
@@ -98,28 +99,12 @@ internal fun NearbyCityCard(
         stringResource(
             R.string.distance_value,
             number,
-            stringResource(
-                if (distanceUnit ==
-                    DistanceUnit.MILES
-                ) {
-                    R.string.unit_mi
-                } else {
-                    R.string.unit_km
-                },
-            ),
+            stringResource(distanceUnit.labels.symbol),
         ),
         stringResource(
             R.string.distance_spoken_value,
             number,
-            stringResource(
-                if (distanceUnit ==
-                    DistanceUnit.MILES
-                ) {
-                    R.string.unit_mi_accessibility
-                } else {
-                    R.string.unit_km_accessibility
-                },
-            ),
+            stringResource(distanceUnit.labels.accessibility),
         ),
     )
     val offset = utcOffsetPresentation(state.utcOffsetSeconds)

@@ -24,6 +24,7 @@ import kniezrec.com.flightinfo.R
 import kniezrec.com.flightinfo.displayunits.DistanceUnit
 import kniezrec.com.flightinfo.displayunits.convertDistance
 import kniezrec.com.flightinfo.displayunits.formatUnitNumber
+import kniezrec.com.flightinfo.displayunits.ui.labels
 import kniezrec.com.flightinfo.route.RouteDetails
 import kniezrec.com.flightinfo.route.RouteEndpoint
 import kniezrec.com.flightinfo.route.RouteState
@@ -180,15 +181,7 @@ private fun formatDistance(
     stringResource(
         R.string.distance_value,
         formatUnitNumber(convertDistance(value, unit)) ?: "—",
-        stringResource(
-            if (unit ==
-                DistanceUnit.MILES
-            ) {
-                R.string.unit_mi
-            } else {
-                R.string.unit_km
-            },
-        ),
+        stringResource(unit.labels.symbol),
     )
 
 @Composable
@@ -199,15 +192,7 @@ private fun formatDistanceSpoken(
     stringResource(
         R.string.distance_spoken_value,
         formatUnitNumber(convertDistance(value, unit)) ?: "—",
-        stringResource(
-            if (unit ==
-                DistanceUnit.MILES
-            ) {
-                R.string.unit_mi_accessibility
-            } else {
-                R.string.unit_km_accessibility
-            },
-        ),
+        stringResource(unit.labels.accessibility),
     )
 
 /**

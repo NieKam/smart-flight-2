@@ -37,6 +37,7 @@ import kniezrec.com.flightinfo.displayunits.convertPressure
 import kniezrec.com.flightinfo.displayunits.convertSpeed
 import kniezrec.com.flightinfo.displayunits.convertVerticalSpeed
 import kniezrec.com.flightinfo.displayunits.formatUnitNumber
+import kniezrec.com.flightinfo.displayunits.ui.labels
 import kniezrec.com.flightinfo.flight.FlightParametersState
 import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
 
@@ -150,13 +151,7 @@ private fun FlightParametersReadings(
                     convertSpeed(it, preferences.speed),
                     R.string.flight_speed_value,
                     false,
-                    stringResource(
-                        when (preferences.speed) {
-                            kniezrec.com.flightinfo.displayunits.SpeedUnit.KILOMETRES_PER_HOUR -> R.string.unit_kmh
-                            kniezrec.com.flightinfo.displayunits.SpeedUnit.MILES_PER_HOUR -> R.string.unit_mph
-                            kniezrec.com.flightinfo.displayunits.SpeedUnit.KNOTS -> R.string.unit_kt
-                        },
-                    ),
+                    stringResource(preferences.speed.labels.symbol),
                 )
             },
             state.speedKilometresPerHour?.let {
@@ -164,7 +159,7 @@ private fun FlightParametersReadings(
                     convertSpeed(it, preferences.speed),
                     R.string.flight_value_accessibility,
                     false,
-                    stringResource(speedAccessibilityUnit(preferences.speed)),
+                    stringResource(preferences.speed.labels.accessibility),
                 )
             },
         )
@@ -178,13 +173,7 @@ private fun FlightParametersReadings(
                     convertVerticalSpeed(it, preferences.verticalSpeed),
                     R.string.flight_vertical_speed_value,
                     true,
-                    stringResource(
-                        when (preferences.verticalSpeed) {
-                            kniezrec.com.flightinfo.displayunits.VerticalSpeedUnit.METRES_PER_SECOND -> R.string.unit_ms
-                            kniezrec.com.flightinfo.displayunits.VerticalSpeedUnit.METRES_PER_MINUTE -> R.string.unit_mmin
-                            kniezrec.com.flightinfo.displayunits.VerticalSpeedUnit.FEET_PER_MINUTE -> R.string.unit_ftmin
-                        },
-                    ),
+                    stringResource(preferences.verticalSpeed.labels.symbol),
                 )
             },
             state.verticalSpeedMetresPerSecond?.let {
@@ -192,7 +181,7 @@ private fun FlightParametersReadings(
                     convertVerticalSpeed(it, preferences.verticalSpeed),
                     R.string.flight_value_accessibility,
                     true,
-                    stringResource(verticalSpeedAccessibilityUnit(preferences.verticalSpeed)),
+                    stringResource(preferences.verticalSpeed.labels.accessibility),
                 )
             },
         )
@@ -206,15 +195,7 @@ private fun FlightParametersReadings(
                     convertAltitude(it, preferences.altitude),
                     R.string.flight_altitude_value,
                     false,
-                    stringResource(
-                        if (preferences.altitude ==
-                            kniezrec.com.flightinfo.displayunits.AltitudeUnit.FEET
-                        ) {
-                            R.string.unit_ft
-                        } else {
-                            R.string.unit_m
-                        },
-                    ),
+                    stringResource(preferences.altitude.labels.symbol),
                 )
             },
             state.altitudeMetres?.let {
@@ -222,15 +203,7 @@ private fun FlightParametersReadings(
                     convertAltitude(it, preferences.altitude),
                     R.string.flight_value_accessibility,
                     false,
-                    stringResource(
-                        if (preferences.altitude ==
-                            kniezrec.com.flightinfo.displayunits.AltitudeUnit.FEET
-                        ) {
-                            R.string.unit_ft_accessibility
-                        } else {
-                            R.string.unit_m_accessibility
-                        },
-                    ),
+                    stringResource(preferences.altitude.labels.accessibility),
                 )
             },
         )
@@ -244,15 +217,7 @@ private fun FlightParametersReadings(
                     convertPressure(it, preferences.pressure),
                     R.string.flight_pressure_value,
                     false,
-                    stringResource(
-                        if (preferences.pressure ==
-                            kniezrec.com.flightinfo.displayunits.PressureUnit.INCHES_OF_MERCURY
-                        ) {
-                            R.string.unit_inhg
-                        } else {
-                            R.string.unit_mbar
-                        },
-                    ),
+                    stringResource(preferences.pressure.labels.symbol),
                 )
             },
             accessibilityValue =
@@ -261,36 +226,12 @@ private fun FlightParametersReadings(
                         convertPressure(it, preferences.pressure),
                         R.string.flight_value_accessibility,
                         false,
-                        stringResource(
-                            if (preferences.pressure ==
-                                kniezrec.com.flightinfo.displayunits.PressureUnit.INCHES_OF_MERCURY
-                            ) {
-                                R.string.unit_inhg_accessibility
-                            } else {
-                                R.string.unit_mbar_accessibility
-                            },
-                        ),
+                        stringResource(preferences.pressure.labels.accessibility),
                     )
                 },
         )
     }
 }
-
-@Composable
-private fun speedAccessibilityUnit(unit: kniezrec.com.flightinfo.displayunits.SpeedUnit): Int =
-    when (unit) {
-        kniezrec.com.flightinfo.displayunits.SpeedUnit.KILOMETRES_PER_HOUR -> R.string.unit_kmh_accessibility
-        kniezrec.com.flightinfo.displayunits.SpeedUnit.MILES_PER_HOUR -> R.string.unit_mph_accessibility
-        kniezrec.com.flightinfo.displayunits.SpeedUnit.KNOTS -> R.string.unit_kt_accessibility
-    }
-
-@Composable
-private fun verticalSpeedAccessibilityUnit(unit: kniezrec.com.flightinfo.displayunits.VerticalSpeedUnit): Int =
-    when (unit) {
-        kniezrec.com.flightinfo.displayunits.VerticalSpeedUnit.METRES_PER_SECOND -> R.string.unit_ms_accessibility
-        kniezrec.com.flightinfo.displayunits.VerticalSpeedUnit.METRES_PER_MINUTE -> R.string.unit_mmin_accessibility
-        kniezrec.com.flightinfo.displayunits.VerticalSpeedUnit.FEET_PER_MINUTE -> R.string.unit_ftmin_accessibility
-    }
 
 @Composable
 private fun FlightParametersTitle(textAlign: TextAlign = TextAlign.Start) {

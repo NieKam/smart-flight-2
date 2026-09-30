@@ -45,6 +45,6 @@ data class UnitPreferences(
     val pressure: PressureUnit = PressureUnit.MILLIBAR,
 )
 
-interface UnitKey {
+sealed interface UnitKey {
     val key: String
 }
