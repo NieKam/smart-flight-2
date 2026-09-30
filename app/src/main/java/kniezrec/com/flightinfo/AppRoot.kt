@@ -25,14 +25,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kniezrec.com.flightinfo.about.AppVersion
 import kniezrec.com.flightinfo.dashboard.ui.DashboardScreen
 import kniezrec.com.flightinfo.permission.LocationPermissionState
+import kniezrec.com.flightinfo.permission.ui.LocationPermissionCard
 import kniezrec.com.flightinfo.permission.ui.LocationPermissionViewModel
-import kniezrec.com.flightinfo.permission.ui.PermissionOnboardingScreen
 import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
 import kotlinx.coroutines.launch
 
 /**
- * The app's single screen: the permission onboarding until location is granted, then the
- * dashboard. The Activity supplies the Android-bound actions; each returns false when the system
+ * The app's single screen: the dashboard, with the location permission card first while location
+ * is not granted. The Activity supplies the Android-bound actions; each returns false when the system
  * could not open what was asked, which is reported in a snackbar.
  *
  * @param onRequestLocationPermission launches the platform permission request.
@@ -59,31 +59,35 @@ fun AppRoot(
     val locationSettingsUnavailable = stringResource(R.string.location_settings_unavailable)
     val feedbackAddress = stringResource(R.string.about_feedback_address)
     AppScaffold(snackbarHostState) { contentModifier ->
-        if (permissionState == LocationPermissionState.Granted) {
-            DashboardScreen(
-                onOpenLocationSettings = {
-                    if (!onOpenLocationSettings()) {
-                        scope.launch { snackbarHostState.showSnackbar(locationSettingsUnavailable) }
+        DashboardScreen(
+            permissionCard =
+                if (permissionState == LocationPermissionState.Granted) {
+                    null
+                } else {
+                    { cardModifier ->
+                        LocationPermissionCard(
+                            state = permissionState,
+                            onGrantPermission = onRequestLocationPermission,
+                            onOpenSettings = {
+                                if (!onOpenAppSettings()) {
+                                    scope.launch { snackbarHostState.showSnackbar(settingsUnavailable) }
+                                }
+                            },
+                            modifier = cardModifier,
+                            announceStateChange = announcePermissionChange,
+                        )
                     }
                 },
-                aboutVersion = aboutVersion,
-                onSendFeedback = { onSendFeedback(feedbackAddress) },
-                onRate = onRate,
-                modifier = contentModifier,
-            )
-        } else {
-            PermissionOnboardingScreen(
-                state = permissionState,
-                onGrantPermission = onRequestLocationPermission,
-                onOpenSettings = {
-                    if (!onOpenAppSettings()) {
-                        scope.launch { snackbarHostState.showSnackbar(settingsUnavailable) }
-                    }
-                },
-                modifier = contentModifier,
-                announceStateChange = announcePermissionChange,
-            )
-        }
+            onOpenLocationSettings = {
+                if (!onOpenLocationSettings()) {
+                    scope.launch { snackbarHostState.showSnackbar(locationSettingsUnavailable) }
+                }
+            },
+            aboutVersion = aboutVersion,
+            onSendFeedback = { onSendFeedback(feedbackAddress) },
+            onRate = onRate,
+            modifier = contentModifier,
+        )
     }
 }
 

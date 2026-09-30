@@ -32,8 +32,9 @@ import javax.inject.Inject
  * recalibrating and makes the next sample the new reference. Observation runs while [state] is
  * collected and stops [STOP_TIMEOUT_MILLIS] after the last collector leaves, so a configuration
  * change keeps the card and its reference. When observation restarts (or on [retry]) the card
- * starts over from waiting and the reference is captured again. Without a rotation-vector sensor
- * the card is unavailable; a refused sensor registration shows the error until [retry].
+ * starts over from waiting and the reference is captured again. Without an orientation sensor
+ * (rotation vector, or accelerometer and magnetometer) the card is unavailable; a refused sensor
+ * registration shows the error until [retry].
  */
 @HiltViewModel
 class HorizonViewModel

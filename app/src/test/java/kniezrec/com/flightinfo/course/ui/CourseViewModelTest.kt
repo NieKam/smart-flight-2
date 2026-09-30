@@ -32,22 +32,35 @@ class CourseViewModelTest {
 
     @After fun tearDown() = Dispatchers.resetMain()
 
-    @Test fun `heading is floored and non-finite headings are ignored`() =
+    // Changed in TASK-026: rounded (was floored) and averaged over the last 10 headings.
+    @Test fun `heading is rounded, averaged across north, and non-finite headings are ignored`() =
         runTest(dispatcher) {
             val viewModel = viewModel()
             subscribe(viewModel)
 
-            heading(10.9)
-            assertEquals(CourseState.Available(10, null), viewModel.state.value)
+            heading(10.6)
+            assertEquals(CourseState.Available(11, null), viewModel.state.value)
 
             heading(Double.NaN)
-            assertEquals(CourseState.Available(10, null), viewModel.state.value)
+            assertEquals(CourseState.Available(11, null), viewModel.state.value)
 
-            heading(-1.0)
-            assertEquals(CourseState.Available(359, null), viewModel.state.value)
+            // The average of 10.6° and 358.6° is 4.6°, not 184.6°.
+            heading(-1.4)
+            assertEquals(CourseState.Available(5, null), viewModel.state.value)
         }
 
-    @Test fun `without a rotation-vector sensor the card is unavailable and nothing is registered`() =
+    @Test fun `the average keeps only the last ten headings`() =
+        runTest(dispatcher) {
+            val viewModel = viewModel()
+            subscribe(viewModel)
+
+            repeat(10) { heading(100.0) }
+            repeat(10) { heading(200.0) }
+
+            assertEquals(CourseState.Available(200, null), viewModel.state.value)
+        }
+
+    @Test fun `without an orientation sensor the card is unavailable and nothing is registered`() =
         runTest(dispatcher) {
             orientation.available = false
             val viewModel = viewModel()
@@ -83,6 +96,26 @@ class CourseViewModelTest {
 
             heading(18.0)
             assertEquals(CourseState.Available(18, null), viewModel.state.value)
+        }
+
+    @Test fun `without location permission the heading works and no location is collected`() =
+        runTest(dispatcher) {
+            val viewModel = viewModel(locationPermitted = false)
+            backgroundScope.launch { viewModel.state.collect {} }
+            runCurrent()
+            orientation.emit(headingDegrees = 90.0)
+            runCurrent()
+
+            assertEquals(CourseState.Available(90, null), viewModel.state.value)
+            assertEquals(0, location.fixRegistrations.registerCount)
+
+            viewModel.setLocationPermitted(true)
+            runCurrent()
+            assertEquals(1, location.fixRegistrations.activeCount)
+
+            viewModel.setLocationPermitted(false)
+            runCurrent()
+            assertEquals(0, location.fixRegistrations.activeCount)
         }
 
     @Test fun `the GPS bearing supplements the heading and a fix without bearing clears it`() =
@@ -241,7 +274,8 @@ class CourseViewModelTest {
             assertEquals(CourseState.Available(10, null), viewModel.state.value)
         }
 
-    private fun TestScope.viewModel() = CourseViewModel(orientation, LocationRepository(location, backgroundScope))
+    private fun TestScope.viewModel(locationPermitted: Boolean = true) =
+        CourseViewModel(orientation, LocationRepository(location, backgroundScope)).also { it.setLocationPermitted(locationPermitted) }
 
     private fun TestScope.subscribe(viewModel: CourseViewModel): Job =
         backgroundScope.launch { viewModel.state.collect {} }.also { runCurrent() }

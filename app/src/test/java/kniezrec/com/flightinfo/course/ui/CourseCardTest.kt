@@ -41,6 +41,14 @@ class CourseCardTest {
         composeRule.onNodeWithContentDescription("GPS bearing, 287°").assertExists()
     }
 
+    @Test fun roseShowsFixedLettersAroundThePlane() {
+        setCourse(CourseState.Available(123, null))
+        listOf("N", "E", "S", "W").forEach { composeRule.onNodeWithText(it).assertIsDisplayed() }
+        composeRule.onNodeWithTag("course-plane").assertIsDisplayed()
+        composeRule.onNodeWithText("SE").assertIsDisplayed()
+        composeRule.onNodeWithText("123°").assertIsDisplayed()
+    }
+
     @Test fun courseStateChangesExposePoliteAnnouncementWithoutMakingHeadingLive() {
         setCourse(CourseState.Waiting)
         setCourse(CourseState.Available(23, null))

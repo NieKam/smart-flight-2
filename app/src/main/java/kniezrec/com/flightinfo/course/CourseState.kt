@@ -13,9 +13,10 @@ sealed interface CourseState {
     ) : CourseState
 }
 
+/** [value] rounded to whole degrees (as the original app) in [0, 360): 271.6 → 272, 359.6 → 0. */
 internal fun normalizeCourseDegrees(value: Double): Int? {
     if (!value.isFinite()) return null
-    return ((kotlin.math.floor(value).toInt() % 360) + 360) % 360
+    return ((kotlin.math.round(value % 360.0).toInt() % 360) + 360) % 360
 }
 
 internal enum class CompassCardinal {

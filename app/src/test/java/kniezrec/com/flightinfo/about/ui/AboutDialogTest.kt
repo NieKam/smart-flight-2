@@ -17,7 +17,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import kniezrec.com.flightinfo.about.AppVersion
 import kniezrec.com.flightinfo.dashboard.ui.DashboardHeader
 import kniezrec.com.flightinfo.permission.LocationPermissionState
-import kniezrec.com.flightinfo.permission.ui.PermissionOnboardingScreen
+import kniezrec.com.flightinfo.permission.ui.LocationPermissionCard
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -40,8 +40,8 @@ class AboutDialogTest {
     }
 
     @Test
-    fun permissionOnboardingDoesNotExposeAbout() {
-        composeRule.setContent { PermissionOnboardingScreen(LocationPermissionState.Requestable, {}, {}) }
+    fun permissionCardDoesNotExposeAbout() {
+        composeRule.setContent { LocationPermissionCard(LocationPermissionState.Requestable, {}, {}) }
         composeRule.onNodeWithText("About").assertDoesNotExist()
     }
 

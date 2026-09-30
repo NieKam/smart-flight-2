@@ -7,9 +7,11 @@ import kniezrec.com.flightinfo.display.DisplayPreferences
 import kniezrec.com.flightinfo.display.data.DisplaySettingsRepository
 import kniezrec.com.flightinfo.displayunits.UnitPreferences
 import kniezrec.com.flightinfo.displayunits.data.UnitSettingsRepository
+import kniezrec.com.flightinfo.monitoring.NotificationAccess
 import kniezrec.com.flightinfo.monitoring.data.BackgroundNotificationSettingsRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -23,7 +25,18 @@ data class SettingsUiState(
     val units: UnitPreferences = UnitPreferences(),
     val display: DisplayPreferences = DisplayPreferences(),
     val showBackgroundNotification: Boolean = true,
+    /** The background notification cannot be shown (Android 13+ permission or notifications off). */
+    val notificationsBlocked: Boolean = false,
 )
+
+/** What the Activity does for the background notification's permission. */
+enum class NotificationAction {
+    /** Show the system POST_NOTIFICATIONS dialog. */
+    RequestPermission,
+
+    /** Open the app's notification settings (permission denied permanently or notifications off). */
+    OpenSettings,
+}
 
 /**
  * State and actions of the Settings screen, over the three settings repositories. Every setter
@@ -39,15 +52,24 @@ class SettingsViewModel
         internal val backgroundNotificationSettingsRepository: BackgroundNotificationSettingsRepository,
     ) : ViewModel() {
         private val backgroundMonitoringRequestEvents = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+        private val notificationActionEvents = MutableSharedFlow<NotificationAction>(extraBufferCapacity = 1)
+        private val notificationAccess = MutableStateFlow(NotificationAccess.Allowed)
 
         val state: StateFlow<SettingsUiState> =
             combine(
                 unitSettingsRepository.units,
                 displaySettingsRepository.display,
                 backgroundNotificationSettingsRepository.settings,
-            ) { units, display, notification ->
-                SettingsUiState(units, display, notification.showBackgroundNotification)
+                notificationAccess,
+            ) { units, display, notification, access ->
+                SettingsUiState(units, display, notification.showBackgroundNotification, access != NotificationAccess.Allowed)
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), currentState())
+
+        /**
+         * Requests for the Activity: show the POST_NOTIFICATIONS dialog or open the notification
+         * settings. Nothing is kept for a collector that subscribes later.
+         */
+        val notificationActions: Flow<NotificationAction> = notificationActionEvents.asSharedFlow()
 
         /**
          * Emits after "show background notification" has been switched on and persisted. The Activity
@@ -64,18 +86,44 @@ class SettingsViewModel
             viewModelScope.launch { displaySettingsRepository.set(value) }
         }
 
+        /** Switching it on also asks for the notification permission when it can be requested. */
         fun setShowBackgroundNotification(enabled: Boolean) {
             viewModelScope.launch {
                 backgroundNotificationSettingsRepository.setShowBackgroundNotification(enabled)
-                if (enabled) backgroundMonitoringRequestEvents.tryEmit(Unit)
+                if (enabled) {
+                    backgroundMonitoringRequestEvents.tryEmit(Unit)
+                    if (notificationAccess.value == NotificationAccess.Requestable) {
+                        notificationActionEvents.tryEmit(NotificationAction.RequestPermission)
+                    }
+                }
             }
         }
+
+        /** The Activity read the platform state (on resume and after a permission result). */
+        fun refreshNotificationAccess(access: NotificationAccess) {
+            notificationAccess.value = access
+        }
+
+        /** "Allow notifications" in Settings: the system dialog if it can still be shown, else the settings. */
+        fun allowNotifications() {
+            when (notificationAccess.value) {
+                NotificationAccess.Allowed -> Unit
+                NotificationAccess.Requestable -> notificationActionEvents.tryEmit(NotificationAction.RequestPermission)
+                NotificationAccess.Blocked -> notificationActionEvents.tryEmit(NotificationAction.OpenSettings)
+            }
+        }
+
+        /** After location is granted: ask for notifications right away if the background notification is on. */
+        fun shouldRequestNotificationPermission(): Boolean =
+            backgroundNotificationSettingsRepository.settings.value.showBackgroundNotification &&
+                notificationAccess.value == NotificationAccess.Requestable
 
         private fun currentState() =
             SettingsUiState(
                 units = unitSettingsRepository.units.value,
                 display = displaySettingsRepository.display.value,
                 showBackgroundNotification = backgroundNotificationSettingsRepository.settings.value.showBackgroundNotification,
+                notificationsBlocked = notificationAccess.value != NotificationAccess.Allowed,
             )
 
         internal companion object {

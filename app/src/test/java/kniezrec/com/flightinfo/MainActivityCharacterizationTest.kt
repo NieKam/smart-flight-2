@@ -73,8 +73,8 @@ import kotlin.math.sin
  * Pins the observable orchestration of [MainActivity] (permission gate, lifecycle, fix fan-out,
  * pressure merge, settings and route persistence) before the ViewModel/DI migration.
  *
- * These tests describe CURRENT behavior, including behavior that later tasks change on purpose
- * (TASK-024 dashboard without permission). Update them in the task
+ * These tests describe CURRENT behavior. A task that changes a behavior on purpose updates its
+ * scenario (not silently). Update them in the task
  * that changes the behavior, not silently.
  *
  * The activity is launched with [ActivityScenario] inside each test (not by the rule) so that
@@ -127,19 +127,22 @@ class MainActivityCharacterizationTest {
             ?: System.clearProperty(CREATE_ACTIVITY_CONTEXTS)
     }
 
-    // Scenario 1. TASK-024 changes this on purpose (dashboard without permission).
+    // Scenario 1. Changed in TASK-024 (as the original app): without permission the dashboard shows
+    // the permission card, then Course and Horizon (unavailable here: Robolectric has no
+    // rotation-vector sensor); Settings and About stay; no location card and no service.
     @Test
-    fun permissionNotGrantedShowsOnlyOnboarding() {
+    fun permissionNotGrantedShowsPermissionCardCourseAndHorizon() {
         launch(grantLocation = false)
 
         composeRule.onNodeWithText(string(R.string.permission_title)).assertIsDisplayed()
         composeRule.onNodeWithText(string(R.string.permission_grant)).assertIsDisplayed()
+        composeRule.onNodeWithText(string(R.string.compass_unavailable)).assertIsDisplayed()
+        composeRule.onNodeWithText(string(R.string.horizon_unavailable)).assertExists()
+        composeRule.onNodeWithText(string(R.string.settings_title)).assertIsDisplayed()
+        composeRule.onNodeWithText(string(R.string.about_title)).assertIsDisplayed()
         composeRule.onAllNodesWithText(string(R.string.gnss_status_title)).assertCountEquals(0)
         composeRule.onAllNodesWithText(string(R.string.flight_parameters_title)).assertCountEquals(0)
-        composeRule.onAllNodesWithText(string(R.string.course_title)).assertCountEquals(0)
         composeRule.onAllNodesWithText(string(R.string.route_title)).assertCountEquals(0)
-        composeRule.onAllNodesWithText(string(R.string.settings_title)).assertCountEquals(0)
-        composeRule.onAllNodesWithText(string(R.string.about_title)).assertCountEquals(0)
         assertNull(shadowOf(application).nextStartedService)
     }
 
@@ -278,6 +281,8 @@ class MainActivityCharacterizationTest {
     // switching the background notification on while visible and granted requests the service again.
     @Test
     fun enablingBackgroundNotificationInSettingsPersistsItAndRequestsForegroundService() {
+        // TASK-025: without POST_NOTIFICATIONS (Android 13+) the row shows "Notifications are blocked".
+        shadowOf(application).grantPermissions(Manifest.permission.POST_NOTIFICATIONS)
         launch()
         composeRule.onNodeWithText(string(R.string.settings_title)).performClick()
         clickBackgroundNotificationRow(R.string.settings_on)

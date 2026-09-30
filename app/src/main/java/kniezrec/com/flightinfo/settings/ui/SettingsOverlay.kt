@@ -24,6 +24,8 @@ fun SettingsOverlay(
         onDisplayPreferenceChange = viewModel::setDisplay,
         showBackgroundNotification = state.showBackgroundNotification,
         onBackgroundNotificationChange = viewModel::setShowBackgroundNotification,
+        notificationsBlocked = state.notificationsBlocked,
+        onAllowNotifications = viewModel::allowNotifications,
         onBack = onBack,
         modifier = modifier,
     )

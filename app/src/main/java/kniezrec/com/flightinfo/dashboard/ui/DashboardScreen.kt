@@ -54,12 +54,19 @@ import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
  * Settings and About is saved, so it survives a configuration change (the picker keeps its own in
  * [RoutePickerViewModel]).
  *
+ * While fine location is not granted ([permissionCard] not null) the dashboard shows, as the
+ * original app, the permission card first and then only the cards that do not need location
+ * (Course without GPS bearing, Horizon); Settings and About stay available. The location cards are
+ * not composed, so their ViewModels are not created and nothing collects location.
+ *
+ * @param permissionCard the location permission card, or null once location is granted.
  * @param onOpenLocationSettings action of the GNSS card when location is switched off, and "Yes" of
  *   the "Enable GPS" prompt shown when the dashboard starts with GPS off.
  * @param modifier insets of the dashboard and the Settings overlay (not of the About dialog).
  */
 @Composable
 fun DashboardScreen(
+    permissionCard: (@Composable (Modifier) -> Unit)?,
     onOpenLocationSettings: () -> Unit,
     aboutVersion: AppVersion,
     onSendFeedback: () -> Boolean,
@@ -72,9 +79,7 @@ fun DashboardScreen(
     // Registered before the picker's own back handler, which therefore wins while it is open.
     BackHandler(enabled = showSettings) { showSettings = false }
     BackHandler(enabled = showAbout) { showAbout = false }
-    val units by viewModel.units.collectAsStateWithLifecycle()
-    val routePickerViewModel: RoutePickerViewModel = hiltViewModel()
-    val mapViewModel: MapViewModel = hiltViewModel()
+    val locationGranted = permissionCard == null
     // Settings is an overlay so the dashboard's AndroidView-backed map remains composed. This
     // preserves its viewport, overlays, and in-place zoom policy.
     Box(Modifier.fillMaxSize()) {
@@ -84,23 +89,24 @@ fun DashboardScreen(
         Box(Modifier.fillMaxSize().then(modifier)) {
             Column(Modifier.fillMaxSize()) {
                 DashboardHeader(onOpenSettings = { showSettings = true }, onOpenAbout = { showAbout = true })
-                Column(
-                    Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 12.dp),
-                ) {
-                    val cardModifier = Modifier.padding(bottom = 12.dp).widthIn(max = 600.dp)
-                    DashboardSlot { GnssStatusCardContainer(onOpenLocationSettings = onOpenLocationSettings) }
-                    DashboardSlot { FlightParametersCardContainer(units, cardModifier) }
-                    DashboardSlot { CourseCardContainer(cardModifier) }
-                    DashboardSlot { HorizonCardContainer(cardModifier) }
-                    DashboardSlot { NearbyCityCardContainer(units.distance, cardModifier) }
-                    DashboardSlot { RouteCardContainer(units.distance, routePickerViewModel::open, cardModifier) }
-                    DashboardSlot { MapCardContainer(cardModifier, viewModel = mapViewModel) }
+                val cardModifier = Modifier.padding(bottom = 12.dp).widthIn(max = 600.dp)
+                if (permissionCard != null) {
+                    Column(
+                        Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 12.dp),
+                    ) {
+                        DashboardSlot { permissionCard(cardModifier) }
+                        DashboardSlot { CourseCardContainer(locationPermitted = false, modifier = cardModifier) }
+                        DashboardSlot { HorizonCardContainer(cardModifier) }
+                    }
+                } else {
+                    LocationDashboardCards(viewModel, cardModifier, onOpenLocationSettings, Modifier.weight(1f))
                 }
             }
-            RoutePickerOverlay(viewModel = routePickerViewModel, mapViewModel = mapViewModel)
         }
     }
-    EnableGpsPrompt(isLocationEnabled = viewModel::isLocationEnabled, onOpenLocationSettings = onOpenLocationSettings)
+    if (locationGranted) {
+        EnableGpsPrompt(isLocationEnabled = viewModel::isLocationEnabled, onOpenLocationSettings = onOpenLocationSettings)
+    }
     if (showAbout) {
         AboutDialog(
             version = aboutVersion,
@@ -108,6 +114,31 @@ fun DashboardScreen(
             onRate = onRate,
             onDismiss = { showAbout = false },
         )
+    }
+}
+
+/** Every card with location granted, and the city picker overlay over them. */
+@Composable
+private fun LocationDashboardCards(
+    viewModel: DashboardViewModel,
+    cardModifier: Modifier,
+    onOpenLocationSettings: () -> Unit,
+    modifier: Modifier,
+) {
+    val units by viewModel.units.collectAsStateWithLifecycle()
+    val routePickerViewModel: RoutePickerViewModel = hiltViewModel()
+    val mapViewModel: MapViewModel = hiltViewModel()
+    Box(modifier) {
+        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 12.dp)) {
+            DashboardSlot { GnssStatusCardContainer(onOpenLocationSettings = onOpenLocationSettings) }
+            DashboardSlot { FlightParametersCardContainer(units, cardModifier) }
+            DashboardSlot { CourseCardContainer(locationPermitted = true, modifier = cardModifier) }
+            DashboardSlot { HorizonCardContainer(cardModifier) }
+            DashboardSlot { NearbyCityCardContainer(units.distance, cardModifier) }
+            DashboardSlot { RouteCardContainer(units.distance, routePickerViewModel::open, cardModifier) }
+            DashboardSlot { MapCardContainer(cardModifier, viewModel = mapViewModel) }
+        }
+        RoutePickerOverlay(viewModel = routePickerViewModel, mapViewModel = mapViewModel)
     }
 }
 

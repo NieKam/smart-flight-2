@@ -41,8 +41,9 @@ import javax.inject.Inject
  * - hidden after a usable fix of this run: stop;
  * - not eligible (permission or providers lost): stop;
  * - hidden with the background notification turned off: stop;
- * - otherwise show the notification, with the "waiting" copy when hidden without a fix and
- *   notifications may be posted.
+ * - hidden while notifications cannot be posted (permission denied, app or channel blocked): stop,
+ *   so GPS never keeps running in the background without a visible notification;
+ * - otherwise show the notification, with the "waiting" copy when hidden without a fix.
  */
 @AndroidEntryPoint
 internal open class LocationForegroundService : Service() {
@@ -138,7 +139,8 @@ internal open class LocationForegroundService : Service() {
             !activityVisible && hasUsableFix -> stopRun()
             !isMonitoringEligible() -> stopRun()
             !activityVisible && !showBackgroundNotification -> stopRun()
-            else -> updateNotification(showWaiting = !activityVisible && !hasUsableFix && canPostNotifications())
+            !activityVisible && !canPostNotifications() -> stopRun()
+            else -> updateNotification(showWaiting = !activityVisible && !hasUsableFix)
         }
     }
 
@@ -187,9 +189,12 @@ internal open class LocationForegroundService : Service() {
         )
     }
 
-    protected open fun canPostNotifications(): Boolean =
-        android.os.Build.VERSION.SDK_INT < 33 ||
-            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+    protected open fun canPostNotifications(): Boolean {
+        val permitted =
+            android.os.Build.VERSION.SDK_INT < POST_NOTIFICATIONS_SDK ||
+                ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+        return permitted && getSystemService(NotificationManager::class.java).backgroundNotificationsEnabled()
+    }
 
     protected open fun startForegroundServiceNotification(): Boolean =
         runCatching {
@@ -251,7 +256,7 @@ internal open class LocationForegroundService : Service() {
             )
         return Notification
             .Builder(this, CHANNEL_ID)
-            .setSmallIcon(R.mipmap.ic_launcher)
+            .setSmallIcon(R.drawable.ic_stat_plane)
             .setContentTitle(getString(if (showWaiting) R.string.background_notification_title else R.string.app_name))
             .setContentText(getString(if (showWaiting) R.string.background_notification_content else R.string.background_service_content))
             .setContentIntent(openApp)
@@ -268,3 +273,8 @@ internal open class LocationForegroundService : Service() {
         private const val CHECK_INTERVAL_MS = 1_000L
     }
 }
+
+/** Notifications are on for the app and the background notification channel is not blocked. */
+internal fun NotificationManager.backgroundNotificationsEnabled(): Boolean =
+    areNotificationsEnabled() &&
+        getNotificationChannel(LocationForegroundService.CHANNEL_ID)?.importance != NotificationManager.IMPORTANCE_NONE

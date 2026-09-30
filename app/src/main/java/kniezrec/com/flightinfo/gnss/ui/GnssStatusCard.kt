@@ -87,6 +87,7 @@ private fun GnssStatusCardContent(
     ) {
         when (state) {
             is GnssStatusState.Available -> AvailableContent(state.satellites)
+            GnssStatusState.Waiting -> SearchingContent()
             else -> StaticContent(state, onOpenSettings, onRetry)
         }
     }
@@ -100,7 +101,7 @@ private fun StaticContent(
 ) {
     val (title, body, action, actionHint, callback) =
         when (state) {
-            GnssStatusState.Waiting -> StaticState(R.string.gnss_status_title, R.string.gnss_waiting)
+            GnssStatusState.Waiting, is GnssStatusState.Available -> error("handled above")
             GnssStatusState.LocationServicesDisabled ->
                 StaticState(
                     R.string.location_services_off_title,
@@ -118,7 +119,6 @@ private fun StaticContent(
                     R.string.gnss_try_again_hint,
                     onRetry,
                 )
-            is GnssStatusState.Available -> error("handled above")
         }
     Column(
         Modifier.fillMaxWidth().heightIn(min = 160.dp).padding(horizontal = 24.dp, vertical = 20.dp),

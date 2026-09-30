@@ -1,7 +1,11 @@
 package kniezrec.com.flightinfo
 
+import android.Manifest
+import android.app.NotificationManager
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.ComponentActivity
@@ -24,11 +28,16 @@ import kniezrec.com.flightinfo.display.data.DisplaySettingsRepository
 import kniezrec.com.flightinfo.display.ui.applyDisplayPreferences
 import kniezrec.com.flightinfo.monitoring.AppVisibility
 import kniezrec.com.flightinfo.monitoring.LocationForegroundService
+import kniezrec.com.flightinfo.monitoring.POST_NOTIFICATIONS_SDK
+import kniezrec.com.flightinfo.monitoring.backgroundNotificationsEnabled
+import kniezrec.com.flightinfo.monitoring.notificationAccess
 import kniezrec.com.flightinfo.permission.AndroidFineLocationPermissionPlatform
 import kniezrec.com.flightinfo.permission.LocationPermissionState
+import kniezrec.com.flightinfo.permission.data.PermissionRequestHistoryRepository
 import kniezrec.com.flightinfo.permission.locationPermissionRequest
 import kniezrec.com.flightinfo.permission.snapshot
 import kniezrec.com.flightinfo.permission.ui.LocationPermissionViewModel
+import kniezrec.com.flightinfo.settings.ui.NotificationAction
 import kniezrec.com.flightinfo.settings.ui.SettingsViewModel
 import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
 import kotlinx.coroutines.launch
@@ -36,7 +45,8 @@ import javax.inject.Inject
 
 /**
  * The app's only Activity. It keeps what is bound to Android: the content ([AppRoot]), the
- * permission launcher and the permission refresh on resume, window effects of the display
+ * permission launchers (location, and POST_NOTIFICATIONS for the background notification) and the
+ * permission refresh on resume, window effects of the display
  * settings, starting and stopping background monitoring, external intents and [AppVisibility].
  * Screen state lives in the ViewModels the composables obtain.
  */
@@ -49,13 +59,24 @@ class MainActivity : ComponentActivity() {
 
     @Inject lateinit var appVisibility: AppVisibility
 
+    @Inject lateinit var permissionRequestHistory: PermissionRequestHistoryRepository
+
     private val permissionViewModel: LocationPermissionViewModel by viewModels()
     private val settingsViewModel: SettingsViewModel by viewModels()
     private val permissionPlatform = AndroidFineLocationPermissionPlatform(this)
     private val externalIntentLauncher = AndroidExternalIntentLauncher(this)
     private val permissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
-            refreshPermissionState(announceChange = true)
+            // Right after the location result, with no extra dialog: the notification permission.
+            if (refreshPermissionState(announceChange = true) == LocationPermissionState.Granted &&
+                settingsViewModel.shouldRequestNotificationPermission()
+            ) {
+                requestNotificationPermission()
+            }
+        }
+    private val notificationPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) {
+            refreshNotificationAccess()
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -67,6 +88,7 @@ class MainActivity : ComponentActivity() {
             navigationBarStyle = SystemBarStyle.dark(Color.Transparent.toArgb()),
         )
         refreshPermissionState()
+        refreshNotificationAccess()
         // Synchronous current value: window flags and orientation are set before the first frame.
         applyDisplayPreferences(displaySettingsRepository.display.value)
         lifecycleScope.launch {
@@ -79,6 +101,16 @@ class MainActivity : ComponentActivity() {
             repeatOnLifecycle(Lifecycle.State.RESUMED) {
                 settingsViewModel.backgroundMonitoringRequests.collect {
                     if (permissionViewModel.state.value == LocationPermissionState.Granted) startBackgroundMonitoring()
+                }
+            }
+        }
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                settingsViewModel.notificationActions.collect { action ->
+                    when (action) {
+                        NotificationAction.RequestPermission -> requestNotificationPermission()
+                        NotificationAction.OpenSettings -> openNotificationSettings()
+                    }
                 }
             }
         }
@@ -100,6 +132,7 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         appVisibility.setVisible(true)
+        refreshNotificationAccess()
         if (refreshPermissionState() == LocationPermissionState.Granted) {
             startBackgroundMonitoring()
         } else {
@@ -124,6 +157,33 @@ class MainActivity : ComponentActivity() {
         val state = permissionViewModel.refresh(permissionPlatform.snapshot(), announceChange)
         if (state != LocationPermissionState.Granted) stopBackgroundMonitoring()
         return state
+    }
+
+    /** Reads whether the background notification can be shown (the rationale check is Activity-bound). */
+    private fun refreshNotificationAccess() {
+        val permission = Manifest.permission.POST_NOTIFICATIONS
+        settingsViewModel.refreshNotificationAccess(
+            notificationAccess(
+                sdkInt = Build.VERSION.SDK_INT,
+                permissionGranted = ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED,
+                notificationsEnabled = getSystemService(NotificationManager::class.java).backgroundNotificationsEnabled(),
+                hasRequested = permissionRequestHistory.hasRequestedNotifications,
+                shouldShowRationale = Build.VERSION.SDK_INT >= POST_NOTIFICATIONS_SDK && shouldShowRequestPermissionRationale(permission),
+            ),
+        )
+    }
+
+    /** Android 13+ only; recorded first so a later "no rationale" means a permanent denial. */
+    private fun requestNotificationPermission() {
+        if (Build.VERSION.SDK_INT < POST_NOTIFICATIONS_SDK) return
+        permissionRequestHistory.hasRequestedNotifications = true
+        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+    }
+
+    private fun openNotificationSettings() {
+        runCatching {
+            startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, packageName))
+        }
     }
 
     private fun openAppSettings(): Boolean =

@@ -52,11 +52,11 @@ The order follows four phases. Every task leaves the app building, tests green a
 | 020 | [Flight parameters: pressure without GPS, smoothed vertical speed](020-flight-parameters-parity/task.md) | 016 | DONE |
 | 021 | [Route: remaining distance and ETA with only a destination](021-route-destination-only/task.md) | 016 | DONE |
 | 022 | [Satellite signal-strength bar chart](022-satellite-signal-chart/task.md) | 018 | DONE |
-| 023 | [Original Lottie searching animation and window tip](023-satellite-search-animation/task.md) | 022 | TODO |
-| 024 | [Compass, horizon, Settings, About without location permission](024-dashboard-without-location-permission/task.md) | 016 | TODO |
-| 025 | [Background notification on Android 13+ and plane notification icon](025-background-notification-permission/task.md) | 016, 024 | TODO |
-| 026 | [Compass sensor fallback, smoothing, rounding](026-compass-sensor-fallback/task.md) | 016 | TODO |
-| 027 | [Compass rose with N/E/S/W and animated plane](027-compass-rose/task.md) | 018, 026 | TODO |
+| 023 | [Original Lottie searching animation and window tip](023-satellite-search-animation/task.md) | 022 | DONE |
+| 024 | [Compass, horizon, Settings, About without location permission](024-dashboard-without-location-permission/task.md) | 016 | DONE |
+| 025 | [Background notification on Android 13+ and plane notification icon](025-background-notification-permission/task.md) | 016, 024 | DONE |
+| 026 | [Compass sensor fallback, smoothing, rounding](026-compass-sensor-fallback/task.md) | 016 | DONE |
+| 027 | [Compass rose with N/E/S/W and animated plane](027-compass-rose/task.md) | 018, 026 | DONE |
 | 028 | [Horizon calibration persistence, long-press reset, filtering](028-horizon-calibration/task.md) | 016 | TODO |
 | 029 | [Hide unsupported Course/Horizon cards; "Show hidden cards" setting](029-hide-unsupported-cards/task.md) | 006, 015, 026, 028 | TODO |
 | 030 | [Map: great-circle route line and visible purple plane marker](030-map-route-line-and-plane-marker/task.md) | 014, 016, 018, 026 | TODO |

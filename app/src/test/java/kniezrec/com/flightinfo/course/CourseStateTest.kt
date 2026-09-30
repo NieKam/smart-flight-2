@@ -33,8 +33,17 @@ class CourseStateTest {
     @Test fun normalizationHandlesPositiveNegativeAndInvalidValues() {
         assertEquals(359, normalizeCourseDegrees(-1.0))
         assertEquals(1, normalizeCourseDegrees(361.0))
-        assertEquals(0, normalizeCourseDegrees(720.9))
+        assertEquals(1, normalizeCourseDegrees(720.9))
+        assertEquals(0, normalizeCourseDegrees(720.4))
         assertEquals(null, normalizeCourseDegrees(Double.NaN))
         assertEquals(null, normalizeCourseDegrees(Double.POSITIVE_INFINITY))
+    }
+
+    @Test fun normalizationRoundsAsTheOriginal() {
+        assertEquals(271, normalizeCourseDegrees(271.4))
+        assertEquals(272, normalizeCourseDegrees(271.6))
+        assertEquals(0, normalizeCourseDegrees(359.6))
+        assertEquals(0, normalizeCourseDegrees(-0.4))
+        assertEquals(359, normalizeCourseDegrees(-0.6))
     }
 }

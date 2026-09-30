@@ -1,9 +1,11 @@
 package kniezrec.com.flightinfo.monitoring
 
+import android.Manifest
 import android.app.Notification
 import android.app.NotificationManager
 import android.content.Intent
 import androidx.test.core.app.ApplicationProvider
+import kniezrec.com.flightinfo.R
 import kniezrec.com.flightinfo.flight.FlightLocationFix
 import kniezrec.com.flightinfo.location.data.LocationRepository
 import kniezrec.com.flightinfo.testutil.FakeBackgroundNotificationSettingsRepository
@@ -152,14 +154,52 @@ class LocationForegroundServiceTest {
         assertTrue(notificationTitle().contains("waiting", true))
     }
 
+    // Changed in TASK-025: GPS never keeps running in the background without a visible notification.
     @Test
-    fun `notification permission denial keeps degraded service without waiting notification`() {
+    fun `hidden without notification access stops the service`() {
         startMonitoring(canPostNotifications = false)
+        assertEquals(1, fixRegistrations.activeCount)
+
+        hide()
+
+        assertReleased()
+        assertTrue(notifications().isEmpty())
+        assertTrue(shadowOf(service).isStoppedBySelf)
+    }
+
+    @Test
+    fun `waiting notification uses the plane small icon`() {
+        startMonitoring()
+        hide()
+
+        assertEquals(R.drawable.ic_stat_plane, notificationAtStableId()!!.smallIcon.resId)
+    }
+
+    @Config(sdk = [33])
+    @Test
+    fun `android 13 with POST_NOTIFICATIONS denied stops when hidden`() {
+        shadowOf(ApplicationProvider.getApplicationContext<android.app.Application>())
+            .denyPermissions(Manifest.permission.POST_NOTIFICATIONS)
+        startMonitoring(canPostNotifications = null)
+
+        hide()
+
+        assertReleased()
+        assertTrue(shadowOf(service).isStoppedBySelf)
+    }
+
+    @Config(sdk = [33])
+    @Test
+    fun `android 13 with POST_NOTIFICATIONS granted shows the waiting notification`() {
+        shadowOf(ApplicationProvider.getApplicationContext<android.app.Application>())
+            .grantPermissions(Manifest.permission.POST_NOTIFICATIONS)
+        startMonitoring(canPostNotifications = null)
+
         hide()
 
         assertEquals(1, fixRegistrations.activeCount)
-        assertEquals(1, notifications().size)
-        assertFalse(notificationTitle().contains("waiting", true))
+        assertTrue(notificationTitle().contains("waiting", true))
+        assertEquals(R.drawable.ic_stat_plane, notificationAtStableId()!!.smallIcon.resId)
     }
 
     @Test
@@ -372,7 +412,8 @@ class LocationForegroundServiceTest {
         dashboard.cancel()
     }
 
-    private fun createService(canPostNotifications: Boolean = true): TestLocationForegroundService {
+    /** [canPostNotifications] null: the real check (permission, app and channel switches). */
+    private fun createService(canPostNotifications: Boolean? = true): TestLocationForegroundService {
         controller = Robolectric.buildService(TestLocationForegroundService::class.java).create()
         service = controller.get()
         service.canPost = canPostNotifications
@@ -383,7 +424,7 @@ class LocationForegroundServiceTest {
     }
 
     /** Creates and starts the service as MainActivity does (while visible), then runs its collection. */
-    private fun startMonitoring(canPostNotifications: Boolean = true) {
+    private fun startMonitoring(canPostNotifications: Boolean? = true) {
         service = createService(canPostNotifications)
         service.onStartCommand(null, 0, 1)
         idleMainLooper()
@@ -436,12 +477,12 @@ class LocationForegroundServiceTest {
 
 internal class TestLocationForegroundService : LocationForegroundService() {
     var eligible = true
-    var canPost = true
+    var canPost: Boolean? = true
     var failForegroundStart = false
 
     override fun isMonitoringEligible(): Boolean = eligible
 
-    override fun canPostNotifications(): Boolean = canPost
+    override fun canPostNotifications(): Boolean = canPost ?: super.canPostNotifications()
 
     override fun startForegroundServiceNotification(): Boolean = !failForegroundStart
 }
