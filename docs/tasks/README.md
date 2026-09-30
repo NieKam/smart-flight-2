@@ -65,7 +65,7 @@ The order follows four phases. Every task leaves the app building, tests green a
 | 033 | [Route card visuals](033-route-card-visual/task.md) | 018, 021 | DONE |
 | 034 | [Toolbar with overflow menu, original launcher icon, card order](034-header-launcher-card-order/task.md) | 018, 024 | DONE |
 | 035 | [Displayed distances on the WGS84 ellipsoid](035-ellipsoidal-distances/task.md) | 011, 021 | DONE |
-| 036 | [Polish localization and translation-completeness check](036-polish-localization/task.md) | 019, 020, 021, 022, 023, 024, 025, 027, 028, 029, 030, 031, 032, 033, 034 | TODO |
+| 036 | [Polish localization and translation-completeness check](036-polish-localization/task.md) | 019, 020, 021, 022, 023, 024, 025, 027, 028, 029, 030, 031, 032, 033, 034 | DONE |
 
 ## Coverage
 
