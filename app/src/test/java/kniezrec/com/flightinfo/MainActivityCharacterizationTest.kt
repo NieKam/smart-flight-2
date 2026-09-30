@@ -236,7 +236,8 @@ class MainActivityCharacterizationTest {
 
         waitUntil { hasText(pressureMbar(PRESSURE_TEXT)) }
         composeRule.onNodeWithText(pressureMbar(PRESSURE_TEXT)).assertIsDisplayed()
-        composeRule.onAllNodesWithText(string(R.string.flight_parameters_waiting)).assertCountEquals(0)
+        // Readings layout (the Nearby city card still shows the same "Waiting for GPS position…" text).
+        composeRule.onNodeWithText(string(R.string.flight_vertical_speed)).assertExists()
         composeRule.onAllNodesWithText(speedKmh("36.0")).assertCountEquals(0)
 
         forward(flightFix()) { hasText(speedKmh("36.0")) }
