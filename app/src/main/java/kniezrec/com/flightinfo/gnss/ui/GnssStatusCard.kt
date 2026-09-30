@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
@@ -40,6 +41,7 @@ import androidx.compose.ui.unit.sp
 import kniezrec.com.flightinfo.R
 import kniezrec.com.flightinfo.gnss.GnssSatellite
 import kniezrec.com.flightinfo.gnss.GnssStatusState
+import kniezrec.com.flightinfo.gnss.satelliteChartModel
 import kniezrec.com.flightinfo.ui.theme.LabelText
 import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
 import kniezrec.com.flightinfo.ui.theme.ValueText
@@ -161,7 +163,7 @@ private data class StaticState(
 }
 
 @Composable private fun AvailableContent(satellites: List<GnssSatellite>) {
-    val used = satellites.count { it.usedInFix }
+    val chart = remember(satellites) { satelliteChartModel(satellites) }
     Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 20.dp)) {
         LabelText(
             stringResource(R.string.gnss_status_title),
@@ -176,25 +178,11 @@ private data class StaticState(
                 ),
         )
         ValueText(
-            pluralStringResource(R.plurals.gnss_satellites_used, used, used),
+            pluralStringResource(R.plurals.gnss_satellites_used, chart.usedCount, chart.usedCount),
             Modifier.padding(top = 12.dp),
             style = MaterialTheme.typography.bodyLarge.copy(fontSize = 18.sp, lineHeight = 25.sp),
         )
-        satellites.forEachIndexed { index, satellite -> SatelliteRow(index + 1, satellite) }
-    }
-}
-
-@Composable private fun SatelliteRow(
-    index: Int,
-    satellite: GnssSatellite,
-) {
-    val status = if (satellite.usedInFix) R.string.satellite_used else R.string.satellite_not_used
-    Column(Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(top = 12.dp)) {
-        LabelText(
-            stringResource(R.string.satellite_number, index),
-            style = MaterialTheme.typography.bodyLarge.copy(fontSize = 18.sp),
-        )
-        ValueText(stringResource(status), style = MaterialTheme.typography.bodyMedium)
+        SatelliteChart(chart, Modifier.padding(top = 16.dp).fillMaxWidth().height(SATELLITE_CHART_HEIGHT))
     }
 }
 
