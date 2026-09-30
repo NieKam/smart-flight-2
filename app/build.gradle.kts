@@ -20,8 +20,27 @@ android {
         versionName = "1.0.0"
     }
 
+    // Release signing is read from environment variables so the keystore and
+    // passwords never live in the repository. CI provides them from the
+    // "release" GitHub environment secrets; without them, release builds are unsigned.
+    val releaseKeystorePath = System.getenv("SIGNING_KEYSTORE_PATH")
+
+    signingConfigs {
+        if (releaseKeystorePath != null) {
+            create("release") {
+                storeFile = file(releaseKeystorePath)
+                storePassword = System.getenv("SIGNING_STORE_PASSWORD")
+                keyAlias = System.getenv("SIGNING_KEY_ALIAS")
+                keyPassword = System.getenv("SIGNING_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
+            if (releaseKeystorePath != null) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             optimization {
                 enable = false
             }
