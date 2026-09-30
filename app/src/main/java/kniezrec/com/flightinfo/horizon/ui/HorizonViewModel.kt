@@ -81,7 +81,8 @@ class HorizonViewModel
                             val roll = input.sample.rollDegrees
                             if (pitch.isFinite() && roll.isFinite()) {
                                 val reference = referencePitchDegrees ?: pitch.also { referencePitchDegrees = it }
-                                mapHorizonAttitude(pitch - reference, roll)?.let { emit(it) }
+                                // Samples give nose-up as negative pitch (as `SensorManager.getOrientation`).
+                                mapHorizonAttitude(reference - pitch, roll)?.let { emit(it) }
                             }
                         }
                     }

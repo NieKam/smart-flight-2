@@ -34,15 +34,15 @@ class HorizonViewModelTest {
             subscribe(viewModel)
 
             attitude(10.0, 4.0)
-            assertEquals(HorizonState.Available(0, 4, -0f, 4f), viewModel.state.value)
+            assertEquals(HorizonState.Available(0, 4, 0f, -4f), viewModel.state.value)
 
             viewModel.calibrate()
             runCurrent()
             assertEquals(HorizonState.Recalibrating, viewModel.state.value)
             attitude(18.0, -6.0)
-            assertEquals(HorizonState.Available(0, -6, -0f, -6f), viewModel.state.value)
+            assertEquals(HorizonState.Available(0, -6, 0f, 6f), viewModel.state.value)
             attitude(28.0, -8.0)
-            assertEquals(HorizonState.Available(10, -8, -0.11666667f, -8f), viewModel.state.value)
+            assertEquals(HorizonState.Available(-10, -8, -0.11666667f, 8f), viewModel.state.value)
         }
 
     @Test fun `non-finite samples are ignored and never become the reference`() =
@@ -55,7 +55,7 @@ class HorizonViewModelTest {
             assertEquals(HorizonState.Waiting, viewModel.state.value)
 
             attitude(10.0, 4.0)
-            assertEquals(HorizonState.Available(0, 4, -0f, 4f), viewModel.state.value)
+            assertEquals(HorizonState.Available(0, 4, 0f, -4f), viewModel.state.value)
         }
 
     @Test fun `without a rotation-vector sensor the card is unavailable and nothing is registered`() =
@@ -82,7 +82,7 @@ class HorizonViewModelTest {
             assertEquals(2, orientation.registerCount)
 
             attitude(5.0, 1.0)
-            assertEquals(HorizonState.Available(0, 1, -0f, 1f), viewModel.state.value)
+            assertEquals(HorizonState.Available(0, 1, 0f, -1f), viewModel.state.value)
         }
 
     @Test fun `a restarted observation waits for and recalibrates from a new sample, ignoring the old registration`() =
@@ -101,9 +101,9 @@ class HorizonViewModelTest {
             assertEquals(1, orientation.activeCount)
 
             attitude(30.0, -4.0)
-            assertEquals(HorizonState.Available(0, -4, -0f, -4f), viewModel.state.value)
+            assertEquals(HorizonState.Available(0, -4, 0f, 4f), viewModel.state.value)
             attitude(15.0, 5.0)
-            assertEquals(HorizonState.Available(-15, 5, 0.175f, 5f), viewModel.state.value)
+            assertEquals(HorizonState.Available(15, 5, 0.175f, -5f), viewModel.state.value)
         }
 
     @Test fun `calibrate while nothing is observed is ignored`() =
@@ -116,7 +116,7 @@ class HorizonViewModelTest {
             subscribe(viewModel)
             assertEquals(HorizonState.Waiting, viewModel.state.value)
             attitude(10.0, 4.0)
-            assertEquals(HorizonState.Available(0, 4, -0f, 4f), viewModel.state.value)
+            assertEquals(HorizonState.Available(0, 4, 0f, -4f), viewModel.state.value)
         }
 
     @Test fun `nothing is observed before the state is collected`() =
@@ -151,7 +151,7 @@ class HorizonViewModelTest {
             subscribe(viewModel)
             attitude(20.0, 0.0)
 
-            assertEquals(HorizonState.Available(10, 0, -0.11666667f, 0f), viewModel.state.value)
+            assertEquals(HorizonState.Available(-10, 0, -0.11666667f, 0f), viewModel.state.value)
             assertEquals(1, orientation.registerCount)
         }
 
@@ -167,7 +167,7 @@ class HorizonViewModelTest {
             assertEquals(HorizonState.Waiting, viewModel.state.value)
 
             attitude(20.0, 0.0)
-            assertEquals(HorizonState.Available(0, 0, -0f, 0f), viewModel.state.value)
+            assertEquals(HorizonState.Available(0, 0, 0f, 0f), viewModel.state.value)
         }
 
     private fun TestScope.subscribe(viewModel: HorizonViewModel): Job =

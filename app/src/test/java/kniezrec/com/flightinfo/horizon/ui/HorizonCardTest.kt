@@ -50,7 +50,7 @@ class HorizonCardTest {
     }
 
     @Test fun availableSummaryAndCalibrateAreAccessible() {
-        composeRule.setContent { HorizonCard(HorizonState.Available(12, -8, -.14f, -8f), {}, {}) }
+        composeRule.setContent { HorizonCard(HorizonState.Available(12, -8, .14f, 8f), {}, {}) }
         composeRule.onNodeWithText("Pitch: 12° up · Roll: 8° left").assertIsDisplayed()
         composeRule.onNode(hasStateDescription("Sets the current pitch as level.")).assertExists()
     }

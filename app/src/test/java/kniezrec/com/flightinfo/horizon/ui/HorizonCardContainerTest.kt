@@ -24,11 +24,12 @@ class HorizonCardContainerTest {
 
         // The first sample becomes the level reference.
         emitUntilShown(pitchDegrees = 0.0, text = "Pitch: level")
-        emitUntilShown(pitchDegrees = 10.0, text = "Pitch: 10° up")
+        // Samples give nose-up as negative pitch.
+        emitUntilShown(pitchDegrees = -10.0, text = "Pitch: 10° up")
 
         composeRule.onNodeWithText("Calibrate").performClick()
 
-        emitUntilShown(pitchDegrees = 10.0, text = "Pitch: level")
+        emitUntilShown(pitchDegrees = -10.0, text = "Pitch: level")
     }
 
     /** Re-sends the sample until the ViewModel's registration (made when the card starts collecting) shows it. */
