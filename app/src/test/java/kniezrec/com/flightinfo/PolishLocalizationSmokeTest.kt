@@ -115,6 +115,13 @@ class PolishLocalizationSmokeTest {
         assertEquals("12 minut", resources.getQuantityString(R.plurals.nearby_city_utc_offset_minutes, 12, 12))
         assertEquals("22 minuty", resources.getQuantityString(R.plurals.nearby_city_utc_offset_minutes, 22, 22))
         assertEquals("Używanych 0 satelitów", resources.getQuantityString(R.plurals.gnss_satellites_used, 0, 0))
+        // The spoken compass heading declines "stopień" with the number.
+        for ((degrees, word) in listOf(1 to "stopień", 2 to "stopnie", 22 to "stopnie", 5 to "stopni", 12 to "stopni", 0 to "stopni")) {
+            assertEquals(
+                "Kurs z kompasu, $degrees $word, północ",
+                resources.getQuantityString(R.plurals.course_heading_spoken, degrees, degrees.toString(), "północ"),
+            )
+        }
     }
 
     @Test
