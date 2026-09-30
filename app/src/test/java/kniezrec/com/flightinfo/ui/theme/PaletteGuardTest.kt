@@ -43,9 +43,9 @@ class PaletteGuardTest {
     }
 
     @Test
-    fun mapDrawablesUseOnlyPaletteColors() {
+    fun mapAndRouteCardDrawablesUseOnlyPaletteColors() {
         val drawables = File("src/main/res/drawable")
-        for (name in MAP_DRAWABLES) {
+        for (name in MAP_DRAWABLES + ROUTE_CARD_DRAWABLES) {
             val file = File(drawables, "$name.xml")
             assertTrue("Drawable not found: ${file.absolutePath}", file.isFile)
             val colors =
@@ -79,6 +79,15 @@ class PaletteGuardTest {
         assertTrue("RoutePicker.kt declares colors outside the tokens: $literals", literals.isEmpty())
     }
 
+    @Test
+    fun routeCardDeclaresNoColorsOfItsOwn() {
+        // TASK-033: the route card's icons and texts are tinted with the tokens.
+        val file = File("src/main/java/kniezrec/com/flightinfo/route/ui/RouteCard.kt")
+        assertTrue("Route card not found: ${file.absolutePath}", file.isFile)
+        val literals = COLOR_LITERAL.findAll(file.readText()).map { it.value }.toList()
+        assertTrue("RouteCard.kt declares colors outside the tokens: $literals", literals.isEmpty())
+    }
+
     private fun tokens(colors: SmartFlightColors): Map<String, Int> =
         // A Color property compiles to a public getter returning the packed Long (value class).
         SmartFlightColors::class.java.declaredMethods
@@ -107,6 +116,9 @@ class PaletteGuardTest {
                 "ic_shrink",
                 "drawing_pin_icon",
             )
+
+        /** The original take-off, landing and trash icons of the route card. */
+        val ROUTE_CARD_DRAWABLES = listOf("ic_route_take_off", "ic_route_landing", "ic_route_delete")
 
         /** A Compose color literal (`Color(0x…)`, `Color(red, …)`) or an Android `Color.parseColor`/`Color.rgb`. */
         val COLOR_LITERAL = Regex("""\bColor\s*\(\s*(0x|\d)|Color\.(parseColor|rgb|argb)\b""")
