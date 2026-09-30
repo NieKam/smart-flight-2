@@ -208,8 +208,9 @@ The order follows four phases. Every task leaves the app building, tests green a
 - Parity palette section / finding 11 justify the accent change to #6CF0FF "for contrast". Per the human's palette decision TASK-018 restores #25E5FE and instead restricts small accent text on card surfaces.
 
 ## Open questions for the human
-1. **Muted label contrast.** The original label color #A1A0C4 has ≈2.5:1 contrast on cards (#5B5999) and ≈3.3:1 on the page (#484685), below WCAG AA. TASK-018 follows your palette decision and keeps it as a documented exception. Do you want a slightly lighter label shade instead (e.g. ≈#B9B8D9, still clearly "muted")? The plan proceeds with the original color unless you say otherwise.
-2. **Orientation sign defects (found in TASK-010, fix planned in TASK-028).** The TASK-010 rotation-matrix tests (`DisplayRelativeOrientationTest`) pin today's values; the correct ones are in the test comments. Please confirm on a device before TASK-028 fixes them.
-   - **Landscape / reverse landscape:** `DisplayRelativeOrientation.calculate` swaps Android's `remapCoordinateSystem` mappings for `ROTATION_90` and `ROTATION_270`. As a result the heading is off by 180° and pitch and roll have the opposite sign. Portrait and reverse portrait are correct.
-   - **Horizon pitch label:** nose-up gives negative pitch, and `HorizonCard` labels positive pitch as "up", so nose-up reads "N° down". The horizon picture itself moves the right way.
-   - **Horizon roll picture:** `rotationZ = +roll` turns the sky/ground layer clockwise when rolling right; an attitude indicator should turn it counter-clockwise. This was checked on paper only; please verify on a device.
+Both questions are answered; the decisions are recorded here.
+1. **Muted label contrast — decided: keep #A1A0C4.** The original label color #A1A0C4 has ≈2.5:1 contrast on cards (#5B5999) and ≈3.3:1 on the page (#484685), below WCAG AA. The human kept the original color as a documented exception (TASK-018); no lighter shade.
+2. **Orientation sign defects — decided: fix all three (TASK-028).** The correct values in the TASK-010 test comments were approved without waiting for a device check; the human reports device issues at the end. TASK-028 fixed:
+   - **Landscape / reverse landscape:** `DisplayRelativeOrientation.calculate` swapped Android's `remapCoordinateSystem` mappings for `ROTATION_90` and `ROTATION_270` (heading off by 180°, pitch and roll with the opposite sign). The remap now matches Android's; `DisplayRelativeOrientationTest` expects the portrait convention in every rotation.
+   - **Horizon pitch label:** samples give nose-up as negative pitch; the horizon now uses `reference - pitch` (as the original presenter), so nose-up reads "N° up". The picture still moves the right way.
+   - **Horizon roll picture:** rolling right now turns the sky/ground layer counter-clockwise (`rotationZ = -roll`), as an attitude indicator.
