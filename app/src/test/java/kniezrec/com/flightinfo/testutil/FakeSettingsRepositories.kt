@@ -1,5 +1,7 @@
 package kniezrec.com.flightinfo.testutil
 
+import kniezrec.com.flightinfo.dashboard.HideableCard
+import kniezrec.com.flightinfo.dashboard.data.CardVisibilityRepository
 import kniezrec.com.flightinfo.display.DisplayPreferences
 import kniezrec.com.flightinfo.display.data.DisplaySettingsRepository
 import kniezrec.com.flightinfo.displayunits.UnitPreferences
@@ -46,5 +48,22 @@ class FakeBackgroundNotificationSettingsRepository(
 
     override suspend fun setShowBackgroundNotification(enabled: Boolean) {
         state.value = BackgroundNotificationPreferences(enabled)
+    }
+}
+
+/** In-memory [CardVisibilityRepository] for the dashboard and Settings. */
+class FakeCardVisibilityRepository(
+    initial: Set<HideableCard> = emptySet(),
+) : CardVisibilityRepository {
+    private val state = MutableStateFlow(initial)
+
+    override val hiddenCards: StateFlow<Set<HideableCard>> = state.asStateFlow()
+
+    override suspend fun hide(card: HideableCard) {
+        state.value += card
+    }
+
+    override suspend fun showAll() {
+        state.value = emptySet()
     }
 }
