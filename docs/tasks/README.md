@@ -48,10 +48,10 @@ The order follows four phases. Every task leaves the app building, tests green a
 | 016 | [Dashboard composition, slim MainActivity, state survives rotation](016-dashboard-screen-slim-activity/task.md) | 009, 010, 011, 013, 014, 015 | DONE |
 | 017 | [Design tokens in ui/theme, shared unit labels](017-design-tokens/task.md) | 016 | DONE |
 | 018 | [Original palette on every screen (theme, text hierarchy, dialogs, palette guard)](018-brand-theme/task.md) | 017 | DONE |
-| 019 | [GPS-disabled prompt and live GNSS states](019-gps-disabled-prompt/task.md) | 016 | TODO |
-| 020 | [Flight parameters: pressure without GPS, smoothed vertical speed](020-flight-parameters-parity/task.md) | 016 | TODO |
-| 021 | [Route: remaining distance and ETA with only a destination](021-route-destination-only/task.md) | 016 | TODO |
-| 022 | [Satellite signal-strength bar chart](022-satellite-signal-chart/task.md) | 018 | TODO |
+| 019 | [GPS-disabled prompt and live GNSS states](019-gps-disabled-prompt/task.md) | 016 | DONE |
+| 020 | [Flight parameters: pressure without GPS, smoothed vertical speed](020-flight-parameters-parity/task.md) | 016 | DONE |
+| 021 | [Route: remaining distance and ETA with only a destination](021-route-destination-only/task.md) | 016 | DONE |
+| 022 | [Satellite signal-strength bar chart](022-satellite-signal-chart/task.md) | 018 | DONE |
 | 023 | [Original Lottie searching animation and window tip](023-satellite-search-animation/task.md) | 022 | TODO |
 | 024 | [Compass, horizon, Settings, About without location permission](024-dashboard-without-location-permission/task.md) | 016 | TODO |
 | 025 | [Background notification on Android 13+ and plane notification icon](025-background-notification-permission/task.md) | 016, 024 | TODO |
