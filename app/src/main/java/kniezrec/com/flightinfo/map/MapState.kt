@@ -90,10 +90,20 @@ object MapRules {
 
     fun maxZoom(largerMapZoom: Boolean): Double = if (largerMapZoom) LARGER_MAX_ZOOM else STANDARD_MAX_ZOOM
 
-    fun shouldShowMaximumZoomWarning(
-        currentZoom: Double,
+    /** The max-zoom tip is shown at most this many times, as in the original app. */
+    const val ZOOM_TIP_LIMIT = 4
+
+    /** [zoom] is at (or beyond) the standard maximum: reaching it is what may show the max-zoom tip. */
+    fun isAtStandardMaximum(zoom: Double): Boolean = zoom >= STANDARD_MAX_ZOOM
+
+    /**
+     * The max-zoom tip ("force bigger in settings") may be shown: "larger map zoom" is off and the
+     * tip was shown fewer than [ZOOM_TIP_LIMIT] times.
+     */
+    fun shouldShowZoomTip(
         largerMapZoom: Boolean,
-    ): Boolean = !largerMapZoom && currentZoom >= STANDARD_MAX_ZOOM
+        shownCount: Int,
+    ): Boolean = !largerMapZoom && shownCount < ZOOM_TIP_LIMIT
 
     fun reconcileZoom(
         currentZoom: Double,

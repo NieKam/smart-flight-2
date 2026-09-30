@@ -3,9 +3,11 @@ package kniezrec.com.flightinfo.map.ui
 import kniezrec.com.flightinfo.display.DisplayPreferences
 import kniezrec.com.flightinfo.location.data.LocationRepository
 import kniezrec.com.flightinfo.map.MapCoordinate
+import kniezrec.com.flightinfo.map.MapRules
 import kniezrec.com.flightinfo.map.data.MapArchiveRepository
 import kniezrec.com.flightinfo.testutil.FakeDisplaySettingsRepository
 import kniezrec.com.flightinfo.testutil.FakeLocationDataSource
+import kniezrec.com.flightinfo.testutil.FakeMapTipRepository
 import kniezrec.com.flightinfo.testutil.FakeOrientationDataSource
 import kniezrec.com.flightinfo.testutil.flightFix
 import kotlinx.coroutines.Dispatchers
@@ -21,7 +23,9 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import java.io.ByteArrayInputStream
@@ -38,6 +42,7 @@ class MapViewModelTest {
     private val location = FakeLocationDataSource()
     private val display = FakeDisplaySettingsRepository()
     private val orientation = FakeOrientationDataSource()
+    private val tips = FakeMapTipRepository()
     private val directory: File = Files.createTempDirectory("map-view-model").toFile()
     private val archive = File(directory, "osmdroid.zip")
 
@@ -224,6 +229,98 @@ class MapViewModelTest {
             assertEquals(true, ready(viewModel).largerMapZoom)
         }
 
+    @Test fun `reaching the standard maximum zoom requests the tip and counts it`() =
+        runTest(dispatcher) {
+            val viewModel = viewModel()
+            assertFalse(viewModel.zoomTip.value)
+
+            zoom(viewModel, 5.0)
+            assertFalse(viewModel.zoomTip.value)
+            zoom(viewModel, MapRules.STANDARD_MAX_ZOOM)
+
+            assertTrue(viewModel.zoomTip.value)
+            assertEquals(1, tips.shownCount)
+
+            viewModel.onZoomTipShown()
+            assertFalse(viewModel.zoomTip.value)
+        }
+
+    @Test fun `repeated zoom events at the maximum count once`() =
+        runTest(dispatcher) {
+            val viewModel = viewModel()
+
+            zoom(viewModel, 6.0)
+            viewModel.onZoomTipShown()
+            zoom(viewModel, 6.0)
+            zoom(viewModel, 6.0)
+
+            assertFalse(viewModel.zoomTip.value)
+            assertEquals(1, tips.shownCount)
+
+            // Leaving the maximum and reaching it again is a new transition.
+            zoom(viewModel, 5.5)
+            zoom(viewModel, 6.0)
+            assertTrue(viewModel.zoomTip.value)
+            assertEquals(2, tips.shownCount)
+        }
+
+    @Test fun `a tip still waiting to be shown is not requested or counted again`() =
+        runTest(dispatcher) {
+            val viewModel = viewModel()
+
+            zoom(viewModel, 6.0)
+            zoom(viewModel, 5.0)
+            zoom(viewModel, 6.0)
+
+            assertTrue(viewModel.zoomTip.value)
+            assertEquals(1, tips.shownCount)
+        }
+
+    @Test fun `the tip is never requested after four shows`() =
+        runTest(dispatcher) {
+            val viewModel = viewModel()
+
+            repeat(MapRules.ZOOM_TIP_LIMIT + 2) {
+                zoom(viewModel, 5.0)
+                zoom(viewModel, 6.0)
+                if (viewModel.zoomTip.value) viewModel.onZoomTipShown()
+            }
+            assertEquals(4, tips.shownCount)
+
+            zoom(viewModel, 5.0)
+            zoom(viewModel, 6.0)
+            assertFalse(viewModel.zoomTip.value)
+            assertEquals(4, tips.shownCount)
+        }
+
+    @Test fun `a count stored as four already suppresses the tip`() =
+        runTest(dispatcher) {
+            tips.shownCount = 4
+            val viewModel = viewModel()
+
+            zoom(viewModel, 6.0)
+
+            assertFalse(viewModel.zoomTip.value)
+            assertEquals(4, tips.shownCount)
+        }
+
+    @Test fun `the tip is not requested while larger map zoom is on`() =
+        runTest(dispatcher) {
+            display.set(DisplayPreferences(largerMapZoom = true))
+            val viewModel = viewModel()
+
+            zoom(viewModel, 6.0)
+            zoom(viewModel, 9.0)
+
+            assertFalse(viewModel.zoomTip.value)
+            assertEquals(0, tips.shownCount)
+
+            // Switching it off while zoomed in clamps the map to 6: still at the maximum, no tip.
+            display.set(DisplayPreferences(largerMapZoom = false))
+            zoom(viewModel, 6.0)
+            assertFalse(viewModel.zoomTip.value)
+        }
+
     @Test fun `nothing is prepared or observed before the state is collected`() =
         runTest(dispatcher) {
             val viewModel = viewModel()
@@ -300,7 +397,16 @@ class MapViewModelTest {
             LocationRepository(location, backgroundScope),
             display,
             orientation,
+            tips,
         )
+
+    private fun TestScope.zoom(
+        viewModel: MapViewModel,
+        level: Double,
+    ) {
+        viewModel.onZoomChanged(level)
+        runCurrent()
+    }
 
     private fun openAsset(): InputStream {
         assetOpens++

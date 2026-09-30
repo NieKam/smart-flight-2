@@ -42,6 +42,7 @@ import kniezrec.com.flightinfo.gnss.ui.GnssStatusCardContainer
 import kniezrec.com.flightinfo.horizon.ui.HorizonCardContainer
 import kniezrec.com.flightinfo.map.ui.MapCardContainer
 import kniezrec.com.flightinfo.map.ui.MapViewModel
+import kniezrec.com.flightinfo.map.ui.MapZoomTipHost
 import kniezrec.com.flightinfo.nearby.ui.NearbyCityCardContainer
 import kniezrec.com.flightinfo.route.ui.RouteCardContainer
 import kniezrec.com.flightinfo.route.ui.RoutePickerOverlay
@@ -61,6 +62,9 @@ import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
  * not composed, so their ViewModels are not created and nothing collects location. Course and
  * Horizon cards the user hid (device without their sensor) are not composed either.
  *
+ * The map's max-zoom tip is shown at the top of the card list; its "Settings" action opens Settings
+ * with the "Larger map zoom" row highlighted.
+ *
  * @param permissionCard the location permission card, or null once location is granted.
  * @param onOpenLocationSettings action of the GNSS card when location is switched off, and "Yes" of
  *   the "Enable GPS" prompt shown when the dashboard starts with GPS off.
@@ -77,9 +81,15 @@ fun DashboardScreen(
     viewModel: DashboardViewModel = hiltViewModel(),
 ) {
     var showSettings by rememberSaveable { mutableStateOf(false) }
+    // Settings opened from the map's max-zoom tip: the "Larger map zoom" row flashes once.
+    var highlightLargerMapZoom by rememberSaveable { mutableStateOf(false) }
     var showAbout by rememberSaveable { mutableStateOf(false) }
+    val closeSettings = {
+        showSettings = false
+        highlightLargerMapZoom = false
+    }
     // Registered before the picker's own back handler, which therefore wins while it is open.
-    BackHandler(enabled = showSettings) { showSettings = false }
+    BackHandler(enabled = showSettings, onBack = closeSettings)
     BackHandler(enabled = showAbout) { showAbout = false }
     val locationGranted = permissionCard == null
     val hiddenCards by viewModel.hiddenCards.collectAsStateWithLifecycle()
@@ -87,7 +97,12 @@ fun DashboardScreen(
     // preserves its viewport, overlays, and in-place zoom policy.
     Box(Modifier.fillMaxSize()) {
         if (showSettings) {
-            SettingsOverlay(onBack = { showSettings = false }, modifier = modifier.zIndex(1f))
+            SettingsOverlay(
+                onBack = closeSettings,
+                highlightLargerMapZoom = highlightLargerMapZoom,
+                onHighlightFinished = { highlightLargerMapZoom = false },
+                modifier = modifier.zIndex(1f),
+            )
         }
         Box(Modifier.fillMaxSize().then(modifier)) {
             Column(Modifier.fillMaxSize()) {
@@ -112,7 +127,17 @@ fun DashboardScreen(
                         }
                     }
                 } else {
-                    LocationDashboardCards(viewModel, hiddenCards, cardModifier, onOpenLocationSettings, Modifier.weight(1f))
+                    LocationDashboardCards(
+                        viewModel = viewModel,
+                        hiddenCards = hiddenCards,
+                        cardModifier = cardModifier,
+                        onOpenLocationSettings = onOpenLocationSettings,
+                        onOpenLargerMapZoomSetting = {
+                            highlightLargerMapZoom = true
+                            showSettings = true
+                        },
+                        modifier = Modifier.weight(1f),
+                    )
                 }
             }
         }
@@ -130,19 +155,25 @@ fun DashboardScreen(
     }
 }
 
-/** Every card with location granted, and the city picker overlay over them. */
+/**
+ * Every card with location granted, the map's max-zoom tip at the top of the list, and the city
+ * picker overlay over them. The expanded map fits in the list's viewport (this box's height).
+ */
 @Composable
 private fun LocationDashboardCards(
     viewModel: DashboardViewModel,
     hiddenCards: Set<HideableCard>,
     cardModifier: Modifier,
     onOpenLocationSettings: () -> Unit,
+    onOpenLargerMapZoomSetting: () -> Unit,
     modifier: Modifier,
 ) {
     val units by viewModel.units.collectAsStateWithLifecycle()
     val routePickerViewModel: RoutePickerViewModel = hiltViewModel()
     val mapViewModel: MapViewModel = hiltViewModel()
-    Box(modifier) {
+    val zoomTip by mapViewModel.zoomTip.collectAsStateWithLifecycle()
+    BoxWithConstraints(modifier) {
+        val viewportHeight = maxHeight
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 12.dp)) {
             DashboardSlot { GnssStatusCardContainer(onOpenLocationSettings = onOpenLocationSettings) }
             DashboardSlot { FlightParametersCardContainer(units, cardModifier) }
@@ -160,8 +191,14 @@ private fun LocationDashboardCards(
             }
             DashboardSlot { NearbyCityCardContainer(units.distance, cardModifier) }
             DashboardSlot { RouteCardContainer(units.distance, routePickerViewModel::open, cardModifier) }
-            DashboardSlot { MapCardContainer(cardModifier, viewModel = mapViewModel) }
+            DashboardSlot { MapCardContainer(cardModifier, maxMapHeight = viewportHeight, viewModel = mapViewModel) }
         }
+        MapZoomTipHost(
+            requested = zoomTip,
+            onShown = mapViewModel::onZoomTipShown,
+            onOpenSettings = onOpenLargerMapZoomSetting,
+            modifier = Modifier.align(Alignment.TopCenter),
+        )
         RoutePickerOverlay(viewModel = routePickerViewModel, mapViewModel = mapViewModel)
     }
 }

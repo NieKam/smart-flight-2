@@ -18,6 +18,7 @@ import kniezrec.com.flightinfo.route.data.RouteRepository
 import kniezrec.com.flightinfo.route.ui.RouteViewModel
 import kniezrec.com.flightinfo.testutil.FakeDisplaySettingsRepository
 import kniezrec.com.flightinfo.testutil.FakeLocationDataSource
+import kniezrec.com.flightinfo.testutil.FakeMapTipRepository
 import kniezrec.com.flightinfo.testutil.FakeOrientationDataSource
 import kniezrec.com.flightinfo.testutil.ListCityDataSource
 import kotlinx.coroutines.CoroutineScope
@@ -74,6 +75,7 @@ class MapCardContainerTest {
                 locationRepository,
                 FakeDisplaySettingsRepository(),
                 FakeOrientationDataSource(),
+                FakeMapTipRepository(),
             )
         val routeViewModel =
             RouteViewModel(
@@ -106,6 +108,7 @@ class MapCardContainerTest {
                 LocationRepository(location, repositoryScope),
                 FakeDisplaySettingsRepository(),
                 FakeOrientationDataSource(),
+                FakeMapTipRepository(),
             )
         val routeViewModel =
             RouteViewModel(

@@ -8,18 +8,22 @@ import kniezrec.com.flightinfo.display.data.DisplaySettingsRepository
 import kniezrec.com.flightinfo.flight.FlightLocationFix
 import kniezrec.com.flightinfo.location.data.LocationRegistrationException
 import kniezrec.com.flightinfo.location.data.LocationRepository
+import kniezrec.com.flightinfo.map.MapRules
 import kniezrec.com.flightinfo.map.MapTracking
 import kniezrec.com.flightinfo.map.data.MapArchiveRepository
+import kniezrec.com.flightinfo.map.data.MapTipRepository
 import kniezrec.com.flightinfo.orientation.HeadingSmoother
 import kniezrec.com.flightinfo.orientation.data.OrientationDataSource
 import kniezrec.com.flightinfo.orientation.data.OrientationRegistrationException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -33,6 +37,7 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.transformWhile
+import kotlinx.coroutines.launch
 import java.io.File
 import javax.inject.Inject
 
@@ -56,6 +61,11 @@ import javax.inject.Inject
  * last 10 sensor headings, whole degrees) while standing still, otherwise the previous heading. The
  * orientation sensor is collected only while the map is observed; without one, or when its
  * registration is refused, the marker relies on the GPS track alone.
+ *
+ * The max-zoom tip ([zoomTip]) is requested when the map reaches the standard maximum zoom
+ * ([onZoomChanged]) while "larger map zoom" is off, at most [MapRules.ZOOM_TIP_LIMIT] times in
+ * total (counted by [MapTipRepository] when requested). Zoom events repeat at the maximum; only the
+ * transition to it counts, and not while a requested tip is still waiting for [onZoomTipShown].
  */
 @HiltViewModel
 class MapViewModel
@@ -65,8 +75,21 @@ class MapViewModel
         private val locationRepository: LocationRepository,
         private val displaySettingsRepository: DisplaySettingsRepository,
         private val orientationDataSource: OrientationDataSource,
+        private val mapTipRepository: MapTipRepository,
     ) : ViewModel() {
         private val retries = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+
+        private val zoomTipRequested = MutableStateFlow(false)
+
+        // Main thread only (map listener callbacks).
+        private var atStandardMaximum = false
+        private var zoomTipCheck: Job? = null
+
+        /**
+         * True while the max-zoom tip is to be shown; the UI shows it once and acknowledges it with
+         * [onZoomTipShown]. Survives a configuration change, so a tip interrupted by one is shown again.
+         */
+        val zoomTip: StateFlow<Boolean> = zoomTipRequested.asStateFlow()
 
         // Per observation; reset when the archive is ready.
         private val centered = MutableStateFlow(false)
@@ -92,6 +115,31 @@ class MapViewModel
         /** The map is centered on [MapUiState.Ready.centerRequest]; it is not requested again. */
         fun onCentered() {
             centered.value = true
+        }
+
+        /**
+         * The map's zoom level changed to [zoomLevel] (a new map reports its initial zoom). Reaching
+         * the standard maximum may request the max-zoom tip; see the class documentation.
+         */
+        fun onZoomChanged(zoomLevel: Double) {
+            val atMaximum = MapRules.isAtStandardMaximum(zoomLevel)
+            val reached = atMaximum && !atStandardMaximum
+            atStandardMaximum = atMaximum
+            if (!reached || zoomTipRequested.value || zoomTipCheck?.isActive == true) return
+            val largerMapZoom = displaySettingsRepository.display.value.largerMapZoom
+            if (largerMapZoom) return
+            zoomTipCheck =
+                viewModelScope.launch {
+                    if (MapRules.shouldShowZoomTip(largerMapZoom, mapTipRepository.zoomTipShownCount())) {
+                        mapTipRepository.recordZoomTipShown()
+                        zoomTipRequested.value = true
+                    }
+                }
+        }
+
+        /** The requested max-zoom tip was shown (and dismissed or acted on). */
+        fun onZoomTipShown() {
+            zoomTipRequested.value = false
         }
 
         private fun observe(): Flow<MapUiState> =

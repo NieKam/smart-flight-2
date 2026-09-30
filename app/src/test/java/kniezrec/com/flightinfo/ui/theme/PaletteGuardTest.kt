@@ -61,6 +61,15 @@ class PaletteGuardTest {
         }
     }
 
+    @Test
+    fun mapCardDeclaresNoColorsOfItsOwn() {
+        // The map buttons take their colors from the tokens (no background such as the former #DD25133F).
+        val file = File("src/main/java/kniezrec/com/flightinfo/map/ui/MapCard.kt")
+        assertTrue("Map card not found: ${file.absolutePath}", file.isFile)
+        val literals = COLOR_LITERAL.findAll(file.readText()).map { it.value }.toList()
+        assertTrue("MapCard.kt declares colors outside the tokens: $literals", literals.isEmpty())
+    }
+
     private fun tokens(colors: SmartFlightColors): Map<String, Int> =
         // A Color property compiles to a public getter returning the packed Long (value class).
         SmartFlightColors::class.java.declaredMethods
@@ -78,8 +87,19 @@ class PaletteGuardTest {
     private fun hex(argb: Int) = "#%08X".format(argb)
 
     private companion object {
-        /** The plane marker and the route pins drawn on the map. */
-        val MAP_DRAWABLES = listOf("ic_plane_marker", "ic_map_pin_departure", "ic_map_pin_destination")
+        /** The plane marker, the route pins and the button icons drawn on the map. */
+        val MAP_DRAWABLES =
+            listOf(
+                "ic_plane_marker",
+                "ic_map_pin_departure",
+                "ic_map_pin_destination",
+                "ic_expand",
+                "ic_shrink",
+                "drawing_pin_icon",
+            )
+
+        /** A Compose color literal (`Color(0x…)`, `Color(red, …)`) or an Android `Color.parseColor`/`Color.rgb`. */
+        val COLOR_LITERAL = Regex("""\bColor\s*\(\s*(0x|\d)|Color\.(parseColor|rgb|argb)\b""")
 
         val DRAWABLE_COLOR = Regex("android:(?:fillColor|strokeColor)=\"#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})\"")
 

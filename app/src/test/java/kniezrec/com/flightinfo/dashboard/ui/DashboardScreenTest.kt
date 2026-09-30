@@ -4,24 +4,35 @@ import android.Manifest
 import android.app.Application
 import android.content.pm.PackageManager
 import androidx.annotation.StringRes
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasAnySibling
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.lifecycle.ViewModelProvider
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kniezrec.com.flightinfo.MainActivity
 import kniezrec.com.flightinfo.R
+import kniezrec.com.flightinfo.map.MapRules
+import kniezrec.com.flightinfo.map.ui.MAP_ZOOM_TIP_TAG
+import kniezrec.com.flightinfo.map.ui.MapViewModel
+import kniezrec.com.flightinfo.settings.ui.LARGER_MAP_ZOOM_ROW_TAG
+import kniezrec.com.flightinfo.settings.ui.SettingHighlighted
 import kniezrec.com.flightinfo.testutil.idleMainLooper
 import org.junit.After
 import org.junit.Assert.assertTrue
@@ -170,6 +181,34 @@ class DashboardScreenTest {
         composeRule.onNodeWithText(string(R.string.gnss_status_title)).performScrollTo().assertIsDisplayed()
     }
 
+    @Test
+    fun maxZoomTipActionOpensSettingsWithTheLargerMapZoomRowHighlighted() {
+        val expand = string(R.string.map_expand)
+        val tip = string(R.string.map_zoom_tip)
+        waitUntil { composeRule.onAllNodesWithContentDescription(expand).fetchSemanticsNodes().isNotEmpty() }
+
+        // The map reached the standard maximum (as its zoom listener reports it).
+        checkNotNull(scenario).onActivity { activity ->
+            ViewModelProvider(activity)[MapViewModel::class.java].onZoomChanged(MapRules.STANDARD_MAX_ZOOM)
+        }
+        waitUntil { composeRule.onAllNodesWithText(tip).fetchSemanticsNodes().isNotEmpty() }
+
+        // Paused clock: the highlight is observed while it flashes.
+        composeRule.mainClock.autoAdvance = false
+        composeRule
+            .onNode(hasText(string(R.string.settings_title)) and hasAnyAncestor(hasTestTag(MAP_ZOOM_TIP_TAG)))
+            .performClick()
+        composeRule.mainClock.advanceTimeBy(HIGHLIGHT_CHECK_MILLIS)
+
+        composeRule.onNodeWithText(string(R.string.units_section)).assertExists()
+        composeRule.onNodeWithTag(LARGER_MAP_ZOOM_ROW_TAG).assert(SemanticsMatcher.expectValue(SettingHighlighted, true))
+
+        composeRule.mainClock.autoAdvance = true
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag(LARGER_MAP_ZOOM_ROW_TAG).assert(SemanticsMatcher.expectValue(SettingHighlighted, false))
+        composeRule.onAllNodesWithText(tip).assertCountEquals(0)
+    }
+
     /** The "Hide" button of the missing-sensor placeholder showing [message]. */
     private fun hideButtonOf(message: String) = composeRule.onNode(hasText(string(R.string.hide_card)) and hasAnySibling(hasText(message)))
 
@@ -192,5 +231,6 @@ class DashboardScreenTest {
     private companion object {
         const val CREATE_ACTIVITY_CONTEXTS = "robolectric.createActivityContexts"
         const val ASYNC_TIMEOUT_MILLIS = 20_000L
+        const val HIGHLIGHT_CHECK_MILLIS = 200L
     }
 }
