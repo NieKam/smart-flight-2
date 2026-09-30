@@ -22,7 +22,8 @@ import javax.inject.Inject
 class LocationPermissionViewModel
     @Inject
     constructor(
-        private val requestHistory: LocationPermissionRequestHistory,
+        // Internal so tests can check its singleton scope.
+        internal val requestHistory: LocationPermissionRequestHistory,
     ) : ViewModel() {
         private val mutableState = MutableStateFlow(LocationPermissionState.Requestable)
         private val mutableAnnounceChange = MutableStateFlow(false)

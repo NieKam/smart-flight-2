@@ -3,10 +3,13 @@ package kniezrec.com.flightinfo
 import android.app.Application
 import android.location.LocationManager
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
+import androidx.lifecycle.ViewModelProvider
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kniezrec.com.flightinfo.monitoring.LocationForegroundService
+import kniezrec.com.flightinfo.permission.ui.LocationPermissionViewModel
+import kniezrec.com.flightinfo.settings.ui.SettingsViewModel
 import org.junit.After
 import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertSame
@@ -58,20 +61,39 @@ class HiltSingletonScopeTest {
 
         assertNotSame(first.activity, second.activity)
         assertSame(first.displaySettingsRepository, second.displaySettingsRepository)
-        assertSame(first.unitSettingsRepository, second.unitSettingsRepository)
-        assertSame(first.backgroundNotificationSettingsRepository, second.backgroundNotificationSettingsRepository)
-        assertSame(first.permissionRequestHistory, second.permissionRequestHistory)
         assertSame(first.appVisibility, second.appVisibility)
+    }
+
+    // Settings and permission repositories are injected into ViewModels (TASK-015). ViewModels
+    // survive recreation, so two activity launches give two separately injected instances.
+    @Test
+    fun separatelyCreatedViewModelsShareTheSameSingletons() {
+        val firstLaunch = ActivityScenario.launch(MainActivity::class.java)
+        val first = firstLaunch.viewModels()
+        firstLaunch.close()
+        val second = ActivityScenario.launch(MainActivity::class.java).also { scenario = it }.viewModels()
+
+        assertNotSame(first.settings, second.settings)
+        assertNotSame(first.permission, second.permission)
+        assertSame(first.settings.unitSettingsRepository, second.settings.unitSettingsRepository)
+        assertSame(first.settings.displaySettingsRepository, second.settings.displaySettingsRepository)
+        assertSame(
+            first.settings.backgroundNotificationSettingsRepository,
+            second.settings.backgroundNotificationSettingsRepository,
+        )
+        assertSame(first.permission.requestHistory, second.permission.requestHistory)
     }
 
     @Test
     fun activityAndServiceShareTheirObservedState() {
-        val activity = ActivityScenario.launch(MainActivity::class.java).also { scenario = it }.injected()
+        val launched = ActivityScenario.launch(MainActivity::class.java).also { scenario = it }
+        val activity = launched.injected()
+        val settings = launched.viewModels().settings
         val controller = Robolectric.buildService(LocationForegroundService::class.java).create()
         try {
             val service = controller.get()
 
-            assertSame(activity.backgroundNotificationSettingsRepository, service.backgroundNotificationSettingsRepository)
+            assertSame(settings.backgroundNotificationSettingsRepository, service.backgroundNotificationSettingsRepository)
             assertSame(activity.appVisibility, service.appVisibility)
             assertSame(application.getSystemService(LocationManager::class.java), service.locationManager)
         } finally {
@@ -98,9 +120,6 @@ class HiltSingletonScopeTest {
                 Injected(
                     activity = it,
                     displaySettingsRepository = it.displaySettingsRepository,
-                    unitSettingsRepository = it.unitSettingsRepository,
-                    backgroundNotificationSettingsRepository = it.backgroundNotificationSettingsRepository,
-                    permissionRequestHistory = it.permissionRequestHistory,
                     appVisibility = it.appVisibility,
                 )
         }
@@ -110,10 +129,25 @@ class HiltSingletonScopeTest {
     private data class Injected(
         val activity: MainActivity,
         val displaySettingsRepository: Any,
-        val unitSettingsRepository: Any,
-        val backgroundNotificationSettingsRepository: Any,
-        val permissionRequestHistory: Any,
         val appVisibility: Any,
+    )
+
+    private fun ActivityScenario<MainActivity>.viewModels(): ViewModels {
+        var result: ViewModels? = null
+        onActivity {
+            val provider = ViewModelProvider(it)
+            result =
+                ViewModels(
+                    settings = provider[SettingsViewModel::class.java],
+                    permission = provider[LocationPermissionViewModel::class.java],
+                )
+        }
+        return checkNotNull(result)
+    }
+
+    private class ViewModels(
+        val settings: SettingsViewModel,
+        val permission: LocationPermissionViewModel,
     )
 
     private companion object {

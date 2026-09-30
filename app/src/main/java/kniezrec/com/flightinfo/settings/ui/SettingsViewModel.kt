@@ -28,15 +28,15 @@ data class SettingsUiState(
 /**
  * State and actions of the Settings screen, over the three settings repositories. Every setter
  * persists at once; consumers (window effects, cards, the monitoring service) observe the
- * repositories themselves.
+ * repositories themselves. The repositories are `internal` so tests can check their singleton scope.
  */
 @HiltViewModel
 class SettingsViewModel
     @Inject
     constructor(
-        private val unitSettingsRepository: UnitSettingsRepository,
-        private val displaySettingsRepository: DisplaySettingsRepository,
-        private val backgroundNotificationSettingsRepository: BackgroundNotificationSettingsRepository,
+        internal val unitSettingsRepository: UnitSettingsRepository,
+        internal val displaySettingsRepository: DisplaySettingsRepository,
+        internal val backgroundNotificationSettingsRepository: BackgroundNotificationSettingsRepository,
     ) : ViewModel() {
         private val backgroundMonitoringRequestEvents = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
 
