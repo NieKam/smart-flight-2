@@ -98,7 +98,10 @@ class PolishLocalizationSmokeTest {
             idleMainLooper()
             composeRule.onAllNodesWithText("Usługi lokalizacji są wyłączone").fetchSemanticsNodes().isNotEmpty()
         }
-        composeRule.onNodeWithText("Stan GNSS").assertIsDisplayed()
+        // With location services off the GNSS card shows this state instead of its "Stan GNSS"
+        // title; the title node only lingers in the Crossfade's outgoing Waiting content.
+        composeRule.onNodeWithText("Włącz usługi lokalizacji, aby odbierać sygnał GNSS.").assertIsDisplayed()
+        composeRule.onNodeWithText("Otwórz ustawienia lokalizacji").assertExists()
         composeRule.onNodeWithText("Parametry lotu").assertExists()
     }
 
