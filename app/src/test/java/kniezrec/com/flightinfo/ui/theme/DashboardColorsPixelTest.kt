@@ -1,5 +1,8 @@
 package kniezrec.com.flightinfo.ui.theme
 
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.view.ViewGroup
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -8,12 +11,9 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.PixelMap
-import androidx.compose.ui.graphics.toPixelMap
-import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kniezrec.com.flightinfo.AppScaffold
@@ -30,7 +30,7 @@ import kotlin.math.roundToInt
 
 /**
  * Rendered colors of the dashboard chrome (the app's scaffold, top bar and a card) sampled from a
- * native-graphics capture: page #484685, card #5B5999, top bar #5B5999.
+ * native-graphics rendering: page #484685, card #5B5999, top bar #5B5999.
  */
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -51,7 +51,12 @@ class DashboardColorsPixelTest {
         }
         composeRule.waitForIdle()
 
-        val pixels = composeRule.onRoot().captureToImage().toPixelMap()
+        // Compose's captureToImage() waits for a frame-commit callback that Robolectric never fires
+        // (robolectric/robolectric#8071), so the Compose host view is drawn into a bitmap directly;
+        // native graphics render it as on a device.
+        val host = composeRule.activity.findViewById<ViewGroup>(android.R.id.content).getChildAt(0)
+        val pixels = Bitmap.createBitmap(host.width, host.height, Bitmap.Config.ARGB_8888)
+        composeRule.runOnIdle { host.draw(Canvas(pixels)) }
         val density = composeRule.density.density
         val inset = (4 * density).roundToInt()
         val header = composeRule.onNodeWithText("Smart Flight").fetchSemanticsNode().boundsInRoot
@@ -68,18 +73,17 @@ class DashboardColorsPixelTest {
     private fun assertColor(
         area: String,
         expected: Color,
-        pixels: PixelMap,
+        pixels: Bitmap,
         x: Int,
         y: Int,
     ) {
-        val actual = pixels[x, y]
-        val channels = listOf(expected.red to actual.red, expected.green to actual.green, expected.blue to actual.blue)
-        val close = channels.all { (want, got) -> abs((want * 255).roundToInt() - (got * 255).roundToInt()) <= TOLERANCE }
-        assertTrue("$area at ($x, $y): expected ${hex(expected)}, was ${hex(actual)}", close)
+        val want = expected.toArgb()
+        val got = pixels.getPixel(x, y)
+        val close = listOf(16, 8, 0).all { shift -> abs((want shr shift and 0xFF) - (got shr shift and 0xFF)) <= TOLERANCE }
+        assertTrue("$area at ($x, $y): expected ${hex(want)}, was ${hex(got)}", close)
     }
 
-    private fun hex(color: Color) =
-        "#%02X%02X%02X".format((color.red * 255).roundToInt(), (color.green * 255).roundToInt(), (color.blue * 255).roundToInt())
+    private fun hex(argb: Int) = "#%08X".format(argb)
 
     private companion object {
         // Native graphics may differ from device rendering by a few units per channel.
