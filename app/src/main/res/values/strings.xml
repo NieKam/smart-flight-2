@@ -158,6 +158,7 @@
     <string name="about_close">OK</string>
     <string name="settings_row_description">%1$s, current value %2$s, double tap to change</string>
     <string name="flight_value_accessibility">%1$s %2$s</string>
+    <string name="flight_row_accessibility">%1$s, %2$s</string>
     <string name="card_row_description">%1$s, %2$s</string>
     <string name="distance_value">%1$s %2$s</string>
     <string name="distance_spoken_value">%1$s %2$s</string>

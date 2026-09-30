@@ -23,13 +23,13 @@ import javax.inject.Inject
 
 /**
  * State of the Flight parameters card: GPS fixes turned into readings, with the barometer value
- * attached to readings only (pressure is not shown before a GPS reading).
+ * attached whether or not there is a GPS reading (pressure alone shows readings with only the
+ * pressure). Location switched off drops the GPS readings, not the pressure.
  *
  * Observation (GPS fixes and the pressure sensor) runs while [state] is collected and stops
  * [STOP_TIMEOUT_MILLIS] after the last collector leaves, so a configuration change keeps the
  * readings. When observation restarts, the card starts over from waiting with an empty
- * vertical-speed history. Location switched off resets the card to waiting until it is back on.
- * A failed GPS registration leaves the card as it is.
+ * vertical-speed history. A failed GPS registration leaves the GPS readings as they are.
  */
 @HiltViewModel
 class FlightParametersViewModel

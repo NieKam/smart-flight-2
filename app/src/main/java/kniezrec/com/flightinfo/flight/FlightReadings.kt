@@ -17,7 +17,7 @@ internal data class VerticalSpeedStep(
 )
 
 /**
- * Raw vertical speed between [previous] and a new altitude (no smoothing). The first sample has no
+ * Raw vertical speed between [previous] and a new altitude (smoothed by [averagedRates]). The first sample has no
  * rate; a missing or non-finite altitude has no rate and keeps the history; a timestamp that does
  * not move forward has no rate and clears the history.
  */
@@ -35,26 +35,48 @@ internal fun verticalSpeedStep(
 }
 
 /**
+ * The raw rates averaged into the displayed vertical speed after [step]: the last
+ * [VERTICAL_SPEED_WINDOW] rates (the original app's 3-sample moving average). A step that cleared
+ * the altitude history clears them too; a step without a rate keeps them.
+ */
+internal fun averagedRates(
+    previousRates: List<Double>,
+    step: VerticalSpeedStep,
+): List<Double> {
+    val rate = step.verticalSpeedMetresPerSecond
+    return when {
+        step.sample == null -> emptyList()
+        rate == null -> previousRates
+        else -> (previousRates + rate).takeLast(VERTICAL_SPEED_WINDOW)
+    }
+}
+
+/**
  * Flight readings of one observation session: [state] stays [FlightParametersState.Waiting] until a
- * fix has a displayable speed or altitude, then every fix produces readings.
+ * fix has a displayable speed or altitude, then every fix produces readings. The vertical speed is
+ * the average of the last [VERTICAL_SPEED_WINDOW] raw rates ([averagedRates]); a fix without a raw
+ * rate has none.
  */
 internal data class FlightReadingsSession(
     val previousAltitude: AltitudeSample? = null,
+    val recentRates: List<Double> = emptyList(),
     val state: FlightParametersState = FlightParametersState.Waiting,
 ) {
     fun accept(fix: FlightLocationFix): FlightReadingsSession {
         val step = verticalSpeedStep(previousAltitude, fix.altitudeMetres, fix.elapsedRealtimeNanos)
+        val rates = averagedRates(recentRates, step)
         val speed = fix.speedMetresPerSecond?.takeIf(Double::isFinite)?.let { it * KILOMETRES_PER_HOUR_PER_METRE_PER_SECOND }
         val altitude = fix.altitudeMetres?.takeIf(Double::isFinite)
         if (state is FlightParametersState.Waiting && speed == null && altitude == null) {
-            return copy(previousAltitude = step.sample)
+            return copy(previousAltitude = step.sample, recentRates = rates)
         }
         return FlightReadingsSession(
             previousAltitude = step.sample,
+            recentRates = rates,
             state =
                 FlightParametersState.Readings(
                     speedKilometresPerHour = speed,
-                    verticalSpeedMetresPerSecond = step.verticalSpeedMetresPerSecond,
+                    verticalSpeedMetresPerSecond = step.verticalSpeedMetresPerSecond?.let { rates.average() },
                     altitudeMetres = altitude,
                 ),
         )
@@ -68,12 +90,26 @@ internal data class FlightReadingsSession(
 internal fun Flow<FlightLocationFix>.flightParameters(): Flow<FlightParametersState> =
     scan(FlightReadingsSession()) { session, fix -> session.accept(fix) }.map { it.state }
 
-/** Attaches the barometer value to readings; waiting stays waiting (pressure needs a GPS reading). */
+/**
+ * Attaches the barometer value, with or without GPS readings (as the original app): a pressure
+ * value while waiting gives readings with pressure only.
+ */
 internal fun FlightParametersState.withPressure(pressureMillibars: Double?): FlightParametersState =
     when (this) {
-        FlightParametersState.Waiting -> this
+        FlightParametersState.Waiting ->
+            pressureMillibars?.let {
+                FlightParametersState.Readings(
+                    speedKilometresPerHour = null,
+                    verticalSpeedMetresPerSecond = null,
+                    altitudeMetres = null,
+                    pressureMillibars = it,
+                )
+            } ?: this
         is FlightParametersState.Readings -> copy(pressureMillibars = pressureMillibars)
     }
+
+/** Number of raw vertical-speed rates averaged, as in the original app. */
+internal const val VERTICAL_SPEED_WINDOW = 3
 
 private const val KILOMETRES_PER_HOUR_PER_METRE_PER_SECOND = 3.6
 private const val NANOS_PER_SECOND = 1_000_000_000.0

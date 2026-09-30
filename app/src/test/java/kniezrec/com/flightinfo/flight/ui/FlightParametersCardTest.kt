@@ -9,8 +9,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.unit.dp
@@ -35,8 +37,19 @@ class FlightParametersCardTest {
         composeRule.onNodeWithText("36.0 km/h").assertIsDisplayed()
         composeRule.onNodeWithText("—").assertIsDisplayed()
         composeRule.onNodeWithText("100.0 m").assertIsDisplayed()
-        // NumberFormat: grouping separator and HALF_EVEN rounding of 1013.25.
-        composeRule.onNodeWithText("1,013.2 mbar").assertIsDisplayed()
+        // As the original "%.1f": no grouping separator, 1013.25 rounded half up.
+        composeRule.onNodeWithText("1013.3 mbar").assertIsDisplayed()
+    }
+
+    @Test fun pressureOnlyShowsThePressureRowAndDashesForGpsRows() {
+        composeRule.setContent { DashboardFlightCard(FlightParametersState.Readings(null, null, null, 1013.25)) }
+
+        composeRule.onAllNodesWithText("Waiting for GPS position…").assertCountEquals(0)
+        composeRule.onNodeWithText("1013.3 mbar").assertIsDisplayed()
+        composeRule.onAllNodesWithText("—").assertCountEquals(3)
+        composeRule.onNodeWithContentDescription("Speed, unavailable").assertExists()
+        composeRule.onNodeWithContentDescription("Vertical speed, unavailable").assertExists()
+        composeRule.onNodeWithContentDescription("Altitude, unavailable").assertExists()
     }
 
     @Test fun flightParametersPressureRowHasOrderPlaceholderAndAccessibility() {
@@ -51,13 +64,13 @@ class FlightParametersCardTest {
                     .boundsInRoot.top
             }
         assertTrue(tops.zipWithNext().all { (upper, lower) -> upper < lower })
-        composeRule.onNodeWithContentDescription("Pressure unavailable").assertExists()
+        composeRule.onNodeWithContentDescription("Pressure, unavailable").assertExists()
     }
 
     @Test fun flightParametersPressureAccessibilityExpandsUnitName() {
         composeRule.setContent { DashboardFlightCard(FlightParametersState.Readings(36.0, 1.2, 100.0, 1013.25)) }
 
-        composeRule.onNodeWithContentDescription("Pressure 1,013.2 millibars").assertExists()
+        composeRule.onNodeWithContentDescription("Pressure, 1013.3 millibars").assertExists()
     }
 
     @Test fun flightParametersAnnounceAvailabilityAfterWaiting() {
