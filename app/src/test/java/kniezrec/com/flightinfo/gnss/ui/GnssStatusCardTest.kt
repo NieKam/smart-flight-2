@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -66,6 +67,34 @@ class GnssStatusCardTest {
 
         assertEquals(fiveHigh, height(), 0.5f)
         composeRule.onNodeWithContentDescription("40 satellites visible, 20 used, strongest signal 29 dB-Hz").assertExists()
+    }
+
+    @Test fun waitingTextAlternatesWithTheWindowTipEveryTenSeconds() {
+        composeRule.mainClock.autoAdvance = false
+        composeRule.setContent { GnssStatusCard(GnssStatusState.Waiting, onOpenLocationSettings = {}, onRetry = {}) }
+        composeRule.mainClock.advanceTimeByFrame()
+        composeRule.onNodeWithText("Waiting for GPS signal…").assertExists()
+
+        composeRule.mainClock.advanceTimeBy(SEARCH_TEXT_SWITCH_MILLIS)
+        composeRule.onNodeWithText("Move device closer to the window").assertExists()
+        assertEquals(0, composeRule.onAllNodesWithText("Waiting for GPS signal…").fetchSemanticsNodes().size)
+
+        composeRule.mainClock.advanceTimeBy(SEARCH_TEXT_SWITCH_MILLIS)
+        composeRule.onNodeWithText("Waiting for GPS signal…").assertExists()
+    }
+
+    @Test fun searchingAnimationIsShownOnlyWhileWaiting() {
+        var state by mutableStateOf<GnssStatusState>(GnssStatusState.Waiting)
+        composeRule.setContent { GnssStatusCard(state, onOpenLocationSettings = {}, onRetry = {}) }
+        composeRule.onNodeWithTag(SATELLITE_SEARCH_ANIMATION_TAG).assertExists()
+
+        composeRule.runOnIdle { state = GnssStatusState.Available(listOf(GnssSatellite(true, 20f))) }
+        composeRule.waitForIdle()
+        assertEquals(0, composeRule.onAllNodesWithTag(SATELLITE_SEARCH_ANIMATION_TAG).fetchSemanticsNodes().size)
+
+        composeRule.runOnIdle { state = GnssStatusState.LocationServicesDisabled }
+        composeRule.waitForIdle()
+        assertEquals(0, composeRule.onAllNodesWithTag(SATELLITE_SEARCH_ANIMATION_TAG).fetchSemanticsNodes().size)
     }
 
     @Test fun disabledStateShowsLocationSettingsAction() {
