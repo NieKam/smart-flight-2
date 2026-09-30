@@ -1,10 +1,15 @@
 package kniezrec.com.flightinfo.about
 
+import android.content.Context
+import android.content.ContextWrapper
+import android.content.pm.ApplicationInfo
+import androidx.test.core.app.ApplicationProvider
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
@@ -36,20 +41,45 @@ class AboutPlatformTest {
     }
 
     @Test
-    fun providerUsesRuntimePackageMetadataAndFallsBackWhenUnavailable() {
+    fun versionIsReadFromPackageMetadataAndFallsBackWhenUnavailable() {
         val packageInfo =
             android.content.pm.PackageInfo().apply {
                 versionName = "3.1"
-                versionCode = 42
+                longVersionCode = 42
             }
 
-        assertEquals(AppVersion("3.1", 42), AndroidAppVersionProvider(packageInfoReader = { packageInfo }).read())
-        assertEquals(AppVersion(null, null), AndroidAppVersionProvider(packageInfoReader = { null }).read())
+        assertEquals(AppVersion("3.1", 42), appVersion(packageInfo))
+        assertEquals(AppVersion(null, null), appVersion(null))
+        assertEquals(AppVersion("3.1", null), appVersion(packageInfo.apply { longVersionCode = 0 }))
+    }
+
+    @Test
+    fun providerReadsTheInstalledPackageAndFallsBackWhenItIsMissing() {
+        val application = ApplicationProvider.getApplicationContext<Context>()
+        val installed = "kniezrec.com.flightinfo.version.test"
+        shadowOf(application.packageManager).installPackage(
+            android.content.pm.PackageInfo().apply {
+                packageName = installed
+                versionName = "3.1"
+                longVersionCode = 42
+                applicationInfo = ApplicationInfo().apply { packageName = installed }
+            },
+        )
+
+        assertEquals(AppVersion("3.1", 42), AppVersionProvider(application.packageManager, packageContext(application, installed)).read())
         assertEquals(
-            AppVersion("3.1", null),
-            AndroidAppVersionProvider(packageInfoReader = { packageInfo.apply { versionCode = 0 } }).read(),
+            AppVersion(null, null),
+            AppVersionProvider(application.packageManager, packageContext(application, "missing.package")).read(),
         )
     }
+
+    private fun packageContext(
+        base: Context,
+        packageName: String,
+    ): Context =
+        object : ContextWrapper(base) {
+            override fun getPackageName(): String = packageName
+        }
 
     @Test
     fun launcherReportsUnavailableHandlerAndStartFailure() {

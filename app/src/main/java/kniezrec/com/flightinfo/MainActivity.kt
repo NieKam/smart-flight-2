@@ -37,8 +37,8 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import dagger.hilt.android.AndroidEntryPoint
 import kniezrec.com.flightinfo.about.AboutIntentFactory
-import kniezrec.com.flightinfo.about.AndroidAppVersionProvider
 import kniezrec.com.flightinfo.about.AndroidExternalIntentLauncher
+import kniezrec.com.flightinfo.about.AppVersionProvider
 import kniezrec.com.flightinfo.course.ui.CourseViewModel
 import kniezrec.com.flightinfo.display.data.DisplaySettingsRepository
 import kniezrec.com.flightinfo.display.ui.applyDisplayPreferences
@@ -80,6 +80,8 @@ class MainActivity : ComponentActivity() {
 
     @Inject lateinit var permissionRequestHistory: LocationPermissionRequestHistory
 
+    @Inject lateinit var appVersionProvider: AppVersionProvider
+
     @Inject lateinit var appVisibility: AppVisibility
 
     private var permissionState by mutableStateOf(LocationPermissionState.Requestable)
@@ -117,7 +119,7 @@ class MainActivity : ComponentActivity() {
                 BackHandler(enabled = showAbout) { showAbout = false }
                 val snackbarHostState = remember { SnackbarHostState() }
                 val scope = rememberCoroutineScope()
-                val aboutVersion = remember { AndroidAppVersionProvider(this).read() }
+                val aboutVersion = remember { appVersionProvider.read() }
                 val externalLauncher = remember { AndroidExternalIntentLauncher(this) }
                 Surface(modifier = Modifier.fillMaxSize(), color = smartFlightPageColor) {
                     Scaffold(
