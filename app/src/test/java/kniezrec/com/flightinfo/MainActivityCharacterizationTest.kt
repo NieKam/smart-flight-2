@@ -142,7 +142,7 @@ class MainActivityCharacterizationTest {
         composeRule.onNodeWithText(string(R.string.about_title)).assertIsDisplayed()
         composeRule.onAllNodesWithText(string(R.string.gnss_status_title)).assertCountEquals(0)
         composeRule.onAllNodesWithText(string(R.string.flight_parameters_title)).assertCountEquals(0)
-        composeRule.onAllNodesWithText(string(R.string.route_title)).assertCountEquals(0)
+        composeRule.onAllNodesWithText(string(R.string.route_hint)).assertCountEquals(0)
         assertNull(shadowOf(application).nextStartedService)
     }
 
@@ -311,8 +311,8 @@ class MainActivityCharacterizationTest {
             .commit()
         launch()
 
-        val departure = "${string(R.string.route_departure)}: Warsaw"
-        val destination = "${string(R.string.route_destination)}: Berlin"
+        val departure = "Warsaw"
+        val destination = "Berlin"
         waitUntil { composeRule.onAllNodesWithText(departure).fetchSemanticsNodes().isNotEmpty() }
         composeRule.onNodeWithText(departure).performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText(destination).performScrollTo().assertIsDisplayed()
@@ -380,7 +380,7 @@ class MainActivityCharacterizationTest {
     fun recreationKeepsTheOpenCityPickerWithQueryAndSelection() {
         val activity = launch()
         composeRule
-            .onNodeWithText("${string(R.string.route_departure)}: ${string(R.string.route_choose_departure)}")
+            .onNodeWithText(string(R.string.route_choose_departure))
             .performScrollTo()
             .performClick()
         composeRule.onNodeWithText(string(R.string.route_city_name)).performTextInput("Warsaw")
@@ -449,8 +449,8 @@ class MainActivityCharacterizationTest {
             .putLong("route_destination_id", BERLIN_ID)
             .commit()
         val activity = launch()
-        val departure = "${string(R.string.route_departure)}: Warsaw"
-        val destination = "${string(R.string.route_destination)}: Berlin"
+        val departure = "Warsaw"
+        val destination = "Berlin"
         waitUntil { composeRule.onAllNodesWithText(departure).fetchSemanticsNodes().isNotEmpty() }
         val before = activity.routeViewModel()
 

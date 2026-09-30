@@ -95,7 +95,7 @@ class DashboardScreenTest {
                 R.string.missing_sensor_course,
                 R.string.missing_sensor_horizon,
                 R.string.nearby_city_title,
-                R.string.route_title,
+                R.string.route_hint,
             ).map { title ->
                 composeRule
                     .onNodeWithText(string(title))
@@ -167,7 +167,7 @@ class DashboardScreenTest {
 
     @Test
     fun choosingARouteEndpointOpensThePickerOverlayAndCancelClosesIt() {
-        val chooseDeparture = "${string(R.string.route_departure)}: ${string(R.string.route_choose_departure)}"
+        val chooseDeparture = string(R.string.route_choose_departure)
         composeRule.onNodeWithText(chooseDeparture).performScrollTo().performClick()
         composeRule.onNodeWithText(string(R.string.route_picker_departure)).assertIsDisplayed()
 

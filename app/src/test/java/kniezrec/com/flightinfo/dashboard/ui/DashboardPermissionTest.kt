@@ -74,7 +74,7 @@ class DashboardPermissionTest {
         composeRule.onNodeWithText(string(R.string.missing_sensor_horizon)).assertExists()
         composeRule.onAllNodesWithText(string(R.string.gnss_status_title)).assertCountEquals(0)
         composeRule.onAllNodesWithText(string(R.string.nearby_city_title)).assertCountEquals(0)
-        composeRule.onAllNodesWithText(string(R.string.route_title)).assertCountEquals(0)
+        composeRule.onAllNodesWithText(string(R.string.route_hint)).assertCountEquals(0)
     }
 
     @Test
