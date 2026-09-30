@@ -18,9 +18,9 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.emitAll
-import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.merge
@@ -41,8 +41,8 @@ import javax.inject.Inject
  *
  * Observation runs while [state] is collected and stops [STOP_TIMEOUT_MILLIS] after the last
  * collector leaves, so a configuration change keeps the card. When observation restarts, the card
- * starts over from waiting. While the location is switched off, or after a failed GPS
- * registration, the card stays as it is.
+ * starts over from waiting. Location switched off resets the card to waiting until a new position
+ * arrives; after a failed GPS registration the card stays as it is.
  */
 @HiltViewModel
 class NearbyCityViewModel
@@ -55,14 +55,15 @@ class NearbyCityViewModel
         private val retries = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
 
         @OptIn(ExperimentalCoroutinesApi::class)
-        private val positions: Flow<NearbyCoordinate> =
+        private val positions: Flow<NearbyCoordinate?> =
             locationRepository.confirmedLocationEnabled.flatMapLatest { enabled ->
                 if (enabled) {
                     locationRepository.fixes
                         .mapNotNull { fix -> NearbyCoordinate.from(fix.latitude, fix.longitude) }
                         .catch { cause -> if (cause !is LocationRegistrationException) throw cause }
                 } else {
-                    emptyFlow<NearbyCoordinate>()
+                    // The position is lost: the card waits for a new one.
+                    flowOf<NearbyCoordinate?>(null)
                 }
             }
 

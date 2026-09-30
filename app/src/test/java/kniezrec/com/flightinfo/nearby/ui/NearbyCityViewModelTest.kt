@@ -220,7 +220,7 @@ class NearbyCityViewModelTest {
             assertEquals(NearbyCityState.WaitingForPosition, viewModel.state.value)
         }
 
-    @Test fun `location switched off keeps the city and fixes count again once it is back on`() =
+    @Test fun `location switched off waits for a position and fixes count again once it is back on`() =
         runTest(dispatcher) {
             val viewModel = viewModel(FakeCityDataSource(listOf(city(1, "One", 1.0, 1.0), city(2, "Two", 2.0, 2.0))))
             subscribe(viewModel)
@@ -228,8 +228,13 @@ class NearbyCityViewModelTest {
 
             location.switchLocation(false)
             runCurrent()
-            assertEquals("One", available(viewModel).cityName)
+            assertEquals(NearbyCityState.WaitingForPosition, viewModel.state.value)
             assertEquals(0, location.fixRegistrations.activeCount)
+
+            // No position to look up while location is off.
+            viewModel.retry()
+            runCurrent()
+            assertEquals(NearbyCityState.WaitingForPosition, viewModel.state.value)
 
             location.switchLocation(true)
             runCurrent()

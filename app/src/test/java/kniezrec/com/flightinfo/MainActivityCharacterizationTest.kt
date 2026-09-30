@@ -605,6 +605,8 @@ class MainActivityCharacterizationTest {
     }
 
     private fun launch(grantLocation: Boolean = true): ActivityScenario<MainActivity> {
+        // As on a phone (TASK-019: without GNSS hardware the GNSS card shows "GNSS unavailable").
+        shadowOf(application.packageManager).setSystemFeature(PackageManager.FEATURE_LOCATION_GPS, true)
         if (grantLocation) {
             shadowOf(application).grantPermissions(
                 Manifest.permission.ACCESS_FINE_LOCATION,

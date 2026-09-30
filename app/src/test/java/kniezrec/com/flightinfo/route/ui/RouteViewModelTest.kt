@@ -304,7 +304,7 @@ class RouteViewModelTest {
             )
         }
 
-    @Test fun `location switched off keeps the last position`() =
+    @Test fun `location switched off drops the position until a new fix arrives`() =
         runTest(dispatcher) {
             val viewModel = viewModelWithRoute()
             fix(elapsedSeconds = 1, longitude = 0.5)
@@ -312,13 +312,22 @@ class RouteViewModelTest {
             location.switchLocation(false)
             runCurrent()
 
+            assertNull(
+                viewModel.state.value.details!!
+                    .remainingDistanceKm,
+            )
+            assertEquals(alpha, viewModel.state.value.departure)
+            assertEquals(0, location.fixRegistrations.activeCount)
+
+            location.switchLocation(true)
+            runCurrent()
+            fix(elapsedSeconds = 2, longitude = 0.5)
             assertEquals(
                 55.6,
                 viewModel.state.value.details!!
                     .remainingDistanceKm!!,
                 0.1,
             )
-            assertEquals(0, location.fixRegistrations.activeCount)
         }
 
     @Test fun `a failed GPS registration still restores the route`() =

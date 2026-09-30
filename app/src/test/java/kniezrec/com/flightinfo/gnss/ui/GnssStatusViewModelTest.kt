@@ -83,7 +83,7 @@ class GnssStatusViewModelTest {
             assertEquals(GnssStatusState.Waiting, viewModel.state.value)
         }
 
-    @Test fun `location switched off keeps the last report and ignores new ones until it is back on`() =
+    @Test fun `location switched off drops the satellites and back on starts over from waiting`() =
         runTest(dispatcher) {
             val viewModel = viewModel()
             subscribe(viewModel)
@@ -91,8 +91,7 @@ class GnssStatusViewModelTest {
 
             location.switchLocation(false)
             runCurrent()
-            report(listOf(GnssSatellite(usedInFix = false)))
-            assertEquals(GnssStatusState.Available(TWO_SATELLITES), viewModel.state.value)
+            assertEquals(GnssStatusState.LocationServicesDisabled, viewModel.state.value)
             assertEquals(0, location.satelliteRegistrations.activeCount)
 
             location.switchLocation(true)
@@ -103,23 +102,65 @@ class GnssStatusViewModelTest {
             assertEquals(GnssStatusState.Available(listOf(GnssSatellite(usedInFix = false))), viewModel.state.value)
         }
 
-    @Test fun `location off when collection starts keeps the card waiting`() =
+    @Test fun `location off when collection starts shows location services disabled`() =
         runTest(dispatcher) {
             location.locationEnabled = false
             val viewModel = viewModel()
             subscribe(viewModel)
 
-            assertEquals(GnssStatusState.Waiting, viewModel.state.value)
+            assertEquals(GnssStatusState.LocationServicesDisabled, viewModel.state.value)
             assertEquals(0, location.satelliteRegistrations.registerCount)
         }
 
-    @Test fun `a failed GNSS registration leaves the card as it is`() =
+    @Test fun `no GNSS hardware shows unavailable without registering`() =
+        runTest(dispatcher) {
+            location.gnssHardware = false
+            val viewModel = viewModel()
+            subscribe(viewModel)
+
+            assertEquals(GnssStatusState.Unavailable, viewModel.state.value)
+            assertEquals(0, location.satelliteRegistrations.registerCount)
+        }
+
+    @Test fun `location off takes precedence over missing GNSS hardware`() =
+        runTest(dispatcher) {
+            location.gnssHardware = false
+            location.locationEnabled = false
+            val viewModel = viewModel()
+            subscribe(viewModel)
+
+            assertEquals(GnssStatusState.LocationServicesDisabled, viewModel.state.value)
+        }
+
+    @Test fun `a failed GNSS registration shows the error and retry registers again`() =
+        runTest(dispatcher) {
+            location.failSatelliteRegistration = true
+            val viewModel = viewModel()
+            subscribe(viewModel)
+            assertEquals(GnssStatusState.Error, viewModel.state.value)
+            assertEquals(1, location.satelliteRegistrations.registerCount)
+
+            location.failSatelliteRegistration = false
+            viewModel.retry()
+            runCurrent()
+            assertEquals(GnssStatusState.Waiting, viewModel.state.value)
+            assertEquals(2, location.satelliteRegistrations.registerCount)
+
+            report(TWO_SATELLITES)
+            assertEquals(GnssStatusState.Available(TWO_SATELLITES), viewModel.state.value)
+        }
+
+    @Test fun `a retry that fails again shows the error again`() =
         runTest(dispatcher) {
             location.failSatelliteRegistration = true
             val viewModel = viewModel()
             subscribe(viewModel)
 
-            assertEquals(GnssStatusState.Waiting, viewModel.state.value)
+            viewModel.retry()
+            runCurrent()
+
+            assertEquals(GnssStatusState.Error, viewModel.state.value)
+            assertEquals(2, location.satelliteRegistrations.registerCount)
         }
 
     private fun TestScope.viewModel() = GnssStatusViewModel(LocationRepository(location, backgroundScope))

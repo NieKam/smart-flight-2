@@ -54,7 +54,8 @@ import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
  * Settings and About is saved, so it survives a configuration change (the picker keeps its own in
  * [RoutePickerViewModel]).
  *
- * @param onOpenLocationSettings action of the GNSS card when location is switched off.
+ * @param onOpenLocationSettings action of the GNSS card when location is switched off, and "Yes" of
+ *   the "Enable GPS" prompt shown when the dashboard starts with GPS off.
  * @param modifier insets of the dashboard and the Settings overlay (not of the About dialog).
  */
 @Composable
@@ -87,10 +88,7 @@ fun DashboardScreen(
                     Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 12.dp),
                 ) {
                     val cardModifier = Modifier.padding(bottom = 12.dp).widthIn(max = 600.dp)
-                    DashboardSlot {
-                        // As before: the GNSS card has no retry of its own; its retry restarts the map observation.
-                        GnssStatusCardContainer(onOpenLocationSettings = onOpenLocationSettings, onRetry = mapViewModel::retry)
-                    }
+                    DashboardSlot { GnssStatusCardContainer(onOpenLocationSettings = onOpenLocationSettings) }
                     DashboardSlot { FlightParametersCardContainer(units, cardModifier) }
                     DashboardSlot { CourseCardContainer(cardModifier) }
                     DashboardSlot { HorizonCardContainer(cardModifier) }
@@ -102,6 +100,7 @@ fun DashboardScreen(
             RoutePickerOverlay(viewModel = routePickerViewModel, mapViewModel = mapViewModel)
         }
     }
+    EnableGpsPrompt(isLocationEnabled = viewModel::isLocationEnabled, onOpenLocationSettings = onOpenLocationSettings)
     if (showAbout) {
         AboutDialog(
             version = aboutVersion,

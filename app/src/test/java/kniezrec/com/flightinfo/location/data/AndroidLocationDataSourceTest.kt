@@ -192,6 +192,20 @@ class AndroidLocationDataSourceTest {
         }
 
     @Test
+    fun `location counts as enabled only with the gps provider on`() {
+        shadowLocationManager.setLocationEnabled(true)
+        shadowLocationManager.setProviderEnabled(LocationManager.GPS_PROVIDER, true)
+        assertTrue(dataSource.isLocationEnabled())
+
+        shadowLocationManager.setProviderEnabled(LocationManager.GPS_PROVIDER, false)
+        assertFalse(dataSource.isLocationEnabled())
+
+        shadowLocationManager.setProviderEnabled(LocationManager.GPS_PROVIDER, true)
+        shadowLocationManager.setLocationEnabled(false)
+        assertFalse(dataSource.isLocationEnabled())
+    }
+
+    @Test
     fun `gnss hardware check reads the gps system feature`() {
         shadowOf(application.packageManager).setSystemFeature(PackageManager.FEATURE_LOCATION_GPS, false)
         assertFalse(dataSource.hasGnssHardware())
