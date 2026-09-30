@@ -57,7 +57,7 @@ The order follows four phases. Every task leaves the app building, tests green a
 | 025 | [Background notification on Android 13+ and plane notification icon](025-background-notification-permission/task.md) | 016, 024 | DONE |
 | 026 | [Compass sensor fallback, smoothing, rounding](026-compass-sensor-fallback/task.md) | 016 | DONE |
 | 027 | [Compass rose with N/E/S/W and animated plane](027-compass-rose/task.md) | 018, 026 | DONE |
-| 028 | [Horizon calibration persistence, long-press reset, filtering](028-horizon-calibration/task.md) | 016 | TODO |
+| 028 | [Horizon calibration persistence, long-press reset, filtering](028-horizon-calibration/task.md) | 016 | DONE |
 | 029 | [Hide unsupported Course/Horizon cards; "Show hidden cards" setting](029-hide-unsupported-cards/task.md) | 006, 015, 026, 028 | TODO |
 | 030 | [Map: great-circle route line and visible purple plane marker](030-map-route-line-and-plane-marker/task.md) | 014, 016, 018, 026 | TODO |
 | 031 | [Map controls, real expand, max-zoom tip leading to Settings](031-map-controls-and-zoom-tip/task.md) | 015, 016, 018, 030 | TODO |
