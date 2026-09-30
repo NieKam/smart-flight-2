@@ -42,6 +42,25 @@ class PaletteGuardTest {
         assertTrue("Color resources outside the palette: ${outside.mapValues { hex(it.value) }}", outside.isEmpty())
     }
 
+    @Test
+    fun mapDrawablesUseOnlyPaletteColors() {
+        val drawables = File("src/main/res/drawable")
+        for (name in MAP_DRAWABLES) {
+            val file = File(drawables, "$name.xml")
+            assertTrue("Drawable not found: ${file.absolutePath}", file.isFile)
+            val colors =
+                DRAWABLE_COLOR
+                    .findAll(file.readText())
+                    .map { match ->
+                        val digits = match.groupValues[1]
+                        (if (digits.length == 6) "FF$digits" else digits).toLong(16).toInt()
+                    }.toList()
+            assertTrue("$name declares no colors", colors.isNotEmpty())
+            val outside = colors.filter { it !in PALETTE }
+            assertTrue("$name uses colors outside the palette: ${outside.map(::hex)}", outside.isEmpty())
+        }
+    }
+
     private fun tokens(colors: SmartFlightColors): Map<String, Int> =
         // A Color property compiles to a public getter returning the packed Long (value class).
         SmartFlightColors::class.java.declaredMethods
@@ -59,6 +78,11 @@ class PaletteGuardTest {
     private fun hex(argb: Int) = "#%08X".format(argb)
 
     private companion object {
+        /** The plane marker and the route pins drawn on the map. */
+        val MAP_DRAWABLES = listOf("ic_plane_marker", "ic_map_pin_departure", "ic_map_pin_destination")
+
+        val DRAWABLE_COLOR = Regex("android:(?:fillColor|strokeColor)=\"#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})\"")
+
         val COLOR_RESOURCE = Regex("""<color\s+name="([^"]+)"\s*>\s*#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})\s*</color>""")
 
         val PALETTE =
