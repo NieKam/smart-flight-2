@@ -60,7 +60,7 @@ The order follows four phases. Every task leaves the app building, tests green a
 | 028 | [Horizon calibration persistence, long-press reset, filtering](028-horizon-calibration/task.md) | 016 | DONE |
 | 029 | [Hide unsupported Course/Horizon cards; "Show hidden cards" setting](029-hide-unsupported-cards/task.md) | 006, 015, 026, 028 | DONE |
 | 030 | [Map: great-circle route line and visible purple plane marker](030-map-route-line-and-plane-marker/task.md) | 014, 016, 018, 026 | DONE |
-| 031 | [Map controls, real expand, max-zoom tip leading to Settings](031-map-controls-and-zoom-tip/task.md) | 015, 016, 018, 030 | TODO |
+| 031 | [Map controls, real expand, max-zoom tip leading to Settings](031-map-controls-and-zoom-tip/task.md) | 015, 016, 018, 030 | DONE |
 | 032 | [City picker: large centering map, single result auto-selected](032-city-picker-map/task.md) | 013, 018 | TODO |
 | 033 | [Route card visuals](033-route-card-visual/task.md) | 018, 021 | TODO |
 | 034 | [Toolbar with overflow menu, original launcher icon, card order](034-header-launcher-card-order/task.md) | 018, 024 | TODO |
