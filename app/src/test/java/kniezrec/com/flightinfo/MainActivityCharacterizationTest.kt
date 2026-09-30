@@ -136,8 +136,8 @@ class MainActivityCharacterizationTest {
 
         composeRule.onNodeWithText(string(R.string.permission_title)).assertIsDisplayed()
         composeRule.onNodeWithText(string(R.string.permission_grant)).assertIsDisplayed()
-        composeRule.onNodeWithText(string(R.string.compass_unavailable)).assertIsDisplayed()
-        composeRule.onNodeWithText(string(R.string.horizon_unavailable)).assertExists()
+        composeRule.onNodeWithText(string(R.string.missing_sensor_course)).assertIsDisplayed()
+        composeRule.onNodeWithText(string(R.string.missing_sensor_horizon)).assertExists()
         composeRule.onNodeWithText(string(R.string.settings_title)).assertIsDisplayed()
         composeRule.onNodeWithText(string(R.string.about_title)).assertIsDisplayed()
         composeRule.onAllNodesWithText(string(R.string.gnss_status_title)).assertCountEquals(0)

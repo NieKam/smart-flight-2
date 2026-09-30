@@ -36,6 +36,7 @@ import kniezrec.com.flightinfo.R
 import kniezrec.com.flightinfo.about.AppVersion
 import kniezrec.com.flightinfo.about.ui.AboutDialog
 import kniezrec.com.flightinfo.course.ui.CourseCardContainer
+import kniezrec.com.flightinfo.dashboard.HideableCard
 import kniezrec.com.flightinfo.flight.ui.FlightParametersCardContainer
 import kniezrec.com.flightinfo.gnss.ui.GnssStatusCardContainer
 import kniezrec.com.flightinfo.horizon.ui.HorizonCardContainer
@@ -57,7 +58,8 @@ import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
  * While fine location is not granted ([permissionCard] not null) the dashboard shows, as the
  * original app, the permission card first and then only the cards that do not need location
  * (Course without GPS bearing, Horizon); Settings and About stay available. The location cards are
- * not composed, so their ViewModels are not created and nothing collects location.
+ * not composed, so their ViewModels are not created and nothing collects location. Course and
+ * Horizon cards the user hid (device without their sensor) are not composed either.
  *
  * @param permissionCard the location permission card, or null once location is granted.
  * @param onOpenLocationSettings action of the GNSS card when location is switched off, and "Yes" of
@@ -80,6 +82,7 @@ fun DashboardScreen(
     BackHandler(enabled = showSettings) { showSettings = false }
     BackHandler(enabled = showAbout) { showAbout = false }
     val locationGranted = permissionCard == null
+    val hiddenCards by viewModel.hiddenCards.collectAsStateWithLifecycle()
     // Settings is an overlay so the dashboard's AndroidView-backed map remains composed. This
     // preserves its viewport, overlays, and in-place zoom policy.
     Box(Modifier.fillMaxSize()) {
@@ -95,11 +98,21 @@ fun DashboardScreen(
                         Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 12.dp),
                     ) {
                         DashboardSlot { permissionCard(cardModifier) }
-                        DashboardSlot { CourseCardContainer(locationPermitted = false, modifier = cardModifier) }
-                        DashboardSlot { HorizonCardContainer(cardModifier) }
+                        if (HideableCard.Course !in hiddenCards) {
+                            DashboardSlot {
+                                CourseCardContainer(
+                                    locationPermitted = false,
+                                    onHide = { viewModel.hide(HideableCard.Course) },
+                                    modifier = cardModifier,
+                                )
+                            }
+                        }
+                        if (HideableCard.Horizon !in hiddenCards) {
+                            DashboardSlot { HorizonCardContainer(onHide = { viewModel.hide(HideableCard.Horizon) }, cardModifier) }
+                        }
                     }
                 } else {
-                    LocationDashboardCards(viewModel, cardModifier, onOpenLocationSettings, Modifier.weight(1f))
+                    LocationDashboardCards(viewModel, hiddenCards, cardModifier, onOpenLocationSettings, Modifier.weight(1f))
                 }
             }
         }
@@ -121,6 +134,7 @@ fun DashboardScreen(
 @Composable
 private fun LocationDashboardCards(
     viewModel: DashboardViewModel,
+    hiddenCards: Set<HideableCard>,
     cardModifier: Modifier,
     onOpenLocationSettings: () -> Unit,
     modifier: Modifier,
@@ -132,8 +146,18 @@ private fun LocationDashboardCards(
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 12.dp)) {
             DashboardSlot { GnssStatusCardContainer(onOpenLocationSettings = onOpenLocationSettings) }
             DashboardSlot { FlightParametersCardContainer(units, cardModifier) }
-            DashboardSlot { CourseCardContainer(locationPermitted = true, modifier = cardModifier) }
-            DashboardSlot { HorizonCardContainer(cardModifier) }
+            if (HideableCard.Course !in hiddenCards) {
+                DashboardSlot {
+                    CourseCardContainer(
+                        locationPermitted = true,
+                        onHide = { viewModel.hide(HideableCard.Course) },
+                        modifier = cardModifier,
+                    )
+                }
+            }
+            if (HideableCard.Horizon !in hiddenCards) {
+                DashboardSlot { HorizonCardContainer(onHide = { viewModel.hide(HideableCard.Horizon) }, cardModifier) }
+            }
             DashboardSlot { NearbyCityCardContainer(units.distance, cardModifier) }
             DashboardSlot { RouteCardContainer(units.distance, routePickerViewModel::open, cardModifier) }
             DashboardSlot { MapCardContainer(cardModifier, viewModel = mapViewModel) }

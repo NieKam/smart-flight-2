@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -44,6 +45,7 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kniezrec.com.flightinfo.R
@@ -52,6 +54,7 @@ import kniezrec.com.flightinfo.course.CourseState
 import kniezrec.com.flightinfo.course.compassCardinal
 import kniezrec.com.flightinfo.course.shortestRotationTarget
 import kniezrec.com.flightinfo.ui.theme.LabelText
+import kniezrec.com.flightinfo.ui.theme.MissingSensorPlaceholder
 import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
 import kniezrec.com.flightinfo.ui.theme.ValueText
 import java.text.NumberFormat
@@ -60,6 +63,7 @@ import java.text.NumberFormat
 internal fun CourseCard(
     state: CourseState,
     onRetry: () -> Unit,
+    onHide: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Card(
@@ -73,7 +77,9 @@ internal fun CourseCard(
         CourseStateAnnouncement(state)
         when (state) {
             CourseState.Waiting -> StaticCourse(R.string.course_title, R.string.course_waiting)
-            CourseState.Unavailable -> StaticCourse(R.string.compass_unavailable, R.string.compass_unavailable_body)
+            // Only a missing sensor offers hiding; a refused registration (Error) can be retried.
+            CourseState.Unavailable ->
+                MissingSensorPlaceholder(stringResource(R.string.missing_sensor_course), onHide) { CoursePreview() }
             CourseState.Error -> StaticCourse(R.string.compass_error, R.string.compass_error_body, onRetry)
             is CourseState.Available -> CourseReading(state)
         }
@@ -105,6 +111,19 @@ private fun StaticCourse(
             style = MaterialTheme.typography.bodyLarge.copy(fontSize = 18.sp),
         )
         if (retry != null) CourseRetryAction(retry)
+    }
+}
+
+/** Static, level compass rose behind the missing-sensor overlay. */
+@Composable
+private fun CoursePreview() {
+    Box(Modifier.fillMaxSize().padding(24.dp)) {
+        LabelText(
+            stringResource(R.string.course_title),
+            Modifier.align(Alignment.TopStart),
+            style = MaterialTheme.typography.titleLarge.copy(fontSize = 22.sp, fontWeight = FontWeight.Medium),
+        )
+        Box(Modifier.align(Alignment.Center)) { CompassRose(0) }
     }
 }
 
@@ -300,4 +319,10 @@ private fun CourseRetryAction(onRetry: () -> Unit) {
     ) {
         Text(stringResource(R.string.course_try_again), color = SmartFlightTheme.colors.accent)
     }
+}
+
+@Preview(widthDp = 411)
+@Composable
+private fun CourseCardMissingSensorPreview() {
+    SmartFlightTheme { CourseCard(CourseState.Unavailable, onRetry = {}, onHide = {}) }
 }

@@ -21,7 +21,7 @@ class HorizonCardContainerTest {
 
     @Test fun showsPitchRelativeToTheReferenceAndCalibrateResetsIt() {
         val viewModel = HorizonViewModel(SavedStateHandle(), orientation)
-        composeRule.setContent { HorizonCardContainer(viewModel = viewModel) }
+        composeRule.setContent { HorizonCardContainer(onHide = {}, viewModel = viewModel) }
 
         // The first sample becomes the level reference.
         emitUntilShown(pitchDegrees = 0.0, text = "Pitch: level")

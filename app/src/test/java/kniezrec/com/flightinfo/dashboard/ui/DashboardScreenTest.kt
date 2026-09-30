@@ -6,6 +6,8 @@ import android.content.pm.PackageManager
 import androidx.annotation.StringRes
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasAnySibling
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
@@ -66,7 +68,7 @@ class DashboardScreenTest {
             ?: System.clearProperty(CREATE_ACTIVITY_CONTEXTS)
     }
 
-    // Robolectric has no rotation-vector sensor, so Course and Horizon show their unavailable titles.
+    // Robolectric has no orientation sensor, so Course and Horizon show their missing-sensor messages.
     @Test
     fun cardsAreListedInTheirOrderBelowTheHeader() {
         val expand = string(R.string.map_expand)
@@ -77,8 +79,8 @@ class DashboardScreenTest {
                 R.string.app_name,
                 R.string.gnss_status_title,
                 R.string.flight_parameters_title,
-                R.string.compass_unavailable,
-                R.string.horizon_unavailable,
+                R.string.missing_sensor_course,
+                R.string.missing_sensor_horizon,
                 R.string.nearby_city_title,
                 R.string.route_title,
             ).map { title ->
@@ -94,6 +96,20 @@ class DashboardScreenTest {
                 .positionInRoot.y
 
         assertTrue("Cards out of order: $tops, map $mapTop", (tops + mapTop).zipWithNext().all { (upper, lower) -> upper < lower })
+    }
+
+    @Test
+    fun hidingTheUnavailableCourseCardRemovesItFromTheDashboard() {
+        val courseMessage = string(R.string.missing_sensor_course)
+        val horizonMessage = string(R.string.missing_sensor_horizon)
+        waitUntil { composeRule.onAllNodesWithText(courseMessage).fetchSemanticsNodes().isNotEmpty() }
+
+        hideButtonOf(courseMessage).performScrollTo().performClick()
+
+        waitUntil { composeRule.onAllNodesWithText(courseMessage).fetchSemanticsNodes().isEmpty() }
+        // Only the Course card is gone; the other cards stay.
+        composeRule.onNodeWithText(horizonMessage).assertExists()
+        composeRule.onNodeWithText(string(R.string.flight_parameters_title)).assertExists()
     }
 
     @Test
@@ -132,6 +148,9 @@ class DashboardScreenTest {
         composeRule.onNodeWithText(string(R.string.gnss_status_title)).assertExists()
         composeRule.onNodeWithText(string(R.string.gnss_status_title)).performScrollTo().assertIsDisplayed()
     }
+
+    /** The "Hide" button of the missing-sensor placeholder showing [message]. */
+    private fun hideButtonOf(message: String) = composeRule.onNode(hasText(string(R.string.hide_card)) and hasAnySibling(hasText(message)))
 
     private fun pressBack() {
         checkNotNull(scenario).onActivity { it.onBackPressedDispatcher.onBackPressed() }

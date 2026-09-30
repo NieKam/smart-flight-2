@@ -26,7 +26,7 @@ class HorizonCardTest {
 
     @Test fun requiredStateTransitionsHavePoliteAnnouncements() {
         var state by mutableStateOf<HorizonState>(HorizonState.Waiting)
-        composeRule.setContent { HorizonCard(state, onCalibrate = {}, onResetToAbsolute = {}, onRetry = {}) }
+        composeRule.setContent { HorizonCard(state, onCalibrate = {}, onResetToAbsolute = {}, onRetry = {}, onHide = {}) }
 
         composeRule.runOnIdle { state = HorizonState.Recalibrating }
         composeRule.onNode(hasContentDescription("Horizon recalibrating. Waiting for attitude data.")).assertExists()
@@ -44,14 +44,28 @@ class HorizonCardTest {
     @Test fun waitingAndUnavailableDoNotOfferAttitudeActions() {
         // The rule allows one setContent per test, so the state is switched in place.
         var state by mutableStateOf<HorizonState>(HorizonState.Waiting)
-        composeRule.setContent { HorizonCard(state, onCalibrate = {}, onResetToAbsolute = {}, onRetry = {}) }
+        composeRule.setContent { HorizonCard(state, onCalibrate = {}, onResetToAbsolute = {}, onRetry = {}, onHide = {}) }
         composeRule.onNodeWithText("Horizon").assertIsDisplayed()
         composeRule.onNodeWithText("Waiting for attitude data…").assertIsDisplayed()
         composeRule.onNodeWithText("Calibrate").assertDoesNotExist()
 
         composeRule.runOnIdle { state = HorizonState.Unavailable }
-        composeRule.onNodeWithText("Horizon unavailable").assertIsDisplayed()
+        composeRule.onNodeWithText("Calibrate").assertDoesNotExist()
         composeRule.onNodeWithText("Try again").assertDoesNotExist()
+    }
+
+    @Test fun unavailableOffersHidingTheCard() {
+        var hides = 0
+        composeRule.setContent {
+            HorizonCard(HorizonState.Unavailable, onCalibrate = {}, onResetToAbsolute = {}, onRetry = {}, onHide = { hides++ })
+        }
+        composeRule.onNodeWithText("This device doesn't have a motion sensor. Hide this card?").assertIsDisplayed()
+        // The blurred instrument behind the message is decoration only.
+        composeRule.onNodeWithText("Horizon").assertDoesNotExist()
+
+        composeRule.onNodeWithText("Hide").assertIsDisplayed().performClick()
+
+        composeRule.runOnIdle { assertEquals(1, hides) }
     }
 
     @Test fun availableSummaryAndCalibrateAreAccessible() {
@@ -61,6 +75,7 @@ class HorizonCardTest {
                 onCalibrate = {},
                 onResetToAbsolute = {},
                 onRetry = {},
+                onHide = {},
             )
         }
         composeRule.onNodeWithText("Pitch: 12° up · Roll: 8° left").assertIsDisplayed()
@@ -76,6 +91,7 @@ class HorizonCardTest {
                 onCalibrate = { calibrations++ },
                 onResetToAbsolute = { resets++ },
                 onRetry = {},
+                onHide = {},
             )
         }
 
@@ -95,7 +111,7 @@ class HorizonCardTest {
     @Test fun calibrateOffersResetToLevelAsAccessibilityAction() {
         var resets = 0
         composeRule.setContent {
-            HorizonCard(HorizonState.Available(0, 0, 0f, 0f), onCalibrate = {}, onResetToAbsolute = { resets++ }, onRetry = {})
+            HorizonCard(HorizonState.Available(0, 0, 0f, 0f), onCalibrate = {}, onResetToAbsolute = { resets++ }, onRetry = {}, onHide = {})
         }
 
         val calibrate = composeRule.onNodeWithText("Calibrate").fetchSemanticsNode()
@@ -108,8 +124,10 @@ class HorizonCardTest {
     }
 
     @Test fun errorShowsAccessibleRetry() {
-        composeRule.setContent { HorizonCard(HorizonState.Error, onCalibrate = {}, onResetToAbsolute = {}, onRetry = {}) }
+        composeRule.setContent { HorizonCard(HorizonState.Error, onCalibrate = {}, onResetToAbsolute = {}, onRetry = {}, onHide = {}) }
         composeRule.onNodeWithText("Unable to read horizon").assertIsDisplayed()
+        // A refused registration may be transient: it is retried, never offered for hiding.
+        composeRule.onNodeWithText("Hide").assertDoesNotExist()
         composeRule.onNode(hasStateDescription("Retries the attitude sensor.")).assertExists()
     }
 }

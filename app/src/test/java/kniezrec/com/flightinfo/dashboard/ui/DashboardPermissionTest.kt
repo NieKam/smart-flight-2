@@ -69,9 +69,9 @@ class DashboardPermissionTest {
     @Test
     fun deniedShowsPermissionCardThenCourseAndHorizon() {
         composeRule.onNodeWithText(string(R.string.permission_title)).assertIsDisplayed()
-        // Robolectric has no rotation-vector sensor, so both show their unavailable titles.
-        composeRule.onNodeWithText(string(R.string.compass_unavailable)).assertIsDisplayed()
-        composeRule.onNodeWithText(string(R.string.horizon_unavailable)).assertExists()
+        // Robolectric has no rotation-vector sensor, so both show their missing-sensor messages.
+        composeRule.onNodeWithText(string(R.string.missing_sensor_course)).assertIsDisplayed()
+        composeRule.onNodeWithText(string(R.string.missing_sensor_horizon)).assertExists()
         composeRule.onAllNodesWithText(string(R.string.gnss_status_title)).assertCountEquals(0)
         composeRule.onAllNodesWithText(string(R.string.nearby_city_title)).assertCountEquals(0)
         composeRule.onAllNodesWithText(string(R.string.route_title)).assertCountEquals(0)

@@ -15,9 +15,12 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kniezrec.com.flightinfo.course.CourseState
+import kniezrec.com.flightinfo.ui.theme.MISSING_SENSOR_PLACEHOLDER_TAG
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -60,6 +63,7 @@ class CourseCardTest {
             CourseCard(
                 CourseState.Available(23, 287),
                 {},
+                {},
                 Modifier.width(280.dp),
             )
         }
@@ -70,15 +74,32 @@ class CourseCardTest {
 
     @Test fun courseUnavailableAndErrorHideReadingsAndExposeRetryHint() {
         setCourse(CourseState.Unavailable)
-        composeRule.onNodeWithText("Compass unavailable").assertIsDisplayed()
+        composeRule.onNodeWithText(MISSING_SENSOR).assertIsDisplayed()
         composeRule.onNodeWithText("Try again").assertDoesNotExist()
         setCourse(CourseState.Error)
         composeRule.onNodeWithText("Unable to read compass").assertIsDisplayed()
         composeRule.onNodeWithText("Try again").assertIsDisplayed()
         composeRule.onNode(hasStateDescription("Retries compass")).assertExists()
+        // A refused registration may be transient: it is retried, never offered for hiding.
+        composeRule.onNodeWithText("Hide").assertDoesNotExist()
+    }
+
+    @Test fun unavailableShowsMissingSensorMessageAndHide() {
+        setCourse(CourseState.Unavailable)
+        composeRule.onNodeWithText(MISSING_SENSOR).assertIsDisplayed()
+        composeRule.onNodeWithTag(MISSING_SENSOR_PLACEHOLDER_TAG).assertIsDisplayed()
+        // The blurred rose behind the message is decoration only.
+        composeRule.onNodeWithText("N").assertDoesNotExist()
+        composeRule.onNodeWithText("Course").assertDoesNotExist()
+        composeRule.onNode(hasStateDescription("Hides this card until Show hidden cards is used in Settings")).assertExists()
+
+        composeRule.onNodeWithText("Hide").assertIsDisplayed().performClick()
+
+        composeRule.runOnIdle { assertEquals(1, hides) }
     }
 
     private var shownCourse by mutableStateOf<CourseState>(CourseState.Waiting)
+    private var hides = 0
     private var courseContentSet = false
 
     // The rule allows one setContent per test, so later calls switch the state in place.
@@ -92,8 +113,12 @@ class CourseCardTest {
         composeRule.setContent {
             // The dashboard's list padding and card modifier.
             Box(Modifier.padding(horizontal = 12.dp)) {
-                CourseCard(shownCourse, {}, Modifier.padding(bottom = 12.dp).widthIn(max = 600.dp))
+                CourseCard(shownCourse, {}, { hides++ }, Modifier.padding(bottom = 12.dp).widthIn(max = 600.dp))
             }
         }
+    }
+
+    private companion object {
+        const val MISSING_SENSOR = "This device doesn't have a magnetic sensor. Hide this card?"
     }
 }
