@@ -117,16 +117,18 @@ class DashboardScreenTest {
 
     @Test
     fun choosingARouteEndpointOpensThePickerOverlayAndCancelClosesIt() {
-        composeRule
-            .onNodeWithText("${string(R.string.route_departure)}: ${string(R.string.route_choose_departure)}")
-            .performScrollTo()
-            .performClick()
+        val chooseDeparture = "${string(R.string.route_departure)}: ${string(R.string.route_choose_departure)}"
+        composeRule.onNodeWithText(chooseDeparture).performScrollTo().performClick()
         composeRule.onNodeWithText(string(R.string.route_picker_departure)).assertIsDisplayed()
 
         composeRule.onNodeWithText(string(R.string.route_cancel)).performClick()
 
         composeRule.onAllNodesWithText(string(R.string.route_picker_departure)).assertCountEquals(0)
-        composeRule.onNodeWithText(string(R.string.gnss_status_title)).assertIsDisplayed()
+        // The dashboard is back where it was: still scrolled to the Route card, which is visible
+        // again, with the rest of the list (GNSS card above, scrolled out of view) still there.
+        composeRule.onNodeWithText(chooseDeparture).assertIsDisplayed()
+        composeRule.onNodeWithText(string(R.string.gnss_status_title)).assertExists()
+        composeRule.onNodeWithText(string(R.string.gnss_status_title)).performScrollTo().assertIsDisplayed()
     }
 
     private fun pressBack() {
