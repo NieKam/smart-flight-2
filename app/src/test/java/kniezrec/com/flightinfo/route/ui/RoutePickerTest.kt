@@ -2,14 +2,19 @@ package kniezrec.com.flightinfo.route.ui
 
 import android.content.Context
 import androidx.activity.ComponentActivity
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.hapticfeedback.HapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.lifecycle.SavedStateHandle
@@ -174,6 +179,89 @@ class RoutePickerTest {
         } finally {
             archive.delete()
         }
+    }
+
+    // TASK-032: the map is the dominant element of the picker, as in the original activity_find_city.
+    @Test
+    @Config(qualifiers = "en-rUS-w411dp-h891dp")
+    fun mapTakesAtLeastHalfOfThePickerOnAPhone() {
+        show(open().copy(query = "Paris", results = listOf(paris), selected = paris))
+
+        val picker =
+            composeRule
+                .onNodeWithTag(ROUTE_PICKER_TAG)
+                .fetchSemanticsNode()
+                .size.height
+        val map =
+            composeRule
+                .onNodeWithTag(ROUTE_PICKER_MAP_TAG)
+                .fetchSemanticsNode()
+                .size.height
+        assertTrue("map $map px of picker $picker px", map * 2 >= picker)
+    }
+
+    @Test fun severalResultsAreListedAndASingleOneIsNot() {
+        val berlin = NearbyCityRecord(7L, "Berlin", "Germany", 52.5, 13.4, "Europe/Berlin")
+        var state by mutableStateOf(open().copy(results = listOf(paris, berlin)))
+        composeRule.setContent {
+            RoutePicker(
+                state = state,
+                mapArchive = null,
+                onQueryChange = {},
+                onSearch = {},
+                onNearest = {},
+                onSelect = {},
+                onConfirm = {},
+                onCancel = {},
+                onRetry = {},
+            )
+        }
+        composeRule.onNodeWithText("Paris (France)").assertIsDisplayed()
+        composeRule.onNodeWithText("Berlin (Germany)").assertIsDisplayed()
+
+        state = open().copy(results = listOf(paris), selected = paris)
+
+        composeRule.onNodeWithText("Paris (France)").assertDoesNotExist()
+        composeRule.onNodeWithText("Selected: Paris (France)").assertIsDisplayed()
+        composeRule.onNodeWithText("Confirm").assertIsEnabled()
+    }
+
+    // TASK-032: haptic feedback for each newly selected city, as the original map did.
+    @Test fun selectingACityGivesHapticFeedbackOnce() {
+        val berlin = NearbyCityRecord(7L, "Berlin", "Germany", 52.5, 13.4, "Europe/Berlin")
+        val feedback = mutableListOf<HapticFeedbackType>()
+        val haptics =
+            object : HapticFeedback {
+                override fun performHapticFeedback(hapticFeedbackType: HapticFeedbackType) {
+                    feedback += hapticFeedbackType
+                }
+            }
+        var state by mutableStateOf(open())
+        composeRule.setContent {
+            CompositionLocalProvider(LocalHapticFeedback provides haptics) {
+                RoutePicker(
+                    state = state,
+                    mapArchive = null,
+                    onQueryChange = {},
+                    onSearch = {},
+                    onNearest = {},
+                    onSelect = {},
+                    onConfirm = {},
+                    onCancel = {},
+                    onRetry = {},
+                )
+            }
+        }
+        composeRule.runOnIdle { assertEquals(emptyList<HapticFeedbackType>(), feedback) }
+
+        state = state.copy(selected = paris)
+        composeRule.runOnIdle { assertEquals(listOf(HapticFeedbackType.LongPress), feedback) }
+
+        state = state.copy(query = "Par", loading = true)
+        composeRule.runOnIdle { assertEquals(1, feedback.size) }
+
+        state = state.copy(selected = berlin, loading = false)
+        composeRule.runOnIdle { assertEquals(2, feedback.size) }
     }
 
     private fun open() = RoutePickerState(endpoint = RouteEndpoint.DEPARTURE)

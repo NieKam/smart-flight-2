@@ -38,7 +38,8 @@ class RouteInteractionTest {
 
     @Test fun routePickerSupportsDraftSelectionAndExplicitCancel() {
         val city = NearbyCityRecord(7L, "Berlin", "Germany", 52.5, 13.4, "Europe/Berlin")
-        var state by mutableStateOf(RoutePickerState(endpoint = RouteEndpoint.DEPARTURE, results = listOf(city)))
+        val other = NearbyCityRecord(8L, "Paris", "France", 48.8, 2.3, "Europe/Paris")
+        var state by mutableStateOf(RoutePickerState(endpoint = RouteEndpoint.DEPARTURE, results = listOf(city, other)))
         var confirmed = false
         var cancelled = false
         composeRule.setContent {

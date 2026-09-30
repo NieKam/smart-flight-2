@@ -70,6 +70,15 @@ class PaletteGuardTest {
         assertTrue("MapCard.kt declares colors outside the tokens: $literals", literals.isEmpty())
     }
 
+    @Test
+    fun cityPickerDeclaresNoColorsOfItsOwn() {
+        // TASK-032: every picker color comes from the tokens.
+        val file = File("src/main/java/kniezrec/com/flightinfo/route/ui/RoutePicker.kt")
+        assertTrue("City picker not found: ${file.absolutePath}", file.isFile)
+        val literals = COLOR_LITERAL.findAll(file.readText()).map { it.value }.toList()
+        assertTrue("RoutePicker.kt declares colors outside the tokens: $literals", literals.isEmpty())
+    }
+
     private fun tokens(colors: SmartFlightColors): Map<String, Int> =
         // A Color property compiles to a public getter returning the packed Long (value class).
         SmartFlightColors::class.java.declaredMethods
@@ -87,12 +96,13 @@ class PaletteGuardTest {
     private fun hex(argb: Int) = "#%08X".format(argb)
 
     private companion object {
-        /** The plane marker, the route pins and the button icons drawn on the map. */
+        /** The plane marker, the route pins, the city picker marker and the button icons drawn on the maps. */
         val MAP_DRAWABLES =
             listOf(
                 "ic_plane_marker",
                 "ic_map_pin_departure",
                 "ic_map_pin_destination",
+                "ic_city_found_marker",
                 "ic_expand",
                 "ic_shrink",
                 "drawing_pin_icon",

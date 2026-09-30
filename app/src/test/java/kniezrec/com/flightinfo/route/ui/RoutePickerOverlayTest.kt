@@ -79,8 +79,8 @@ class RoutePickerOverlayTest {
         composeRule.onNodeWithText("Choose destination").assertIsDisplayed()
         composeRule.onNodeWithText("City name").performTextInput("Berl")
         composeRule.onNodeWithText("City name").performImeAction()
-        composeRule.waitUntil { composeRule.onAllNodesWithText("Berlin (Germany)").fetchSemanticsNodes().isNotEmpty() }
-        composeRule.onNodeWithText("Berlin (Germany)").performClick()
+        // The single result is selected at once (TASK-032).
+        composeRule.waitUntil { composeRule.onAllNodesWithText("Selected: Berlin (Germany)").fetchSemanticsNodes().isNotEmpty() }
         composeRule.onNodeWithText("Confirm").assertIsEnabled().performClick()
 
         composeRule.waitUntil { composeRule.onAllNodesWithText("Choose destination").fetchSemanticsNodes().isEmpty() }
