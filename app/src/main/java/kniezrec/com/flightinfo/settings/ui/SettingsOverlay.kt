@@ -9,11 +9,16 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 /**
  * [UnitSettingsScreen] bound to [SettingsViewModel]. Every change is persisted at once; window
  * effects and the cards follow from the settings repositories.
+ *
+ * @param highlightLargerMapZoom opened from the map's max-zoom tip: the "Larger map zoom" row is
+ *   scrolled into view and flashes; [onHighlightFinished] is called when it has.
  */
 @Composable
 fun SettingsOverlay(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    highlightLargerMapZoom: Boolean = false,
+    onHighlightFinished: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -29,6 +34,8 @@ fun SettingsOverlay(
         hiddenCards = state.hiddenCards,
         onShowHiddenCards = viewModel::showHiddenCards,
         onBack = onBack,
+        highlightLargerMapZoom = highlightLargerMapZoom,
+        onHighlightFinished = onHighlightFinished,
         modifier = modifier,
     )
 }
