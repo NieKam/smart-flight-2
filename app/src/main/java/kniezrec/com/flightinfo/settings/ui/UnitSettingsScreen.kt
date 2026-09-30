@@ -20,6 +20,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -80,6 +81,8 @@ fun UnitSettingsScreen(
     onDisplayPreferenceChange: (DisplayPreferences) -> Unit = {},
     showBackgroundNotification: Boolean = true,
     onBackgroundNotificationChange: (Boolean) -> Unit = {},
+    notificationsBlocked: Boolean = false,
+    onAllowNotifications: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     var selector by remember { mutableStateOf<Selector<*>?>(null) }
@@ -150,12 +153,28 @@ fun UnitSettingsScreen(
                     style = MaterialTheme.typography.titleLarge,
                 )
                 Column(Modifier.padding(top = 8.dp)) {
+                    // The effective state: switched on but not shown is "Notifications are blocked".
+                    val notificationBlocked = showBackgroundNotification && notificationsBlocked
                     displaysettingRow(
                         R.string.show_background_notification,
-                        if (showBackgroundNotification) R.string.settings_on else R.string.settings_off,
+                        when {
+                            notificationBlocked -> R.string.notifications_blocked
+                            showBackgroundNotification -> R.string.settings_on
+                            else -> R.string.settings_off
+                        },
                         showBackgroundNotification,
                         description = R.string.background_notification_settings_description,
                     ) { onBackgroundNotificationChange(!showBackgroundNotification) }
+                    if (notificationBlocked) {
+                        val hint = stringResource(R.string.allow_notifications_hint)
+                        TextButton(
+                            onClick = onAllowNotifications,
+                            modifier =
+                                Modifier.padding(top = 4.dp).heightIn(min = 48.dp).semantics {
+                                    stateDescription = hint
+                                },
+                        ) { Text(stringResource(R.string.allow_notifications), color = colors.accent) }
+                    }
                 }
                 ValueText(
                     stringResource(R.string.units_section),

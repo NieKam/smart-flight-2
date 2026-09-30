@@ -132,6 +132,28 @@ class UnitSettingsScreenTest {
         }
     }
 
+    @Test fun blockedNotificationShowsTheEffectiveStateAndTheAllowAction() {
+        var allowed = false
+        var on by mutableStateOf(true)
+        composeRule.setContent {
+            UnitSettingsScreen(
+                UnitPreferences(),
+                {},
+                {},
+                showBackgroundNotification = on,
+                notificationsBlocked = true,
+                onAllowNotifications = { allowed = true },
+            )
+        }
+        composeRule.onNodeWithText("Notifications are blocked").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Allow notifications").performScrollTo().performClick()
+        composeRule.runOnIdle { assertEquals(true, allowed) }
+
+        // Switched off, blocked notifications do not matter.
+        composeRule.runOnIdle { on = false }
+        composeRule.onNodeWithText("Allow notifications").assertDoesNotExist()
+    }
+
     @Test fun everySelectorShowsItsExactOptionsAndUpdatesItsSummary() {
         var selected by mutableStateOf(UnitPreferences())
         composeRule.setContent {
