@@ -1,4 +1,4 @@
-package kniezrec.com.flightinfo.map
+package kniezrec.com.flightinfo.map.data
 
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue

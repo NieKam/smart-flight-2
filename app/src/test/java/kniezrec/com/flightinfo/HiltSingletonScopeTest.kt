@@ -61,8 +61,6 @@ class HiltSingletonScopeTest {
         assertSame(first.unitSettingsRepository, second.unitSettingsRepository)
         assertSame(first.backgroundNotificationSettingsRepository, second.backgroundNotificationSettingsRepository)
         assertSame(first.permissionRequestHistory, second.permissionRequestHistory)
-        assertSame(first.mapArchiveRepository, second.mapArchiveRepository)
-        assertSame(first.locationRepository, second.locationRepository)
         assertSame(first.appVisibility, second.appVisibility)
     }
 
@@ -74,7 +72,6 @@ class HiltSingletonScopeTest {
             val service = controller.get()
 
             assertSame(activity.backgroundNotificationSettingsRepository, service.backgroundNotificationSettingsRepository)
-            assertSame(activity.locationRepository, service.locationRepository)
             assertSame(activity.appVisibility, service.appVisibility)
             assertSame(application.getSystemService(LocationManager::class.java), service.locationManager)
         } finally {
@@ -104,8 +101,6 @@ class HiltSingletonScopeTest {
                     unitSettingsRepository = it.unitSettingsRepository,
                     backgroundNotificationSettingsRepository = it.backgroundNotificationSettingsRepository,
                     permissionRequestHistory = it.permissionRequestHistory,
-                    mapArchiveRepository = it.mapArchiveRepository,
-                    locationRepository = it.locationRepository,
                     appVisibility = it.appVisibility,
                 )
         }
@@ -118,8 +113,6 @@ class HiltSingletonScopeTest {
         val unitSettingsRepository: Any,
         val backgroundNotificationSettingsRepository: Any,
         val permissionRequestHistory: Any,
-        val mapArchiveRepository: Any,
-        val locationRepository: Any,
         val appVisibility: Any,
     )
 

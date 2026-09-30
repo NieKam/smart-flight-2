@@ -54,14 +54,13 @@ import kniezrec.com.flightinfo.flight.FlightParametersState
 import kniezrec.com.flightinfo.gnss.GnssSatellite
 import kniezrec.com.flightinfo.gnss.GnssStatusState
 import kniezrec.com.flightinfo.horizon.HorizonState
-import kniezrec.com.flightinfo.map.MapSessionRules
+import kniezrec.com.flightinfo.map.ui.MapUiState
 import kniezrec.com.flightinfo.nearby.NearbyCityRecord
 import kniezrec.com.flightinfo.nearby.NearbyCityState
 import kniezrec.com.flightinfo.nearby.NearbyCoordinate
 import kniezrec.com.flightinfo.route.RouteEndpoint
 import kniezrec.com.flightinfo.route.RoutePickerState
 import kniezrec.com.flightinfo.route.RouteState
-import kniezrec.com.flightinfo.ui.gnss.MapCardState
 import kniezrec.com.flightinfo.ui.permission.actionCyan
 import kniezrec.com.flightinfo.ui.permission.cardPurple
 import kniezrec.com.flightinfo.ui.route.RouteCard
@@ -86,12 +85,10 @@ fun GnssStatusScreen(
     onHorizonRetry: () -> Unit = {},
     nearbyCityState: NearbyCityState = NearbyCityState.WaitingForPosition,
     onNearbyCityRetry: () -> Unit = {},
-    mapState: MapCardState = MapCardState.Inactive,
-    mapRules: MapSessionRules = MapSessionRules(),
-    largerMapZoom: Boolean = false,
-    mapPositionVersion: Int = 0,
+    mapState: MapUiState = MapUiState.Inactive,
     onMapRetry: () -> Unit = {},
     onMapUnavailable: () -> Unit = {},
+    onMapCentered: () -> Unit = {},
     routeState: RouteState = RouteState(),
     onRouteChoose: (RouteEndpoint) -> Unit = {},
     onRouteClear: (RouteEndpoint) -> Unit = {},
@@ -108,7 +105,6 @@ fun GnssStatusScreen(
     routePickerMapArchive: File? = null,
     modifier: Modifier = Modifier,
 ) {
-    mapPositionVersion
     androidx.compose.foundation.layout.Box(Modifier.fillMaxSize().then(modifier)) {
         Column(Modifier.fillMaxSize()) {
             DashboardHeader(onOpenSettings = onOpenSettings, onOpenAbout = onOpenAbout)
@@ -153,10 +149,9 @@ fun GnssStatusScreen(
                 Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
                     MapCard(
                         state = mapState,
-                        rules = mapRules,
                         onRetry = onMapRetry,
                         onUnavailable = onMapUnavailable,
-                        largerMapZoom = largerMapZoom,
+                        onCentered = onMapCentered,
                         routeOverlay = routeState.overlay,
                         modifier = Modifier.padding(bottom = 12.dp).widthIn(max = 600.dp),
                     )

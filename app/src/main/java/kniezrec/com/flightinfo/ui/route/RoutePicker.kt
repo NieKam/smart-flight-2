@@ -34,7 +34,6 @@ import kniezrec.com.flightinfo.nearby.NearbyCoordinate
 import kniezrec.com.flightinfo.route.RouteEndpoint
 import kniezrec.com.flightinfo.route.RoutePickerError
 import kniezrec.com.flightinfo.route.RoutePickerState
-import org.osmdroid.config.Configuration
 import org.osmdroid.events.MapEventsReceiver
 import org.osmdroid.tileprovider.modules.OfflineTileProvider
 import org.osmdroid.tileprovider.tilesource.XYTileSource
@@ -152,7 +151,6 @@ private fun PickerMap(
     AndroidView(
         modifier = Modifier.fillMaxSize().semantics { contentDescription = context.getString(R.string.route_picker_map_description) },
         factory = {
-            Configuration.getInstance().load(context, context.getSharedPreferences("osmdroid", 0))
             MapView(context, OfflineTileProvider(SimpleRegisterReceiver(context), arrayOf(archive))).apply {
                 setTileSource(pickerMapSource)
                 setUseDataConnection(false)

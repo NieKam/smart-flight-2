@@ -1,5 +1,6 @@
 package kniezrec.com.flightinfo.ui.gnss
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -38,15 +39,16 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.core.content.ContextCompat
 import kniezrec.com.flightinfo.R
-import kniezrec.com.flightinfo.map.MapSessionRules
+import kniezrec.com.flightinfo.map.MapCoordinate
+import kniezrec.com.flightinfo.map.MapRules
 import kniezrec.com.flightinfo.map.MapZoomTarget
 import kniezrec.com.flightinfo.map.applyMapZoomPolicy
+import kniezrec.com.flightinfo.map.ui.MapOverlays
+import kniezrec.com.flightinfo.map.ui.MapUiState
 import kniezrec.com.flightinfo.route.RouteOverlay
 import kniezrec.com.flightinfo.ui.permission.actionCyan
 import kniezrec.com.flightinfo.ui.permission.cardPurple
-import org.osmdroid.config.Configuration
 import org.osmdroid.events.MapListener
 import org.osmdroid.events.ScrollEvent
 import org.osmdroid.events.ZoomEvent
@@ -55,34 +57,26 @@ import org.osmdroid.tileprovider.tilesource.XYTileSource
 import org.osmdroid.tileprovider.util.SimpleRegisterReceiver
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
-import org.osmdroid.views.overlay.Marker
-import org.osmdroid.views.overlay.Polyline
-import java.io.File
-
-sealed interface MapCardState {
-    data object Loading : MapCardState
-
-    data class Ready(
-        val archive: File,
-    ) : MapCardState
-
-    data object Unavailable : MapCardState
-
-    data object Inactive : MapCardState
-}
 
 private val mapSource = XYTileSource("MapquestOSM", 1, 9, 256, ".jpg", arrayOf())
 
+/**
+ * The offline map card. Stateless apart from view-interop state: every new [state] (position,
+ * course, center request, zoom setting) and [routeOverlay] re-runs the map's `update`.
+ *
+ * @param onUnavailable the map could not open [MapUiState.Ready.archive].
+ * @param onCentered the map was centered on [MapUiState.Ready.centerRequest].
+ */
 @Composable
 fun MapCard(
-    state: MapCardState,
-    rules: MapSessionRules,
+    state: MapUiState,
     onRetry: () -> Unit,
     onUnavailable: () -> Unit = {},
-    largerMapZoom: Boolean = false,
+    onCentered: () -> Unit = {},
     routeOverlay: RouteOverlay? = null,
     modifier: Modifier = Modifier,
 ) {
+    val context = LocalContext.current
     var expanded by remember { mutableStateOf(false) }
     var showMaximumZoomWarning by remember { mutableStateOf(false) }
     Card(
@@ -92,21 +86,20 @@ fun MapCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
     ) {
         when (state) {
-            MapCardState.Loading -> MapMessage(R.string.map_loading, R.string.map_loading_body)
-            MapCardState.Unavailable -> MapMessage(R.string.map_unavailable, R.string.map_unavailable_body, onRetry)
-            MapCardState.Inactive -> MapMessage(R.string.map_loading, R.string.map_inactive_body)
-            is MapCardState.Ready -> {
+            MapUiState.Loading -> MapMessage(R.string.map_loading, R.string.map_loading_body)
+            MapUiState.Unavailable -> MapMessage(R.string.map_unavailable, R.string.map_unavailable_body, onRetry)
+            MapUiState.Inactive -> MapMessage(R.string.map_loading, R.string.map_inactive_body)
+            is MapUiState.Ready -> {
                 BoxWithConstraints(Modifier.fillMaxWidth().testTag("map-content")) {
                     val mapHeight = mapHeight(maxWidth, maxHeight, expanded)
                     Box(Modifier.fillMaxWidth().height(mapHeight)) {
-                        val instance = remember(state.archive) { MapInstance() }
+                        val instance = remember(state.archive) { MapInstance(MapOverlays(context)) }
                         OfflineMap(
-                            archive = state.archive,
-                            rules = rules,
+                            state = state,
                             instance = instance,
                             routeOverlay = routeOverlay,
-                            largerMapZoom = largerMapZoom,
                             onOpenFailure = onUnavailable,
+                            onCentered = onCentered,
                             onMaximumZoomWarningChanged = { showMaximumZoomWarning = it },
                             modifier = Modifier.fillMaxSize(),
                         )
@@ -119,11 +112,11 @@ fun MapCard(
                             )
                         }
                         MapButton(
-                            description = stringResource(R.string.map_recenter),
+                            kind = MapButtonKind.Recenter,
                             modifier = Modifier.align(Alignment.TopEnd).padding(12.dp),
-                        ) { instance.recenter(rules) }
+                        ) { instance.recenter(state.position) }
                         MapButton(
-                            description = stringResource(if (expanded) R.string.map_collapse else R.string.map_expand),
+                            kind = if (expanded) MapButtonKind.Collapse else MapButtonKind.Expand,
                             modifier = Modifier.align(Alignment.BottomEnd).padding(12.dp),
                         ) { expanded = !expanded }
                     }
@@ -131,6 +124,16 @@ fun MapCard(
             }
         }
     }
+}
+
+/** The map's overlay buttons; the glyph comes from the kind, never from the (localized) label. */
+internal enum class MapButtonKind(
+    @param:StringRes val description: Int,
+    val glyph: String,
+) {
+    Recenter(R.string.map_recenter, "◎"),
+    Expand(R.string.map_expand, "↕"),
+    Collapse(R.string.map_collapse, "↕"),
 }
 
 private fun mapHeight(
@@ -172,10 +175,11 @@ private fun MapMessage(
 
 @Composable
 private fun MapButton(
-    description: String,
+    kind: MapButtonKind,
     modifier: Modifier,
     onClick: () -> Unit,
 ) {
+    val description = stringResource(kind.description)
     IconButton(
         onClick = onClick,
         modifier =
@@ -184,59 +188,49 @@ private fun MapButton(
                 role = Role.Button
             },
     ) {
-        Text(
-            if (description.startsWith("Expand") ||
-                description.startsWith("Collapse")
-            ) {
-                "↕"
-            } else {
-                "◎"
-            },
-            color = Color.White,
-            style = MaterialTheme.typography.titleLarge,
-        )
+        Text(kind.glyph, color = Color.White, style = MaterialTheme.typography.titleLarge)
     }
 }
 
-private class MapInstance {
+/** The map view of one Ready archive and its overlays; not Compose state (see [OfflineMap]). */
+private class MapInstance(
+    val overlays: MapOverlays,
+) {
     var map: MapView? = null
     var largerMapZoom: Boolean = false
-    var marker: Marker? = null
-    var routeLine: Polyline? = null
-    var departureMarker: Marker? = null
-    var destinationMarker: Marker? = null
 
-    fun recenter(rules: MapSessionRules) {
+    fun recenter(position: MapCoordinate?) {
         val map = map ?: return
-        val viewport = rules.recenter()
+        val viewport = MapRules.recenter(position)
         map.controller.setCenter(GeoPoint(viewport.center.latitude, viewport.center.longitude))
         map.controller.setZoom(viewport.zoom)
     }
 
     fun dispose() {
-        map?.overlays?.removeAll { it !== marker }
+        map?.overlays?.removeAll { it !== overlays.planeMarker }
         map?.onDetach()
-        marker = null
-        routeLine = null
-        departureMarker = null
-        destinationMarker = null
+        overlays.clear()
         largerMapZoom = false
         map = null
     }
 }
 
+/**
+ * The osmdroid map. `update` reads only immutable parameters and writes no Compose state that it
+ * reads, so it runs once per new [state] or [routeOverlay] and never schedules itself again.
+ */
 @Composable
 private fun OfflineMap(
-    archive: File,
-    rules: MapSessionRules,
+    state: MapUiState.Ready,
     instance: MapInstance,
     routeOverlay: RouteOverlay?,
-    largerMapZoom: Boolean,
     onOpenFailure: () -> Unit,
+    onCentered: () -> Unit,
     onMaximumZoomWarningChanged: (Boolean) -> Unit,
     modifier: Modifier,
 ) {
     val context = LocalContext.current
+    val largerMapZoom = state.largerMapZoom
     instance.largerMapZoom = largerMapZoom
     DisposableEffect(instance) {
         onDispose {
@@ -250,9 +244,7 @@ private fun OfflineMap(
                     routeOverlay?.let { context.getString(R.string.route_map_summary, it.departureName, it.destinationName) }
                         ?: context.getString(R.string.map_ready_summary)
                 stateDescription =
-                    if (rules.latestPosition ==
-                        null
-                    ) {
+                    if (state.position == null) {
                         context.getString(R.string.map_no_position)
                     } else {
                         context.getString(R.string.map_position_shown)
@@ -260,29 +252,36 @@ private fun OfflineMap(
             },
         factory = {
             try {
-                Configuration.getInstance().load(context, context.getSharedPreferences("osmdroid", 0))
-                val provider = OfflineTileProvider(SimpleRegisterReceiver(context), arrayOf(archive))
+                val provider = OfflineTileProvider(SimpleRegisterReceiver(context), arrayOf(state.archive))
+                // osmdroid logs and skips an archive it cannot read instead of throwing.
+                if (provider.archives.isEmpty()) {
+                    provider.detach()
+                    throw IllegalStateException("Offline map archive could not be opened")
+                }
                 MapView(context, provider).apply {
                     setTileSource(mapSource)
                     setUseDataConnection(false)
                     setMultiTouchControls(true)
                     minZoomLevel = 1.0
-                    maxZoomLevel = MapSessionRules.maxZoom(largerMapZoom)
-                    controller.setZoom(MapSessionRules.DEFAULT_ZOOM)
-                    controller.setCenter(GeoPoint(MapSessionRules.DEFAULT_CENTER.latitude, MapSessionRules.DEFAULT_CENTER.longitude))
+                    maxZoomLevel = MapRules.maxZoom(largerMapZoom)
+                    controller.setZoom(MapRules.DEFAULT_ZOOM)
+                    // A map recreated after the first-fix centering (e.g. rotation) starts at the
+                    // latest position instead of waiting for a center request that already happened.
+                    val center = state.position ?: MapRules.DEFAULT_CENTER
+                    controller.setCenter(GeoPoint(center.latitude, center.longitude))
                     instance.map = this
                     addMapListener(
                         object : MapListener {
                             override fun onScroll(event: ScrollEvent): Boolean {
                                 onMaximumZoomWarningChanged(
-                                    MapSessionRules.shouldShowMaximumZoomWarning(zoomLevel.toDouble(), instance.largerMapZoom),
+                                    MapRules.shouldShowMaximumZoomWarning(zoomLevel.toDouble(), instance.largerMapZoom),
                                 )
                                 return true
                             }
 
                             override fun onZoom(event: ZoomEvent): Boolean {
                                 onMaximumZoomWarningChanged(
-                                    MapSessionRules.shouldShowMaximumZoomWarning(zoomLevel.toDouble(), instance.largerMapZoom),
+                                    MapRules.shouldShowMaximumZoomWarning(zoomLevel.toDouble(), instance.largerMapZoom),
                                 )
                                 return true
                             }
@@ -318,71 +317,12 @@ private fun OfflineMap(
                     },
                 largerMapZoom = largerMapZoom,
             )
-            onMaximumZoomWarningChanged(MapSessionRules.shouldShowMaximumZoomWarning(map.zoomLevel.toDouble(), largerMapZoom))
-            val firstFix = rules.consumeFirstFixCenter()
-            if (firstFix != null) map.controller.setCenter(GeoPoint(firstFix.latitude, firstFix.longitude))
-            val position = rules.latestPosition
-            if (position != null) {
-                if (instance.marker == null) {
-                    instance.marker =
-                        Marker(map).also { marker ->
-                            marker.icon = ContextCompat.getDrawable(context, R.drawable.ic_plane_map)
-                            marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
-                            map.overlays.add(marker)
-                        }
-                }
-                instance.marker?.apply {
-                    this.position = GeoPoint(position.latitude, position.longitude)
-                    rotation = rules.markerCourse
-                }
-                map.invalidate()
+            onMaximumZoomWarningChanged(MapRules.shouldShowMaximumZoomWarning(map.zoomLevel.toDouble(), largerMapZoom))
+            state.centerRequest?.let { center ->
+                map.controller.setCenter(GeoPoint(center.latitude, center.longitude))
+                onCentered()
             }
-            val route = routeOverlay
-            if (route == null) {
-                instance.routeLine?.let { map.overlays.remove(it) }
-                instance.departureMarker?.let { map.overlays.remove(it) }
-                instance.destinationMarker?.let { map.overlays.remove(it) }
-                instance.routeLine = null
-                instance.departureMarker = null
-                instance.destinationMarker = null
-            } else {
-                if (instance.routeLine == null) {
-                    instance.routeLine =
-                        Polyline(map).also {
-                            it.color = android.graphics.Color.CYAN
-                            map.overlays.add(it)
-                        }
-                    instance.departureMarker =
-                        Marker(map).also { marker ->
-                            marker.icon = ContextCompat.getDrawable(context, R.drawable.ic_route_departure)
-                            marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                            map.overlays.add(marker)
-                        }
-                    instance.destinationMarker =
-                        Marker(map).also { marker ->
-                            marker.icon = ContextCompat.getDrawable(context, R.drawable.ic_route_destination)
-                            marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                            map.overlays.add(marker)
-                        }
-                }
-                instance.routeLine?.setPoints(
-                    listOf(
-                        GeoPoint(route.departure.latitude, route.departure.longitude),
-                        GeoPoint(route.destination.latitude, route.destination.longitude),
-                    ),
-                )
-                instance.departureMarker?.apply {
-                    title = context.getString(R.string.route_departure_marker, route.departureName)
-                    snippet = context.getString(R.string.route_departure_marker_description)
-                    this.position = GeoPoint(route.departure.latitude, route.departure.longitude)
-                }
-                instance.destinationMarker?.apply {
-                    title = context.getString(R.string.route_destination_marker, route.destinationName)
-                    snippet = context.getString(R.string.route_destination_marker_description)
-                    this.position = GeoPoint(route.destination.latitude, route.destination.longitude)
-                }
-            }
-            map.invalidate()
+            instance.overlays.sync(map, state, routeOverlay)
         },
     )
 }
