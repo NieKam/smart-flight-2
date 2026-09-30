@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Smart Flight</string>
+    <string name="app_name" translatable="false">Smart Flight</string>
     <string name="dashboard_more_options">More options</string>
     <string name="permission_title">Location permission</string>
     <string name="permission_body">Smart Flight needs precise location permission to enable flight information cards.</string>
@@ -28,13 +28,13 @@
     <string name="flight_vertical_speed">Vertical speed</string>
     <string name="flight_altitude">Altitude</string>
     <string name="flight_pressure">Pressure</string>
-    <string name="flight_unavailable">—</string>
+    <string name="flight_unavailable" translatable="false">—</string>
     <string name="flight_unavailable_accessibility">unavailable</string>
-    <string name="flight_speed_value">%1$s %2$s</string>
-    <string name="flight_vertical_speed_value">%1$s %2$s</string>
-    <string name="flight_altitude_value">%1$s %2$s</string>
-    <string name="flight_pressure_value">%1$s %2$s</string>
-    <string name="flight_pressure_accessibility_value">%1$s %2$s</string>
+    <string name="flight_speed_value" translatable="false">%1$s %2$s</string>
+    <string name="flight_vertical_speed_value" translatable="false">%1$s %2$s</string>
+    <string name="flight_altitude_value" translatable="false">%1$s %2$s</string>
+    <string name="flight_pressure_value" translatable="false">%1$s %2$s</string>
+    <string name="flight_pressure_accessibility_value" translatable="false">%1$s %2$s</string>
 
     <string name="course_title">Course</string>
     <string name="course_waiting">Waiting for compass heading…</string>
@@ -44,20 +44,20 @@
     <string name="course_try_again">Try again</string>
     <string name="course_try_again_hint">Retries compass</string>
     <string name="course_gps_bearing">GPS bearing</string>
-    <string name="course_unavailable">—</string>
+    <string name="course_unavailable" translatable="false">—</string>
     <string name="course_unavailable_spoken">unavailable</string>
-    <string name="course_degree_value">%1$s°</string>
+    <string name="course_degree_value" translatable="false">%1$s°</string>
     <string name="course_heading_spoken">Compass heading, %1$s degrees, %2$s</string>
     <string name="course_bearing_spoken">GPS bearing, %1$s</string>
     <string name="course_available_announcement">Compass heading available</string>
-    <string name="course_cardinal_north">N</string>
-    <string name="course_cardinal_north_east">NE</string>
-    <string name="course_cardinal_east">E</string>
-    <string name="course_cardinal_south_east">SE</string>
-    <string name="course_cardinal_south">S</string>
-    <string name="course_cardinal_south_west">SW</string>
-    <string name="course_cardinal_west">W</string>
-    <string name="course_cardinal_north_west">NW</string>
+    <string name="course_cardinal_north" translatable="false">N</string>
+    <string name="course_cardinal_north_east" translatable="false">NE</string>
+    <string name="course_cardinal_east" translatable="false">E</string>
+    <string name="course_cardinal_south_east" translatable="false">SE</string>
+    <string name="course_cardinal_south" translatable="false">S</string>
+    <string name="course_cardinal_south_west" translatable="false">SW</string>
+    <string name="course_cardinal_west" translatable="false">W</string>
+    <string name="course_cardinal_north_west" translatable="false">NW</string>
     <string name="course_cardinal_north_spoken">north</string>
     <string name="course_cardinal_north_east_spoken">northeast</string>
     <string name="course_cardinal_east_spoken">east</string>
@@ -80,7 +80,7 @@
     <string name="horizon_down">down</string>
     <string name="horizon_left">left</string>
     <string name="horizon_right">right</string>
-    <string name="horizon_degrees_direction">%1$s° %2$s</string>
+    <string name="horizon_degrees_direction" translatable="false">%1$s° %2$s</string>
     <string name="horizon_summary">Pitch: %1$s · Roll: %2$s</string>
     <string name="horizon_summary_spoken">Horizon. Pitch %1$s. Roll %2$s.</string>
     <string name="horizon_recalibrating_announcement">Horizon recalibrating. Waiting for attitude data.</string>
@@ -96,15 +96,15 @@
     <string name="nearby_city_country">Country</string>
     <string name="nearby_city_distance">Distance to the city</string>
     <string name="nearby_city_time">Time</string>
-    <string name="nearby_city_distance_value">%1$s</string>
-    <string name="nearby_city_distance_spoken">%1$s</string>
-    <string name="nearby_city_time_value">%1$s (%2$s)</string>
-    <string name="nearby_city_time_spoken">%1$s, %2$s</string>
-    <string name="nearby_city_utc_offset_plus">+</string>
-    <string name="nearby_city_utc_offset_minus">−</string>
+    <string name="nearby_city_distance_value" translatable="false">%1$s</string>
+    <string name="nearby_city_distance_spoken" translatable="false">%1$s</string>
+    <string name="nearby_city_time_value" translatable="false">%1$s (%2$s)</string>
+    <string name="nearby_city_time_spoken" translatable="false">%1$s, %2$s</string>
+    <string name="nearby_city_utc_offset_plus" translatable="false">+</string>
+    <string name="nearby_city_utc_offset_minus" translatable="false">−</string>
     <string name="nearby_city_utc_offset_spoken_plus">plus</string>
     <string name="nearby_city_utc_offset_spoken_minus">minus</string>
-    <string name="nearby_city_utc_offset_visible">UTC%1$s%2$02d:%3$02d</string>
+    <string name="nearby_city_utc_offset_visible" translatable="false">UTC%1$s%2$02d:%3$02d</string>
     <string name="nearby_city_utc_offset_spoken">UTC %1$s %2$s %3$s</string>
     <plurals name="nearby_city_utc_offset_hours"><item quantity="one">%d hour</item><item quantity="other">%d hours</item></plurals>
     <plurals name="nearby_city_utc_offset_minutes"><item quantity="one">%d minute</item><item quantity="other">%d minutes</item></plurals>
@@ -128,9 +128,9 @@
     <string name="route_hint">Tap to select flight route</string>
     <string name="route_clear_departure">Clear departure</string>
     <string name="route_clear_destination">Clear destination</string>
-    <string name="route_endpoint_description">%1$s, %2$s</string>
-    <string name="route_endpoint_city_description">%1$s, %2$s, %3$s</string>
-    <string name="route_city_result">%1$s (%2$s)</string>
+    <string name="route_endpoint_description" translatable="false">%1$s, %2$s</string>
+    <string name="route_endpoint_city_description" translatable="false">%1$s, %2$s, %3$s</string>
+    <string name="route_city_result" translatable="false">%1$s (%2$s)</string>
     <string name="route_selected_city">Selected: %1$s (%2$s)</string>
     <string name="route_picker_title_description">Offline city picker</string>
     <string name="route_picker_map_description">Offline city picker map. Long-press to find the nearest city.</string>
@@ -170,18 +170,18 @@
     <string name="about_attribution">This application uses AndroidX Jetpack Compose for its user interface and osmdroid for its offline map display.</string>
     <string name="about_close">OK</string>
     <string name="settings_row_description">%1$s, current value %2$s, double tap to change</string>
-    <string name="flight_value_accessibility">%1$s %2$s</string>
-    <string name="flight_row_accessibility">%1$s, %2$s</string>
-    <string name="card_row_description">%1$s, %2$s</string>
-    <string name="distance_value">%1$s %2$s</string>
-    <string name="distance_spoken_value">%1$s %2$s</string>
-    <string name="route_detail_description">%1$s, %2$s</string>
+    <string name="flight_value_accessibility" translatable="false">%1$s %2$s</string>
+    <string name="flight_row_accessibility" translatable="false">%1$s, %2$s</string>
+    <string name="card_row_description" translatable="false">%1$s, %2$s</string>
+    <string name="distance_value" translatable="false">%1$s %2$s</string>
+    <string name="distance_spoken_value" translatable="false">%1$s %2$s</string>
+    <string name="route_detail_description" translatable="false">%1$s, %2$s</string>
     <string name="unit_kmh_accessibility">kilometres per hour</string><string name="unit_mph_accessibility">miles per hour</string><string name="unit_kt_accessibility">knots</string>
     <string name="unit_m_accessibility">metres</string><string name="unit_ft_accessibility">feet</string>
     <string name="unit_km_accessibility">kilometres</string><string name="unit_mi_accessibility">miles</string>
     <string name="unit_ms_accessibility">metres per second</string><string name="unit_mmin_accessibility">metres per minute</string><string name="unit_ftmin_accessibility">feet per minute</string>
     <string name="unit_mbar_accessibility">millibars</string><string name="unit_inhg_accessibility">inches of mercury</string>
     <string name="unit_speed">Speed</string><string name="unit_altitude">Altitude</string><string name="unit_distance">Distance</string><string name="unit_vertical_speed">Vertical speed</string><string name="unit_pressure">Pressure</string>
-    <string name="unit_kmh">km/h</string><string name="unit_mph">mph</string><string name="unit_kt">kt</string><string name="unit_m">m</string><string name="unit_ft">ft</string><string name="unit_km">km</string><string name="unit_mi">mi</string><string name="unit_ms">m/s</string><string name="unit_mmin">m/min</string><string name="unit_ftmin">ft/min</string><string name="unit_mbar">mbar</string><string name="unit_inhg">inHg</string>
+    <string name="unit_kmh" translatable="false">km/h</string><string name="unit_mph" translatable="false">mph</string><string name="unit_kt" translatable="false">kt</string><string name="unit_m" translatable="false">m</string><string name="unit_ft" translatable="false">ft</string><string name="unit_km" translatable="false">km</string><string name="unit_mi" translatable="false">mi</string><string name="unit_ms" translatable="false">m/s</string><string name="unit_mmin" translatable="false">m/min</string><string name="unit_ftmin" translatable="false">ft/min</string><string name="unit_mbar" translatable="false">mbar</string><string name="unit_inhg" translatable="false">inHg</string>
     <string name="option_kmh">Kilometres per hour (km/h)</string><string name="option_mph">Miles per hour (mph)</string><string name="option_kt">Knots (kt)</string><string name="option_m">Metres (m)</string><string name="option_ft">Feet (ft)</string><string name="option_km">Kilometres (km)</string><string name="option_mi">Miles (mi)</string><string name="option_ms">Metres per second (m/s)</string><string name="option_mmin">Metres per minute (m/min)</string><string name="option_ftmin">Feet per minute (ft/min)</string><string name="option_mbar">Millibar (mbar)</string><string name="option_inhg">Inch of mercury (inHg)</string>
 </resources>
