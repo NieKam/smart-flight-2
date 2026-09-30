@@ -46,8 +46,9 @@ import javax.inject.Inject
  *   drops a resolution still running, so the latest write wins. An id that no longer resolves to a
  *   valid city (unknown id, bad coordinates or time zone) is dropped and removed from the saved
  *   route. A failed read shows [RouteError.RESTORE]; [retryRestore] copies the city data again.
- * - Details are present only when both endpoints are set. Fixes with invalid coordinates, and fixes
- *   not newer than the last accepted one, are ignored.
+ * - Details are present whenever the destination is set (distance to it and arrival); the
+ *   departure only adds the distance between the cities. Fixes with invalid coordinates, and fixes
+ *   not newer than the last accepted one, are ignored. The map overlay needs both endpoints.
  *
  * Observation runs while [state] is collected and stops [STOP_TIMEOUT_MILLIS] after the last
  * collector leaves, so a configuration change keeps the card. When observation restarts, the route
@@ -94,12 +95,7 @@ class RouteViewModel
                 RouteState(
                     departure = departure,
                     destination = destination,
-                    details =
-                        if (departure != null && destination != null) {
-                            routeDetails(departure, destination, fix, clock.instant())
-                        } else {
-                            null
-                        },
+                    details = destination?.let { routeDetails(departure, it, fix, clock.instant()) },
                     overlay = routeOverlay(departure, destination),
                     error = resolved.error,
                 )

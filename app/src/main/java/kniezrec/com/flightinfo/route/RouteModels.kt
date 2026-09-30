@@ -18,11 +18,12 @@ data class RouteOverlay(
 )
 
 /**
- * Route values; the UI formats them. [arrival] and [duration] are known only with a position and a
- * positive speed; [arrival] is shown in [destinationZone].
+ * Route values; the UI formats them. [fixedDistanceKm] (between the cities) exists only with a
+ * departure. [remainingDistanceKm] is known with a position; [arrival] and [duration] with a position
+ * and a positive speed; [arrival] is shown in [destinationZone].
  */
 data class RouteDetails(
-    val fixedDistanceKm: Double,
+    val fixedDistanceKm: Double?,
     val remainingDistanceKm: Double?,
     val arrival: Instant?,
     val destinationZone: ZoneId,
@@ -73,14 +74,17 @@ fun routeDistance(
         NearbyCoordinate(destination.latitude, destination.longitude),
     )
 
-/** Details of the route between two [validCity] endpoints at [now], with the latest [fix] if any. */
+/**
+ * Details of the route to a [validCity] [destination] at [now], with the latest [fix] if any. The
+ * departure is optional (as in the original app): it only adds the distance between the cities.
+ */
 fun routeDetails(
-    departure: NearbyCityRecord,
+    departure: NearbyCityRecord?,
     destination: NearbyCityRecord,
     fix: RouteFix?,
     now: Instant,
 ): RouteDetails {
-    val fixed = routeDistance(departure, destination)
+    val fixed = departure?.let { routeDistance(it, destination) }
     val remaining = fix?.let { distanceKilometres(it.coordinate, NearbyCoordinate(destination.latitude, destination.longitude)) }
     val speed = fix?.speedMetresPerSecond?.takeIf { it.isFinite() && it > 0.0 }
     val durationSeconds =

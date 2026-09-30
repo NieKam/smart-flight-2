@@ -51,11 +51,13 @@ fun RouteCard(
             EndpointRow(RouteEndpoint.DEPARTURE, state.departure?.name, onChoose, onClear)
             EndpointRow(RouteEndpoint.DESTINATION, state.destination?.name, onChoose, onClear)
             state.details?.let { details ->
-                Detail(
-                    R.string.route_distance,
-                    formatDistance(details.fixedDistanceKm, distanceUnit),
-                    formatDistanceSpoken(details.fixedDistanceKm, distanceUnit),
-                )
+                details.fixedDistanceKm?.let { fixed ->
+                    Detail(
+                        R.string.route_distance,
+                        formatDistance(fixed, distanceUnit),
+                        formatDistanceSpoken(fixed, distanceUnit),
+                    )
+                }
                 Detail(
                     R.string.route_remaining,
                     details.remainingDistanceKm?.let {

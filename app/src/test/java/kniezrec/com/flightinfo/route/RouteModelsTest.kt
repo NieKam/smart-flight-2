@@ -20,7 +20,7 @@ class RouteModelsTest {
 
     @Test fun `invalid speed leaves live arrival unavailable`() {
         val details = routeDetails(departure, destination, RouteFix(NearbyCoordinate(0.0, 0.0), 0.0), Instant.EPOCH)
-        assertTrue(details.fixedDistanceKm > 0.0)
+        assertTrue(details.fixedDistanceKm!! > 0.0)
         assertNull(details.arrival)
         assertNull(details.duration)
         assertEquals(ZoneId.of("Europe/Berlin"), details.destinationZone)
@@ -28,7 +28,7 @@ class RouteModelsTest {
 
     @Test fun `no fix leaves remaining distance and arrival unavailable`() {
         val details = routeDetails(departure, destination, null, Instant.EPOCH)
-        assertEquals(111.2, details.fixedDistanceKm, 0.1)
+        assertEquals(111.2, details.fixedDistanceKm!!, 0.1)
         assertNull(details.remainingDistanceKm)
         assertNull(details.arrival)
         assertNull(details.duration)
@@ -42,6 +42,31 @@ class RouteModelsTest {
         assertEquals(Duration.ofSeconds(1_112), details.duration)
         assertEquals(Instant.parse("2020-01-01T00:18:32Z"), details.arrival)
         assertEquals(ZoneId.of("Europe/Berlin"), details.destinationZone)
+    }
+
+    @Test fun `destination only gives remaining distance and arrival without the distance between cities`() {
+        val details = routeDetails(null, destination, RouteFix(NearbyCoordinate(0.0, 0.0), 100.0), Instant.parse("2020-01-01T00:00:00Z"))
+        assertNull(details.fixedDistanceKm)
+        assertEquals(111.2, details.remainingDistanceKm!!, 0.1)
+        assertEquals(Duration.ofSeconds(1_112), details.duration)
+        assertEquals(Instant.parse("2020-01-01T00:18:32Z"), details.arrival)
+        assertEquals(ZoneId.of("Europe/Berlin"), details.destinationZone)
+    }
+
+    @Test fun `destination only without a fix or with zero speed waits`() {
+        val noFix = routeDetails(null, destination, null, Instant.EPOCH)
+        assertNull(noFix.fixedDistanceKm)
+        assertNull(noFix.remainingDistanceKm)
+        assertNull(noFix.arrival)
+
+        val stopped = routeDetails(null, destination, RouteFix(NearbyCoordinate(0.0, 0.0), 0.0), Instant.EPOCH)
+        assertEquals(111.2, stopped.remainingDistanceKm!!, 0.1)
+        assertNull(stopped.arrival)
+        assertNull(stopped.duration)
+    }
+
+    @Test fun `departure only has no overlay`() {
+        assertNull(routeOverlay(departure, null))
     }
 
     @Test fun `overlay keeps endpoint names for accessible map summary`() {

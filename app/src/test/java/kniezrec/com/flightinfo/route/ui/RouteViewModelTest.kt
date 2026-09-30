@@ -74,7 +74,7 @@ class RouteViewModelTest {
             assertEquals(alpha, state.departure)
             assertEquals(beta, state.destination)
             assertNotNull(state.overlay)
-            assertEquals(111.2, state.details!!.fixedDistanceKm, 0.1)
+            assertEquals(111.2, state.details!!.fixedDistanceKm!!, 0.1)
             assertNull(state.details!!.remainingDistanceKm)
             assertNull(state.error)
         }
@@ -150,23 +150,44 @@ class RouteViewModelTest {
             assertEquals(beta, next.state.value.destination)
         }
 
-    @Test fun `details and overlay only with both endpoints`() =
+    @Test fun `a destination alone gives remaining distance and arrival, the overlay needs both endpoints`() =
         runTest(dispatcher) {
             val viewModel = viewModel()
             subscribe(viewModel)
             choose(RouteEndpoint.DESTINATION, beta)
             runCurrent()
-            fix(elapsedSeconds = 1, longitude = 0.5)
+            fix(elapsedSeconds = 1, longitude = 0.0, speed = 100.0)
 
-            assertEquals(beta, viewModel.state.value.destination)
-            assertNull(viewModel.state.value.details)
-            assertNull(viewModel.state.value.overlay)
+            val destinationOnly = viewModel.state.value
+            assertEquals(beta, destinationOnly.destination)
+            assertNull(destinationOnly.details!!.fixedDistanceKm)
+            assertEquals(111.2, destinationOnly.details!!.remainingDistanceKm!!, 0.1)
+            assertEquals(Duration.ofSeconds(1_112), destinationOnly.details!!.duration)
+            assertNull(destinationOnly.overlay)
 
             choose(RouteEndpoint.DEPARTURE, alpha)
             runCurrent()
 
-            assertNotNull(viewModel.state.value.details)
+            assertEquals(
+                111.2,
+                viewModel.state.value.details!!
+                    .fixedDistanceKm!!,
+                0.1,
+            )
             assertNotNull(viewModel.state.value.overlay)
+        }
+
+    @Test fun `a departure alone has no details`() =
+        runTest(dispatcher) {
+            val viewModel = viewModel()
+            subscribe(viewModel)
+            choose(RouteEndpoint.DEPARTURE, alpha)
+            runCurrent()
+            fix(elapsedSeconds = 1, longitude = 0.5, speed = 100.0)
+
+            assertEquals(alpha, viewModel.state.value.departure)
+            assertNull(viewModel.state.value.details)
+            assertNull(viewModel.state.value.overlay)
         }
 
     @Test fun `clearing one endpoint removes only that saved id`() =
@@ -178,9 +199,23 @@ class RouteViewModelTest {
 
             assertNull(viewModel.state.value.departure)
             assertEquals(beta, viewModel.state.value.destination)
-            assertNull(viewModel.state.value.details)
             assertFalse(preferences.contains(DEPARTURE))
             assertEquals(beta.id, preferences.getLong(DESTINATION, Long.MIN_VALUE))
+        }
+
+    @Test fun `clearing the departure keeps remaining distance and arrival`() =
+        runTest(dispatcher) {
+            val viewModel = viewModelWithRoute()
+            fix(elapsedSeconds = 1, longitude = 0.0, speed = 100.0)
+
+            viewModel.clear(RouteEndpoint.DEPARTURE)
+            runCurrent()
+
+            val details = viewModel.state.value.details!!
+            assertNull(details.fixedDistanceKm)
+            assertEquals(111.2, details.remainingDistanceKm!!, 0.1)
+            assertEquals(clock.instant().plusSeconds(1_112), details.arrival)
+            assertNull(viewModel.state.value.overlay)
         }
 
     @Test fun `clearing the route removes both endpoints and the overlay`() =
