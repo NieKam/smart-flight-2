@@ -13,6 +13,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import kniezrec.com.flightinfo.testutil.openFromOverflowMenu
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Before
