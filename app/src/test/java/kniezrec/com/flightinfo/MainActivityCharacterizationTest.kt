@@ -267,6 +267,27 @@ class MainActivityCharacterizationTest {
         composeRule.onAllNodesWithText(speedKmh("36.0")).assertCountEquals(0)
     }
 
+    // Scenario 6 (monitoring setting). Pinned in TASK-015, when the setting moved to SettingsViewModel:
+    // switching the background notification on while visible and granted requests the service again.
+    @Test
+    fun enablingBackgroundNotificationInSettingsPersistsItAndRequestsForegroundService() {
+        launch()
+        composeRule.onNodeWithText(string(R.string.settings_title)).performClick()
+        clickBackgroundNotificationRow(R.string.settings_on)
+        composeRule.waitForIdle()
+        val stored = application.getSharedPreferences("monitoring_behavior", Context.MODE_PRIVATE)
+        assertEquals(false, stored.getBoolean("monitoring_show_background_notification", true))
+        shadowOf(application).clearStartedServices()
+
+        clickBackgroundNotificationRow(R.string.settings_off)
+        composeRule.waitForIdle()
+
+        assertEquals(true, stored.getBoolean("monitoring_show_background_notification", false))
+        val started = shadowOf(application).nextStartedService
+        assertNotNull(started)
+        assertEquals(LocationForegroundService::class.java.name, started.component?.className)
+    }
+
     // Scenario 7. IDs are real rows of assets/databases/cities_info.db.
     @Test
     fun persistedRouteIsRestoredIntoRouteCardAfterLaunch() {
@@ -573,6 +594,21 @@ class MainActivityCharacterizationTest {
                 .fetchSemanticsNodes()
                 .isNotEmpty(),
         )
+    }
+
+    private fun clickBackgroundNotificationRow(
+        @StringRes currentValue: Int,
+    ) {
+        composeRule
+            .onNodeWithContentDescription(
+                string(
+                    R.string.display_setting_warning_description,
+                    string(R.string.show_background_notification),
+                    string(currentValue),
+                    string(R.string.background_notification_settings_description),
+                ),
+            ).performScrollTo()
+            .performClick()
     }
 
     private fun string(
