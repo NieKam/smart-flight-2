@@ -26,7 +26,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
@@ -46,11 +45,8 @@ import kniezrec.com.flightinfo.R
 import kniezrec.com.flightinfo.course.CompassCardinal
 import kniezrec.com.flightinfo.course.CourseState
 import kniezrec.com.flightinfo.course.compassCardinal
-import kniezrec.com.flightinfo.ui.theme.actionCyan
-import kniezrec.com.flightinfo.ui.theme.cardPurple
+import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
 import java.text.NumberFormat
-
-private val textColor = Color(0xFFD9D9ED)
 
 @Composable
 internal fun CourseCard(
@@ -63,7 +59,7 @@ internal fun CourseCard(
         shape =
             androidx.compose.foundation.shape
                 .RoundedCornerShape(10.dp),
-        colors = CardDefaults.cardColors(containerColor = cardPurple),
+        colors = CardDefaults.cardColors(containerColor = SmartFlightTheme.colors.card),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
     ) {
         CourseStateAnnouncement(state)
@@ -93,13 +89,13 @@ private fun StaticCourse(
     ) {
         Text(
             stringResource(title),
-            color = textColor,
+            color = SmartFlightTheme.colors.text,
             style = MaterialTheme.typography.titleLarge.copy(fontSize = 22.sp, fontWeight = FontWeight.Medium),
         )
         Text(
             stringResource(body),
             Modifier.padding(top = 12.dp),
-            color = textColor,
+            color = SmartFlightTheme.colors.text,
             style = MaterialTheme.typography.bodyLarge.copy(fontSize = 18.sp),
         )
         if (retry != null) CourseRetryAction(retry)
@@ -119,7 +115,7 @@ private fun CourseReading(state: CourseState.Available) {
     Column(Modifier.fillMaxWidth().padding(24.dp)) {
         Text(
             stringResource(R.string.course_title),
-            color = textColor,
+            color = SmartFlightTheme.colors.text,
             style = MaterialTheme.typography.titleLarge.copy(fontSize = 22.sp, fontWeight = FontWeight.Medium),
         )
         BoxWithConstraints(Modifier.fillMaxWidth().padding(top = 16.dp)) {
@@ -156,11 +152,11 @@ private fun HeadingValue(
             this.contentDescription = contentDescription
         },
     ) {
-        Text(headingValue, color = textColor, fontSize = 40.sp, fontWeight = FontWeight.Medium)
+        Text(headingValue, color = SmartFlightTheme.colors.text, fontSize = 40.sp, fontWeight = FontWeight.Medium)
         Text(
             cardinalValue,
             Modifier.padding(start = 8.dp, top = 14.dp),
-            color = actionCyan,
+            color = SmartFlightTheme.colors.accent,
             fontSize = 18.sp,
             fontWeight = FontWeight.Medium,
         )
@@ -185,8 +181,8 @@ private fun GpsBearing(
         },
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(stringResource(R.string.course_gps_bearing), Modifier.weight(1f), color = textColor, fontSize = 18.sp)
-        Text(bearing, color = textColor, fontSize = 18.sp)
+        Text(stringResource(R.string.course_gps_bearing), Modifier.weight(1f), color = SmartFlightTheme.colors.text, fontSize = 18.sp)
+        Text(bearing, color = SmartFlightTheme.colors.text, fontSize = 18.sp)
     }
 }
 
@@ -233,6 +229,7 @@ private fun CompassCardinal.spokenResource(): Int =
 
 @Composable
 private fun CompassDirectionVisual(headingDegrees: Int) {
+    val textColor = SmartFlightTheme.colors.text
     Box(
         Modifier.size(72.dp).testTag("course-direction-visual"),
         contentAlignment = Alignment.Center,
@@ -273,7 +270,7 @@ private fun CourseRetryAction(onRetry: () -> Unit) {
                     if (focused) {
                         Modifier.border(
                             2.dp,
-                            actionCyan,
+                            SmartFlightTheme.colors.accent,
                             androidx.compose.foundation.shape
                                 .RoundedCornerShape(4.dp),
                         )
@@ -286,6 +283,6 @@ private fun CourseRetryAction(onRetry: () -> Unit) {
                     stateDescription = hint
                 },
     ) {
-        Text(stringResource(R.string.course_try_again), color = actionCyan)
+        Text(stringResource(R.string.course_try_again), color = SmartFlightTheme.colors.accent)
     }
 }

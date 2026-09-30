@@ -29,7 +29,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -44,13 +43,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kniezrec.com.flightinfo.R
 import kniezrec.com.flightinfo.permission.LocationPermissionState
-import kniezrec.com.flightinfo.ui.theme.actionCyan
-import kniezrec.com.flightinfo.ui.theme.cardPurple
-
-private val LightLavender = Color(0xFFD9D9ED)
+import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
 
 // The legacy muted lavender does not meet contrast at this size; use the accessible light token.
-private val BodyLavender = Color(0xFFD9D9ED)
 internal const val PERMISSION_STATE_CARD_TEST_TAG = "permission_state_card"
 
 @Composable
@@ -68,7 +63,7 @@ fun PermissionOnboardingScreen(
         ) {
             Text(
                 text = stringResource(R.string.app_name),
-                color = LightLavender,
+                color = SmartFlightTheme.colors.text,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Medium,
             )
@@ -128,7 +123,7 @@ private fun PermissionStateCard(
         shape =
             androidx.compose.foundation.shape
                 .RoundedCornerShape(10.dp),
-        colors = CardDefaults.cardColors(containerColor = cardPurple),
+        colors = CardDefaults.cardColors(containerColor = SmartFlightTheme.colors.card),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
     ) {
         Column(
@@ -139,7 +134,7 @@ private fun PermissionStateCard(
             Text(
                 text = stringResource(content.title),
                 modifier = Modifier.semantics { if (announceStateChange) liveRegion = LiveRegionMode.Polite },
-                color = LightLavender,
+                color = SmartFlightTheme.colors.text,
                 style =
                     MaterialTheme.typography.titleLarge.copy(
                         fontSize = 22.sp,
@@ -151,7 +146,7 @@ private fun PermissionStateCard(
             Text(
                 text = stringResource(content.body),
                 modifier = Modifier.padding(top = 12.dp),
-                color = BodyLavender,
+                color = SmartFlightTheme.colors.text,
                 style = MaterialTheme.typography.bodyLarge.copy(fontSize = 18.sp, lineHeight = 25.sp, textAlign = TextAlign.Center),
             )
             if (content.action != null && actionHint != null && content.onAction != null) {
@@ -166,7 +161,7 @@ private fun PermissionStateCard(
                                 if (actionFocused) {
                                     Modifier.border(
                                         width = 2.dp,
-                                        color = actionCyan,
+                                        color = SmartFlightTheme.colors.accent,
                                         shape =
                                             androidx.compose.foundation.shape
                                                 .RoundedCornerShape(4.dp),
@@ -180,7 +175,7 @@ private fun PermissionStateCard(
                                 stateDescription = actionHint
                             },
                     contentPadding = PaddingValues(horizontal = 12.dp),
-                    colors = ButtonDefaults.textButtonColors(contentColor = actionCyan),
+                    colors = ButtonDefaults.textButtonColors(contentColor = SmartFlightTheme.colors.accent),
                 ) {
                     Text(
                         text = stringResource(content.action),

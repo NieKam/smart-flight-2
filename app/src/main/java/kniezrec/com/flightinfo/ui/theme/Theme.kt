@@ -8,6 +8,8 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.platform.LocalContext
 
 private val darkColors =
@@ -51,9 +53,19 @@ fun SmartFlightTheme(
             else -> lightColors
         }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = appTypography,
-        content = content,
-    )
+    CompositionLocalProvider(LocalSmartFlightColors provides DefaultSmartFlightColors) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = appTypography,
+            content = content,
+        )
+    }
+}
+
+/** Access to the app's design tokens inside composables, next to [MaterialTheme]. */
+object SmartFlightTheme {
+    val colors: SmartFlightColors
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalSmartFlightColors.current
 }

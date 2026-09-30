@@ -25,7 +25,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -41,10 +40,7 @@ import androidx.compose.ui.unit.sp
 import kniezrec.com.flightinfo.R
 import kniezrec.com.flightinfo.gnss.GnssSatellite
 import kniezrec.com.flightinfo.gnss.GnssStatusState
-import kniezrec.com.flightinfo.ui.theme.actionCyan
-import kniezrec.com.flightinfo.ui.theme.cardPurple
-
-private val textColor = Color(0xFFD9D9ED)
+import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
 
 /**
  * The stateless GNSS status card; a new [state] cross-fades in.
@@ -82,7 +78,7 @@ private fun GnssStatusCardContent(
         shape =
             androidx.compose.foundation.shape
                 .RoundedCornerShape(10.dp),
-        colors = CardDefaults.cardColors(containerColor = cardPurple),
+        colors = CardDefaults.cardColors(containerColor = SmartFlightTheme.colors.card),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
     ) {
         when (state) {
@@ -147,7 +143,7 @@ private data class StaticState(
         Modifier.semantics {
             liveRegion = LiveRegionMode.Polite
         },
-        color = textColor,
+        color = SmartFlightTheme.colors.text,
         style =
             MaterialTheme.typography.titleLarge.copy(
                 fontSize = 22.sp,
@@ -159,7 +155,7 @@ private data class StaticState(
     Text(
         stringResource(body),
         Modifier.padding(top = 12.dp),
-        color = textColor,
+        color = SmartFlightTheme.colors.text,
         style = MaterialTheme.typography.bodyLarge.copy(fontSize = 18.sp, lineHeight = 25.sp, textAlign = TextAlign.Center),
     )
 }
@@ -172,7 +168,7 @@ private data class StaticState(
             Modifier.semantics {
                 liveRegion = LiveRegionMode.Polite
             },
-            color = textColor,
+            color = SmartFlightTheme.colors.text,
             style =
                 MaterialTheme.typography.titleLarge.copy(
                     fontSize = 22.sp,
@@ -183,7 +179,7 @@ private data class StaticState(
         Text(
             pluralStringResource(R.plurals.gnss_satellites_used, used, used),
             Modifier.padding(top = 12.dp),
-            color = textColor,
+            color = SmartFlightTheme.colors.text,
             style = MaterialTheme.typography.bodyLarge.copy(fontSize = 18.sp, lineHeight = 25.sp),
         )
         satellites.forEachIndexed { index, satellite -> SatelliteRow(index + 1, satellite) }
@@ -198,10 +194,10 @@ private data class StaticState(
     Column(Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(top = 12.dp)) {
         Text(
             stringResource(R.string.satellite_number, index),
-            color = textColor,
+            color = SmartFlightTheme.colors.text,
             style = MaterialTheme.typography.bodyLarge.copy(fontSize = 18.sp),
         )
-        Text(stringResource(status), color = textColor, style = MaterialTheme.typography.bodyMedium)
+        Text(stringResource(status), color = SmartFlightTheme.colors.text, style = MaterialTheme.typography.bodyMedium)
     }
 }
 
@@ -226,7 +222,7 @@ private fun GnssAction(
                     if (focused) {
                         Modifier.border(
                             2.dp,
-                            actionCyan,
+                            SmartFlightTheme.colors.accent,
                             androidx.compose.foundation.shape
                                 .RoundedCornerShape(4.dp),
                         )
@@ -240,7 +236,7 @@ private fun GnssAction(
                     stateDescription = hintText
                 },
         contentPadding = PaddingValues(horizontal = 12.dp),
-        colors = ButtonDefaults.textButtonColors(contentColor = actionCyan),
+        colors = ButtonDefaults.textButtonColors(contentColor = SmartFlightTheme.colors.accent),
     ) {
         Text(
             stringResource(action),

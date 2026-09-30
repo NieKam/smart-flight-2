@@ -21,7 +21,7 @@ import kniezrec.com.flightinfo.dashboard.ui.DashboardScreen
 import kniezrec.com.flightinfo.permission.LocationPermissionState
 import kniezrec.com.flightinfo.permission.ui.LocationPermissionViewModel
 import kniezrec.com.flightinfo.permission.ui.PermissionOnboardingScreen
-import kniezrec.com.flightinfo.ui.theme.smartFlightPageColor
+import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
 import kotlinx.coroutines.launch
 
 /**
@@ -52,10 +52,10 @@ fun AppRoot(
     val settingsUnavailable = stringResource(R.string.settings_unavailable)
     val locationSettingsUnavailable = stringResource(R.string.location_settings_unavailable)
     val feedbackAddress = stringResource(R.string.about_feedback_address)
-    Surface(modifier = Modifier.fillMaxSize(), color = smartFlightPageColor) {
+    Surface(modifier = Modifier.fillMaxSize(), color = SmartFlightTheme.colors.page) {
         Scaffold(
             modifier = Modifier.fillMaxSize(),
-            containerColor = smartFlightPageColor,
+            containerColor = SmartFlightTheme.colors.page,
             contentWindowInsets = WindowInsets(0, 0, 0, 0),
             snackbarHost = { SnackbarHost(snackbarHostState) },
         ) { innerPadding ->

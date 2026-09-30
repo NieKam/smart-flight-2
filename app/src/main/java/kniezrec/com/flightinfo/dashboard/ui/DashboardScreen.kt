@@ -24,7 +24,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -46,9 +45,7 @@ import kniezrec.com.flightinfo.route.ui.RouteCardContainer
 import kniezrec.com.flightinfo.route.ui.RoutePickerOverlay
 import kniezrec.com.flightinfo.route.ui.RoutePickerViewModel
 import kniezrec.com.flightinfo.settings.ui.SettingsOverlay
-import kniezrec.com.flightinfo.ui.theme.actionCyan
-
-private val textColor = Color(0xFFD9D9ED)
+import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
 
 /**
  * The dashboard: header and the scrolling list of cards, with the city picker, Settings and About
@@ -133,7 +130,7 @@ fun DashboardHeader(
                 Text(
                     stringResource(R.string.app_name),
                     modifier = Modifier.weight(1f).padding(start = 12.dp),
-                    color = textColor,
+                    color = SmartFlightTheme.colors.text,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Medium,
                 )
@@ -143,7 +140,7 @@ fun DashboardHeader(
             Text(
                 stringResource(R.string.app_name),
                 modifier = Modifier.align(Alignment.Center),
-                color = textColor,
+                color = SmartFlightTheme.colors.text,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Medium,
             )
@@ -161,7 +158,7 @@ private fun DashboardAction(
     onClick: () -> Unit,
 ) {
     TextButton(onClick = onClick, modifier = Modifier.heightIn(min = 48.dp)) {
-        Text(label, color = actionCyan)
+        Text(label, color = SmartFlightTheme.colors.accent)
     }
 }
 
@@ -177,7 +174,7 @@ private fun CompactDashboardActions(
             onClick = { expanded = true },
             modifier = Modifier.heightIn(min = 48.dp),
         ) {
-            Text(stringResource(R.string.dashboard_more_options), color = actionCyan)
+            Text(stringResource(R.string.dashboard_more_options), color = SmartFlightTheme.colors.accent)
         }
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             DropdownMenuItem(

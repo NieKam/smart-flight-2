@@ -44,10 +44,12 @@ import kniezrec.com.flightinfo.displayunits.AltitudeUnit
 import kniezrec.com.flightinfo.displayunits.DistanceUnit
 import kniezrec.com.flightinfo.displayunits.PressureUnit
 import kniezrec.com.flightinfo.displayunits.SpeedUnit
+import kniezrec.com.flightinfo.displayunits.UnitKey
 import kniezrec.com.flightinfo.displayunits.UnitPreferences
 import kniezrec.com.flightinfo.displayunits.VerticalSpeedUnit
+import kniezrec.com.flightinfo.displayunits.ui.labels
 
-private sealed class Selector<T>(
+private sealed class Selector<T : UnitKey>(
     val title: Int,
     val options: List<T>,
 ) {
@@ -234,21 +236,20 @@ private fun settingRow(
     }
 }
 
-@Suppress("UNCHECKED_CAST")
 @Composable
-private fun <T> UnitChoiceDialog(
-    selector: Selector<T>,
+private fun UnitChoiceDialog(
+    selector: Selector<*>,
     preferences: UnitPreferences,
     onPreferenceChange: (UnitPreferences) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val selected: T =
+    val selected: UnitKey =
         when (selector) {
-            is Selector.Speed -> preferences.speed as T
-            is Selector.Altitude -> preferences.altitude as T
-            is Selector.Distance -> preferences.distance as T
-            is Selector.VerticalSpeed -> preferences.verticalSpeed as T
-            is Selector.Pressure -> preferences.pressure as T
+            is Selector.Speed -> preferences.speed
+            is Selector.Altitude -> preferences.altitude
+            is Selector.Distance -> preferences.distance
+            is Selector.VerticalSpeed -> preferences.verticalSpeed
+            is Selector.Pressure -> preferences.pressure
         }
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -291,72 +292,6 @@ private fun UnitPreferences.with(
         is Selector.Pressure -> copy(pressure = value as PressureUnit)
     }
 
-@Composable private fun unitText(value: SpeedUnit) =
-    stringResource(
-        when (value) {
-            SpeedUnit.KILOMETRES_PER_HOUR -> R.string.unit_kmh
-            SpeedUnit.MILES_PER_HOUR -> R.string.unit_mph
-            SpeedUnit.KNOTS -> R.string.unit_kt
-        },
-    )
+@Composable private fun unitText(value: UnitKey) = stringResource(value.labels.symbol)
 
-@Composable private fun unitText(value: AltitudeUnit) =
-    stringResource(
-        if (value ==
-            AltitudeUnit.FEET
-        ) {
-            R.string.unit_ft
-        } else {
-            R.string.unit_m
-        },
-    )
-
-@Composable private fun unitText(value: DistanceUnit) =
-    stringResource(
-        if (value ==
-            DistanceUnit.MILES
-        ) {
-            R.string.unit_mi
-        } else {
-            R.string.unit_km
-        },
-    )
-
-@Composable private fun unitText(value: VerticalSpeedUnit) =
-    stringResource(
-        when (value) {
-            VerticalSpeedUnit.METRES_PER_SECOND -> R.string.unit_ms
-            VerticalSpeedUnit.METRES_PER_MINUTE -> R.string.unit_mmin
-            VerticalSpeedUnit.FEET_PER_MINUTE -> R.string.unit_ftmin
-        },
-    )
-
-@Composable private fun unitText(value: PressureUnit) =
-    stringResource(
-        if (value ==
-            PressureUnit.INCHES_OF_MERCURY
-        ) {
-            R.string.unit_inhg
-        } else {
-            R.string.unit_mbar
-        },
-    )
-
-@Composable private fun optionText(value: Any) =
-    stringResource(
-        when (value) {
-            SpeedUnit.KILOMETRES_PER_HOUR -> R.string.option_kmh
-            SpeedUnit.MILES_PER_HOUR -> R.string.option_mph
-            SpeedUnit.KNOTS -> R.string.option_kt
-            AltitudeUnit.METRES -> R.string.option_m
-            AltitudeUnit.FEET -> R.string.option_ft
-            DistanceUnit.KILOMETRES -> R.string.option_km
-            DistanceUnit.MILES -> R.string.option_mi
-            VerticalSpeedUnit.METRES_PER_SECOND -> R.string.option_ms
-            VerticalSpeedUnit.METRES_PER_MINUTE -> R.string.option_mmin
-            VerticalSpeedUnit.FEET_PER_MINUTE -> R.string.option_ftmin
-            PressureUnit.MILLIBAR -> R.string.option_mbar
-            PressureUnit.INCHES_OF_MERCURY -> R.string.option_inhg
-            else -> error("Unknown unit")
-        },
-    )
+@Composable private fun optionText(value: UnitKey) = stringResource(value.labels.longName)
