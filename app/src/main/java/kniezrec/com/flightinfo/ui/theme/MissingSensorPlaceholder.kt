@@ -27,7 +27,7 @@ import androidx.compose.ui.unit.sp
 import kniezrec.com.flightinfo.R
 
 /**
- * The original "missing sensor" overlay (`card_overlay_layout.xml`): a blurred, dimmed static
+ * The original "missing sensor" overlay (`card_overlay_layout.xml`): a blurred, veiled static
  * [preview] of the card's instrument with [message] ("This device doesn't have … Hide this card?")
  * and a "Hide" button. The preview is decoration only: it has no semantics and takes no input.
  */
@@ -46,7 +46,8 @@ fun MissingSensorPlaceholder(
                 .blur(PREVIEW_BLUR_RADIUS)
                 .clearAndSetSemantics {},
         ) { preview() }
-        Box(Modifier.matchParentSize().background(colors.overlay50))
+        // A card-colored veil (not a black dim), so the message reads in every theme.
+        Box(Modifier.matchParentSize().background(colors.card.copy(alpha = MISSING_SENSOR_VEIL_ALPHA)))
         // Sizes the card: message in the upper part, the button at the bottom end (as the original).
         Column(
             Modifier
@@ -78,6 +79,9 @@ fun MissingSensorPlaceholder(
 
 /** Test tag of [MissingSensorPlaceholder]. */
 const val MISSING_SENSOR_PLACEHOLDER_TAG = "missing-sensor-placeholder"
+
+/** Opacity of the card-colored veil over the blurred preview (`ContrastTest` checks the text on it). */
+internal const val MISSING_SENSOR_VEIL_ALPHA = 0.8f
 
 private val PREVIEW_BLUR_RADIUS = 8.dp
 private val PLACEHOLDER_MIN_HEIGHT = 200.dp

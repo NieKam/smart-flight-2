@@ -19,9 +19,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -56,6 +53,9 @@ import kniezrec.com.flightinfo.map.MapZoomTarget
 import kniezrec.com.flightinfo.map.applyMapZoomPolicy
 import kniezrec.com.flightinfo.route.RouteOverlay
 import kniezrec.com.flightinfo.ui.theme.LabelText
+import kniezrec.com.flightinfo.ui.theme.MAP_BUTTON_CONTAINER_ALPHA
+import kniezrec.com.flightinfo.ui.theme.SmartFlightCard
+import kniezrec.com.flightinfo.ui.theme.SmartFlightCardDefaults
 import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
 import kniezrec.com.flightinfo.ui.theme.ValueText
 import kotlinx.coroutines.launch
@@ -97,12 +97,8 @@ fun MapCard(
     val context = LocalContext.current
     // Saved: the expanded map stays expanded across a configuration change.
     var expanded by rememberSaveable { mutableStateOf(false) }
-    Card(
-        modifier = modifier.fillMaxWidth().heightIn(min = 240.dp),
-        shape = RoundedCornerShape(10.dp),
-        colors = CardDefaults.cardColors(containerColor = SmartFlightTheme.colors.card),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-    ) {
+    // Edge to edge: the map fills the card; the messages pad themselves.
+    SmartFlightCard(modifier, minHeight = MAP_CARD_MIN_HEIGHT, contentPadding = SmartFlightCardDefaults.NoPadding) {
         when (state) {
             MapUiState.Loading -> MapMessage(R.string.map_loading, R.string.map_loading_body)
             MapUiState.Unavailable -> MapMessage(R.string.map_unavailable, R.string.map_unavailable_body, onRetry)
@@ -125,7 +121,7 @@ fun MapCard(
                             .bringIntoViewRequester(bringIntoViewRequester)
                             .testTag(MAP_AREA_TAG),
                     ) {
-                        val routeLineColor = SmartFlightTheme.colors.page.toArgb()
+                        val routeLineColor = SmartFlightTheme.colors.mapInk.toArgb()
                         val instance = remember(state.archive) { MapInstance(MapOverlays(context, routeLineColor)) }
                         OfflineMap(
                             state = state,
@@ -168,6 +164,7 @@ internal const val MAP_AREA_TAG = "map-area"
 internal fun mapButtonIconTag(kind: MapButtonKind) = "map-button-icon-${kind.name}"
 
 private const val RESIZE_ANIMATION_MILLIS = 300
+private val MAP_CARD_MIN_HEIGHT = 240.dp
 private val MAP_BUTTON_MARGIN = 4.dp
 
 /**
@@ -198,7 +195,7 @@ private fun MapMessage(
     retry: (() -> Unit)? = null,
 ) {
     Column(
-        Modifier.fillMaxWidth().heightIn(min = 240.dp).padding(24.dp),
+        Modifier.fillMaxWidth().padding(SmartFlightCardDefaults.ContentPadding),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
@@ -217,9 +214,10 @@ private fun MapMessage(
 }
 
 /**
- * An icon button drawn on the map (48 dp touch target): the original purple (`page`) icon, as the
- * original app, on a subtle `valueText` circle at 60% alpha so it stays visible on dark or missing
- * tiles. A new kind crossfades from the old one (expand and collapse).
+ * An icon button drawn on the map (48 dp touch target): the original purple icon (`mapInk`), as the
+ * original app, on a light `mapHalo` circle at [MAP_BUTTON_CONTAINER_ALPHA] so it stays visible (3:1)
+ * on dark or missing tiles. Theme-independent, as the tiles. A new kind crossfades from the old one
+ * (expand and collapse).
  */
 @Composable
 private fun MapButton(
@@ -231,21 +229,19 @@ private fun MapButton(
     IconButton(onClick = onClick, modifier = modifier.size(48.dp)) {
         Crossfade(targetState = kind, label = "map button icon") { shown ->
             Box(
-                Modifier.size(40.dp).background(colors.valueText.copy(alpha = MAP_BUTTON_BACKGROUND_ALPHA), CircleShape),
+                Modifier.size(40.dp).background(colors.mapHalo.copy(alpha = MAP_BUTTON_CONTAINER_ALPHA), CircleShape),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     painter = painterResource(shown.icon),
                     contentDescription = stringResource(shown.description),
                     modifier = Modifier.size(32.dp).testTag(mapButtonIconTag(shown)),
-                    tint = colors.page,
+                    tint = colors.mapInk,
                 )
             }
         }
     }
 }
-
-private const val MAP_BUTTON_BACKGROUND_ALPHA = 0.6f
 
 /** The map view of one Ready archive and its overlays; not Compose state (see [OfflineMap]). */
 private class MapInstance(

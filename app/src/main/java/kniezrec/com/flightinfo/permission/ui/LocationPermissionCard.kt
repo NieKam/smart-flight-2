@@ -7,13 +7,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -39,6 +36,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kniezrec.com.flightinfo.R
 import kniezrec.com.flightinfo.permission.LocationPermissionState
+import kniezrec.com.flightinfo.ui.theme.SmartFlightCard
+import kniezrec.com.flightinfo.ui.theme.SmartFlightCardDefaults
 import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
 import kniezrec.com.flightinfo.ui.theme.ValueText
 
@@ -91,22 +90,16 @@ private fun PermissionStateCard(
             LocationPermissionState.Granted -> error("The dashboard shows no permission card once location is granted")
         }
     val actionHint = content.actionHint?.let { stringResource(it) }
-    Card(
+    SmartFlightCard(
         modifier =
             Modifier
                 .padding(top = 12.dp)
                 .widthIn(max = 600.dp)
-                .fillMaxWidth()
-                .heightIn(min = 160.dp)
                 .testTag(PERMISSION_STATE_CARD_TEST_TAG),
-        shape =
-            androidx.compose.foundation.shape
-                .RoundedCornerShape(10.dp),
-        colors = CardDefaults.cardColors(containerColor = SmartFlightTheme.colors.card),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        minHeight = SmartFlightCardDefaults.MinHeight,
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth().heightIn(min = 160.dp).padding(horizontal = 24.dp, vertical = 20.dp),
+            modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
@@ -114,12 +107,7 @@ private fun PermissionStateCard(
                 text = stringResource(content.title),
                 modifier = Modifier.semantics { if (announceStateChange) liveRegion = LiveRegionMode.Polite },
                 style =
-                    MaterialTheme.typography.titleLarge.copy(
-                        fontSize = 22.sp,
-                        lineHeight = 28.sp,
-                        fontWeight = FontWeight.Medium,
-                        textAlign = TextAlign.Center,
-                    ),
+                    MaterialTheme.typography.titleLarge.copy(textAlign = TextAlign.Center),
             )
             // The original description was a muted label; the light value color keeps this body text
             // readable (WCAG AA), as the rest of the app's body text.

@@ -38,6 +38,7 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -56,6 +57,7 @@ import androidx.compose.ui.unit.dp
 import kniezrec.com.flightinfo.R
 import kniezrec.com.flightinfo.dashboard.HideableCard
 import kniezrec.com.flightinfo.display.DisplayPreferences
+import kniezrec.com.flightinfo.display.ThemeMode
 import kniezrec.com.flightinfo.displayunits.AltitudeUnit
 import kniezrec.com.flightinfo.displayunits.DistanceUnit
 import kniezrec.com.flightinfo.displayunits.PressureUnit
@@ -68,8 +70,12 @@ import kniezrec.com.flightinfo.ui.theme.LabelText
 import kniezrec.com.flightinfo.ui.theme.SmartFlightAlertDialog
 import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
 import kniezrec.com.flightinfo.ui.theme.ValueText
+import kniezrec.com.flightinfo.ui.theme.rememberTopBarContainerColor
 import kniezrec.com.flightinfo.ui.theme.smartFlightRadioButtonColors
 import kniezrec.com.flightinfo.ui.theme.smartFlightSwitchColors
+import kniezrec.com.flightinfo.ui.theme.smartFlightTopAppBarColors
+import kniezrec.com.flightinfo.ui.theme.statusBarBand
+import kniezrec.com.flightinfo.ui.theme.topBarBackground
 
 private sealed class Selector<T : UnitKey>(
     val title: Int,
@@ -116,25 +122,26 @@ fun UnitSettingsScreen(
     onShowHiddenCards: () -> Unit = {},
     highlightLargerMapZoom: Boolean = false,
     onHighlightFinished: () -> Unit = {},
+    onThemeModeChange: (ThemeMode) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     var selector by remember { mutableStateOf<Selector<*>?>(null) }
+    var choosingTheme by remember { mutableStateOf(false) }
     val colors = SmartFlightTheme.colors
+    // As the dashboard: the top bar takes its scrolled tone while the settings scroll under it.
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
+    val topBarColor = rememberTopBarContainerColor(scrollBehavior)
     Scaffold(
-        modifier = modifier,
+        // The Scaffold clips its content: the status bar above it is painted from outside the clip.
+        modifier = modifier.statusBarBand(topBarColor).nestedScroll(scrollBehavior.nestedScrollConnection),
         containerColor = colors.page,
         contentColor = colors.valueText,
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.settings_title)) },
-                colors =
-                    TopAppBarDefaults.topAppBarColors(
-                        containerColor = colors.card,
-                        scrolledContainerColor = colors.card,
-                        navigationIconContentColor = colors.toolbarTitle,
-                        titleContentColor = colors.toolbarTitle,
-                        actionIconContentColor = colors.toolbarTitle,
-                    ),
+                modifier = Modifier.topBarBackground(topBarColor),
+                colors = smartFlightTopAppBarColors(),
+                scrollBehavior = scrollBehavior,
                 navigationIcon = {
                     IconButton(
                         onClick = onBack,
@@ -157,6 +164,9 @@ fun UnitSettingsScreen(
             ) {
                 ValueText(stringResource(R.string.display_section), style = MaterialTheme.typography.titleLarge)
                 Column(Modifier.padding(top = 8.dp)) {
+                    settingRow(stringResource(R.string.theme), stringResource(displayPreferences.themeMode.labelResource())) {
+                        choosingTheme = true
+                    }
                     displaysettingRow(
                         R.string.keep_screen_always_on,
                         if (displayPreferences.keepScreenAlwaysOn) R.string.settings_on else R.string.settings_off,
@@ -232,7 +242,54 @@ fun UnitSettingsScreen(
         }
     }
     selector?.let { current -> UnitChoiceDialog(current, preferences, onPreferenceChange) { selector = null } }
+    if (choosingTheme) {
+        ThemeChoiceDialog(displayPreferences.themeMode, onThemeModeChange) { choosingTheme = false }
+    }
 }
+
+/** The Theme setting's options: System default, Light, Dark. */
+@Composable
+private fun ThemeChoiceDialog(
+    selected: ThemeMode,
+    onSelect: (ThemeMode) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    SmartFlightAlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.theme)) },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState())) {
+                ThemeMode.entries.forEach { option ->
+                    val isSelected = option == selected
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 48.dp)
+                            .clickable {
+                                onSelect(option)
+                                onDismiss()
+                            }.semantics {
+                                role = Role.RadioButton
+                                this.selected = isSelected
+                            },
+                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                    ) {
+                        RadioButton(selected = isSelected, onClick = null, colors = smartFlightRadioButtonColors())
+                        Text(stringResource(option.labelResource()), Modifier.weight(1f).padding(start = 12.dp).padding(vertical = 14.dp))
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+    )
+}
+
+private fun ThemeMode.labelResource(): Int =
+    when (this) {
+        ThemeMode.SYSTEM -> R.string.theme_system
+        ThemeMode.LIGHT -> R.string.theme_light
+        ThemeMode.DARK -> R.string.theme_dark
+    }
 
 @Composable
 private fun displaysettingRow(

@@ -93,8 +93,9 @@ fun AppRoot(
 
 /**
  * The window chrome under every screen (edge to edge): the page background, the status-bar area in
- * the top bar's card color (as the original `colorPrimaryDark`) and the snackbar host. [content]
- * gets the modifier that keeps it inside the safe drawing area.
+ * the top bar's color at rest (as the original `colorPrimaryDark`; the top bars repaint it with their
+ * current, possibly scrolled, color) and the snackbar host, whose snackbars use the inverse surface.
+ * [content] gets the modifier that keeps it inside the safe drawing area.
  */
 @Composable
 internal fun AppScaffold(
@@ -113,7 +114,7 @@ internal fun AppScaffold(
                     Modifier
                         .fillMaxWidth()
                         .windowInsetsTopHeight(WindowInsets.safeDrawing)
-                        .background(SmartFlightTheme.colors.card),
+                        .background(SmartFlightTheme.colors.topBar),
                 )
                 content(Modifier.padding(innerPadding).safeDrawingPadding())
             }

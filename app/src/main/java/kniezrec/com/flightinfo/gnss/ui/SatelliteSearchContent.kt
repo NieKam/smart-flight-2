@@ -20,7 +20,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -58,7 +57,7 @@ internal fun SearchingContent() {
     val animate = remember { ValueAnimator.areAnimatorsEnabled() }
     val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.loading))
     Column(
-        Modifier.fillMaxWidth().heightIn(min = 160.dp).padding(horizontal = 24.dp, vertical = 20.dp),
+        Modifier.fillMaxWidth(),
         Arrangement.Center,
         Alignment.CenterHorizontally,
     ) {
@@ -66,12 +65,7 @@ internal fun SearchingContent() {
             stringResource(R.string.gnss_status_title),
             Modifier.semantics { liveRegion = LiveRegionMode.Polite },
             style =
-                MaterialTheme.typography.titleLarge.copy(
-                    fontSize = 22.sp,
-                    lineHeight = 28.sp,
-                    fontWeight = FontWeight.Medium,
-                    textAlign = TextAlign.Center,
-                ),
+                MaterialTheme.typography.titleLarge.copy(textAlign = TextAlign.Center),
         )
         LottieAnimation(
             composition = composition,

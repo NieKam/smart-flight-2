@@ -15,8 +15,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -45,7 +43,7 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -55,7 +53,10 @@ import kniezrec.com.flightinfo.course.CourseState
 import kniezrec.com.flightinfo.course.compassCardinal
 import kniezrec.com.flightinfo.course.shortestRotationTarget
 import kniezrec.com.flightinfo.ui.theme.LabelText
+import kniezrec.com.flightinfo.ui.theme.LabelValueRow
 import kniezrec.com.flightinfo.ui.theme.MissingSensorPlaceholder
+import kniezrec.com.flightinfo.ui.theme.SmartFlightCard
+import kniezrec.com.flightinfo.ui.theme.SmartFlightCardDefaults
 import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
 import kniezrec.com.flightinfo.ui.theme.ValueText
 import java.text.NumberFormat
@@ -67,13 +68,18 @@ internal fun CourseCard(
     onHide: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Card(
-        modifier.fillMaxWidth().heightIn(min = 160.dp),
-        shape =
-            androidx.compose.foundation.shape
-                .RoundedCornerShape(10.dp),
-        colors = CardDefaults.cardColors(containerColor = SmartFlightTheme.colors.card),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+    SmartFlightCard(
+        modifier,
+        minHeight = SmartFlightCardDefaults.MinHeight,
+        // The missing-sensor overlay covers the whole card.
+        contentPadding =
+            if (state ==
+                CourseState.Unavailable
+            ) {
+                SmartFlightCardDefaults.NoPadding
+            } else {
+                SmartFlightCardDefaults.ContentPadding
+            },
     ) {
         CourseStateAnnouncement(state)
         when (state) {
@@ -96,15 +102,13 @@ private fun StaticCourse(
     Column(
         Modifier
             .fillMaxWidth()
-            .heightIn(min = 160.dp)
-            .padding(24.dp)
             .semantics { liveRegion = LiveRegionMode.Polite },
         Arrangement.Center,
         Alignment.CenterHorizontally,
     ) {
         LabelText(
             stringResource(title),
-            style = MaterialTheme.typography.titleLarge.copy(fontSize = 22.sp, fontWeight = FontWeight.Medium),
+            style = MaterialTheme.typography.titleLarge,
         )
         ValueText(
             stringResource(body),
@@ -122,7 +126,7 @@ private fun CoursePreview() {
         LabelText(
             stringResource(R.string.course_title),
             Modifier.align(Alignment.TopStart),
-            style = MaterialTheme.typography.titleLarge.copy(fontSize = 22.sp, fontWeight = FontWeight.Medium),
+            style = MaterialTheme.typography.titleLarge,
         )
         Box(Modifier.align(Alignment.Center)) { CompassRose(0) }
     }
@@ -138,10 +142,10 @@ private fun CourseReading(state: CourseState.Available) {
     val bearing =
         state.gpsBearingDegrees?.let { stringResource(R.string.course_degree_value, NumberFormat.getIntegerInstance().format(it)) }
             ?: stringResource(R.string.course_unavailable)
-    Column(Modifier.fillMaxWidth().padding(24.dp)) {
+    Column(Modifier.fillMaxWidth()) {
         LabelText(
             stringResource(R.string.course_title),
-            style = MaterialTheme.typography.titleLarge.copy(fontSize = 22.sp, fontWeight = FontWeight.Medium),
+            style = MaterialTheme.typography.titleLarge,
         )
         BoxWithConstraints(Modifier.fillMaxWidth().padding(top = 16.dp)) {
             if (maxWidth >= 360.dp && LocalDensity.current.fontScale <= 1.3f) {
@@ -180,13 +184,9 @@ private fun HeadingValue(
         },
     ) {
         // As the original: the cyan abbreviation above the large heading.
-        Text(
-            cardinalValue,
-            color = SmartFlightTheme.colors.accent,
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Medium,
-        )
-        ValueText(headingValue, fontSize = 48.sp, fontWeight = FontWeight.Medium)
+        Text(cardinalValue, color = SmartFlightTheme.colors.accent, style = MaterialTheme.typography.titleMedium)
+        // The key value: display style with tabular figures, so the digits do not jump while turning.
+        ValueText(headingValue, style = MaterialTheme.typography.displayMedium)
     }
 }
 
@@ -202,15 +202,15 @@ private fun GpsBearing(
             bearing
         }
     val contentDescription = stringResource(R.string.course_bearing_spoken, spokenBearing)
-    Row(
-        Modifier.fillMaxWidth().heightIn(min = 48.dp).semantics(mergeDescendants = true) {
-            this.contentDescription = contentDescription
-        },
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        LabelText(stringResource(R.string.course_gps_bearing), Modifier.weight(1f), fontSize = 18.sp)
-        ValueText(bearing, fontSize = 18.sp)
-    }
+    LabelValueRow(
+        label = stringResource(R.string.course_gps_bearing),
+        value = AnnotatedString(bearing),
+        valueStyle = MaterialTheme.typography.titleMedium,
+        modifier =
+            Modifier.heightIn(min = 48.dp).semantics(mergeDescendants = true) {
+                this.contentDescription = contentDescription
+            },
+    )
 }
 
 @Composable

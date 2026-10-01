@@ -22,7 +22,7 @@ import org.osmdroid.views.overlay.infowindow.MarkerInfoWindow
  */
 class MapOverlays(
     private val context: Context,
-    /** ARGB color of the route line, a palette token (`page`, the original `purple_dark`). */
+    /** ARGB color of the route line, the theme-independent `mapInk` token (the original `purple_dark`). */
     private val routeLineColor: Int,
 ) {
     /** The plane marker, once a position has been shown. */

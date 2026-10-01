@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kniezrec.com.flightinfo.display.DisplayPreferences
+import kniezrec.com.flightinfo.display.ThemeMode
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
@@ -82,6 +83,53 @@ class DisplaySettingsRepositoryTest {
             )
         }
 
+    @Test
+    fun themeModeDefaultsToSystemAndMalformedValuesFallBackToSystem() =
+        runTest {
+            assertEquals(ThemeMode.SYSTEM, repository().display.value.themeMode)
+
+            preferences.edit().putString(THEME_MODE, "sepia").commit()
+            assertEquals(ThemeMode.SYSTEM, repository().display.value.themeMode)
+
+            preferences.edit().putBoolean(THEME_MODE, true).commit()
+            assertEquals(ThemeMode.SYSTEM, repository().display.value.themeMode)
+        }
+
+    @Test
+    fun themeModePersistsUnderTheThemeModeKeyAndIsReadBack() =
+        runTest {
+            val repository = repository()
+
+            repository.set(DisplayPreferences(themeMode = ThemeMode.DARK))
+
+            assertEquals("dark", preferences.getString(THEME_MODE, null))
+            assertEquals(ThemeMode.DARK, repository().display.value.themeMode)
+
+            repository.set(DisplayPreferences(themeMode = ThemeMode.LIGHT))
+
+            assertEquals("light", preferences.getString(THEME_MODE, null))
+            assertEquals(ThemeMode.LIGHT, repository().display.value.themeMode)
+        }
+
+    @Test
+    fun themeModeFlowEmitsOnlyChangesOfTheTheme() =
+        runTest {
+            val repository = repository()
+            val emitted = mutableListOf<ThemeMode>()
+            backgroundScope.launch { repository.themeMode.toList(emitted) }
+            runCurrent()
+
+            repository.set(DisplayPreferences(themeMode = ThemeMode.DARK))
+            runCurrent()
+            // Another display setting changes: no new theme emission.
+            repository.set(DisplayPreferences(themeMode = ThemeMode.DARK, keepScreenAlwaysOn = true))
+            runCurrent()
+            preferences.edit().putString(THEME_MODE, "system").commit()
+            runCurrent()
+
+            assertEquals(listOf(ThemeMode.SYSTEM, ThemeMode.DARK, ThemeMode.SYSTEM), emitted)
+        }
+
     private fun TestScope.repository(): SharedPreferencesDisplaySettingsRepository =
         SharedPreferencesDisplaySettingsRepository(preferences, backgroundScope).also { runCurrent() }
 
@@ -89,5 +137,6 @@ class DisplaySettingsRepositoryTest {
         const val KEEP_SCREEN = "display_behavior_keep_screen_always_on"
         const val PORTRAIT = "display_behavior_portrait_orientation"
         const val LARGER_ZOOM = "display_behavior_larger_map_zoom"
+        const val THEME_MODE = "theme_mode"
     }
 }

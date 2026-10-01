@@ -12,9 +12,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -32,6 +29,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -48,8 +46,11 @@ import kniezrec.com.flightinfo.route.RouteEndpoint
 import kniezrec.com.flightinfo.route.RouteError
 import kniezrec.com.flightinfo.route.RouteState
 import kniezrec.com.flightinfo.ui.theme.LabelText
+import kniezrec.com.flightinfo.ui.theme.SmartFlightCard
+import kniezrec.com.flightinfo.ui.theme.SmartFlightCardDefaults
 import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
 import kniezrec.com.flightinfo.ui.theme.ValueText
+import kniezrec.com.flightinfo.ui.theme.withSmallerUnit
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.util.Locale
@@ -69,13 +70,8 @@ fun RouteCard(
     distanceUnit: DistanceUnit = DistanceUnit.KILOMETRES,
     modifier: Modifier = Modifier,
 ) {
-    Card(
-        modifier.fillMaxWidth().heightIn(min = 160.dp),
-        shape = RoundedCornerShape(10.dp),
-        colors = CardDefaults.cardColors(containerColor = SmartFlightTheme.colors.card),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-    ) {
-        Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 20.dp)) {
+    SmartFlightCard(modifier, minHeight = SmartFlightCardDefaults.MinHeight) {
+        Column(Modifier.fillMaxWidth()) {
             // As in the original, the hint stays until the destination (and with it the details) is set.
             if (state.destination == null) {
                 LabelText(stringResource(R.string.route_hint), style = routeBody())
@@ -193,10 +189,11 @@ fun RouteCard(
     distanceUnit: DistanceUnit,
 ) {
     Spacer(Modifier.height(8.dp))
+    val unit = stringResource(distanceUnit.labels.symbol)
     details.fixedDistanceKm?.let { fixed ->
         Detail(
             R.string.route_distance,
-            formatDistance(fixed, distanceUnit),
+            withSmallerUnit(formatDistance(fixed, distanceUnit), unit),
             formatDistanceSpoken(fixed, distanceUnit),
         )
     }
@@ -204,20 +201,21 @@ fun RouteCard(
     val waitingPosition = stringResource(R.string.route_waiting_position)
     Detail(
         R.string.route_remaining,
-        remaining?.let { formatDistance(it, distanceUnit) } ?: waitingPosition,
+        remaining?.let { withSmallerUnit(formatDistance(it, distanceUnit), unit) } ?: AnnotatedString(waitingPosition),
         remaining?.let { formatDistanceSpoken(it, distanceUnit) } ?: waitingPosition,
     )
-    Detail(
-        R.string.route_arrival,
-        arrivalText(details) ?: stringResource(R.string.route_waiting_speed),
-    )
+    val arrival = arrivalText(details) ?: stringResource(R.string.route_waiting_speed)
+    Detail(R.string.route_arrival, AnnotatedString(arrival), arrival)
 }
 
-/** A muted label followed by its light value (the original `TextLabel`/`TextValue` rows). */
+/**
+ * A muted label (Material `labelLarge`) followed by its secondary value (Material `titleMedium`,
+ * tabular figures), as the original `TextLabel`/`TextValue` rows.
+ */
 @Composable private fun Detail(
     label: Int,
-    value: String,
-    spoken: String = value,
+    value: AnnotatedString,
+    spoken: String,
 ) {
     val labelText = stringResource(label)
     val detailDescription = stringResource(R.string.route_detail_description, labelText, spoken)
@@ -229,8 +227,8 @@ fun RouteCard(
         // The label never takes the whole row, so the value keeps room at large font scales.
         val labelMaxWidth = maxWidth * 0.6f
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            LabelText(labelText, Modifier.widthIn(max = labelMaxWidth), style = routeBody())
-            ValueText(value, Modifier.weight(1f, fill = false), style = routeBody())
+            LabelText(labelText, Modifier.widthIn(max = labelMaxWidth).alignByBaseline(), style = MaterialTheme.typography.labelLarge)
+            ValueText(value, Modifier.weight(1f, fill = false).alignByBaseline(), style = MaterialTheme.typography.titleMedium)
         }
     }
 }

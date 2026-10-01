@@ -3,14 +3,11 @@ package kniezrec.com.flightinfo.flight.ui
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -25,7 +22,6 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -39,8 +35,11 @@ import kniezrec.com.flightinfo.displayunits.formatUnitNumber
 import kniezrec.com.flightinfo.displayunits.ui.labels
 import kniezrec.com.flightinfo.flight.FlightParametersState
 import kniezrec.com.flightinfo.ui.theme.LabelText
-import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
+import kniezrec.com.flightinfo.ui.theme.LabelValueRow
+import kniezrec.com.flightinfo.ui.theme.SmartFlightCard
+import kniezrec.com.flightinfo.ui.theme.SmartFlightCardDefaults
 import kniezrec.com.flightinfo.ui.theme.ValueText
+import kniezrec.com.flightinfo.ui.theme.withSmallerUnit
 
 @Composable
 internal fun FlightParametersCard(
@@ -65,17 +64,7 @@ internal fun FlightParametersCard(
         }
     }
 
-    Card(
-        modifier =
-            modifier
-                .fillMaxWidth()
-                .heightIn(min = 160.dp),
-        shape =
-            androidx.compose.foundation.shape
-                .RoundedCornerShape(10.dp),
-        colors = CardDefaults.cardColors(containerColor = SmartFlightTheme.colors.card),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-    ) {
+    SmartFlightCard(modifier, minHeight = SmartFlightCardDefaults.MinHeight) {
         Box {
             when (state) {
                 FlightParametersState.Waiting -> FlightParametersWaiting()
@@ -106,10 +95,7 @@ private fun FlightParametersAvailabilityAnnouncement() {
 @Composable
 private fun FlightParametersWaiting() {
     Column(
-        Modifier
-            .fillMaxWidth()
-            .heightIn(min = 160.dp)
-            .padding(horizontal = 24.dp, vertical = 20.dp),
+        Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -135,24 +121,17 @@ private fun FlightParametersReadings(
     state: FlightParametersState.Readings,
     preferences: UnitPreferences,
 ) {
-    Column(
-        Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 24.dp, vertical = 20.dp),
-    ) {
+    Column(Modifier.fillMaxWidth()) {
         FlightParametersTitle()
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
+        val speedUnit = stringResource(preferences.speed.labels.symbol)
         ParameterRow(
             R.string.flight_speed,
+            speedUnit,
             state.speedKilometresPerHour?.let {
-                format(
-                    convertSpeed(it, preferences.speed),
-                    R.string.flight_speed_value,
-                    false,
-                    stringResource(preferences.speed.labels.symbol),
-                )
+                format(convertSpeed(it, preferences.speed), R.string.flight_speed_value, false, speedUnit)
             },
             state.speedKilometresPerHour?.let {
                 format(
@@ -164,16 +143,16 @@ private fun FlightParametersReadings(
             },
         )
 
-        Spacer(modifier = Modifier.height(4.dp))
-
+        val verticalSpeedUnit = stringResource(preferences.verticalSpeed.labels.symbol)
         ParameterRow(
             R.string.flight_vertical_speed,
+            verticalSpeedUnit,
             state.verticalSpeedMetresPerSecond?.let {
                 format(
                     convertVerticalSpeed(it, preferences.verticalSpeed),
                     R.string.flight_vertical_speed_value,
                     true,
-                    stringResource(preferences.verticalSpeed.labels.symbol),
+                    verticalSpeedUnit,
                 )
             },
             state.verticalSpeedMetresPerSecond?.let {
@@ -186,17 +165,12 @@ private fun FlightParametersReadings(
             },
         )
 
-        Spacer(modifier = Modifier.height(4.dp))
-
+        val altitudeUnit = stringResource(preferences.altitude.labels.symbol)
         ParameterRow(
             R.string.flight_altitude,
+            altitudeUnit,
             state.altitudeMetres?.let {
-                format(
-                    convertAltitude(it, preferences.altitude),
-                    R.string.flight_altitude_value,
-                    false,
-                    stringResource(preferences.altitude.labels.symbol),
-                )
+                format(convertAltitude(it, preferences.altitude), R.string.flight_altitude_value, false, altitudeUnit)
             },
             state.altitudeMetres?.let {
                 format(
@@ -208,17 +182,12 @@ private fun FlightParametersReadings(
             },
         )
 
-        Spacer(modifier = Modifier.height(4.dp))
-
+        val pressureUnit = stringResource(preferences.pressure.labels.symbol)
         ParameterRow(
             R.string.flight_pressure,
+            pressureUnit,
             state.pressureMillibars?.let {
-                format(
-                    convertPressure(it, preferences.pressure),
-                    R.string.flight_pressure_value,
-                    false,
-                    stringResource(preferences.pressure.labels.symbol),
-                )
+                format(convertPressure(it, preferences.pressure), R.string.flight_pressure_value, false, pressureUnit)
             },
             accessibilityValue =
                 state.pressureMillibars?.let {
@@ -236,68 +205,39 @@ private fun FlightParametersReadings(
 @Composable
 private fun FlightParametersTitle(textAlign: TextAlign = TextAlign.Start) {
     LabelText(
-        text =
-            androidx.compose.ui.res
-                .stringResource(R.string.flight_parameters_title),
-        style =
-            MaterialTheme.typography.titleLarge.copy(
-                fontSize = 22.sp,
-                lineHeight = 28.sp,
-                fontWeight = FontWeight.Medium,
-                textAlign = textAlign,
-            ),
+        text = stringResource(R.string.flight_parameters_title),
+        style = MaterialTheme.typography.titleLarge.copy(textAlign = textAlign),
     )
 }
 
+/**
+ * A label and its key value (Material `headlineMedium`, tabular figures) with the [unit] drawn
+ * smaller; read as one "label, value" description.
+ */
 @Composable
 private fun ParameterRow(
     label: Int,
+    unit: String,
     value: String?,
     accessibilityValue: String? = null,
 ) {
-    val labelText =
-        androidx.compose.ui.res
-            .stringResource(label)
-    val displayedValue =
-        value ?: androidx.compose.ui.res
-            .stringResource(R.string.flight_unavailable)
+    val labelText = stringResource(label)
+    val displayedValue = value ?: stringResource(R.string.flight_unavailable)
     val spokenValue =
-        (accessibilityValue ?: value) ?: androidx.compose.ui.res
-            .stringResource(R.string.flight_unavailable_accessibility)
-    val rowDescription =
-        androidx.compose.ui.res
-            .stringResource(R.string.flight_row_accessibility, labelText, spokenValue)
+        (accessibilityValue ?: value) ?: stringResource(R.string.flight_unavailable_accessibility)
+    val rowDescription = stringResource(R.string.flight_row_accessibility, labelText, spokenValue)
 
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .heightIn(min = 48.dp)
-            .semantics(mergeDescendants = true) {
-                contentDescription = rowDescription
-            },
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        LabelText(
-            labelText,
-            Modifier.weight(1f),
-            style =
-                MaterialTheme.typography.bodyLarge.copy(
-                    fontSize = 18.sp,
-                    lineHeight = 25.sp,
-                ),
-        )
-
-        ValueText(
-            displayedValue,
-            style =
-                MaterialTheme.typography.bodyLarge.copy(
-                    fontSize = 18.sp,
-                    lineHeight = 25.sp,
-                    fontWeight = FontWeight.Medium,
-                    textAlign = TextAlign.End,
-                ),
-        )
-    }
+    LabelValueRow(
+        label = labelText,
+        value = withSmallerUnit(displayedValue, unit),
+        valueStyle = MaterialTheme.typography.headlineMedium,
+        modifier =
+            Modifier
+                .heightIn(min = 48.dp)
+                .semantics(mergeDescendants = true) {
+                    contentDescription = rowDescription
+                },
+    )
 }
 
 @Composable

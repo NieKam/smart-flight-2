@@ -2,6 +2,7 @@ package kniezrec.com.flightinfo.settings.ui
 
 import kniezrec.com.flightinfo.dashboard.HideableCard
 import kniezrec.com.flightinfo.display.DisplayPreferences
+import kniezrec.com.flightinfo.display.ThemeMode
 import kniezrec.com.flightinfo.displayunits.AltitudeUnit
 import kniezrec.com.flightinfo.displayunits.SpeedUnit
 import kniezrec.com.flightinfo.displayunits.UnitPreferences
@@ -203,6 +204,30 @@ class SettingsViewModelTest {
 
             assertEquals(emptySet<HideableCard>(), cards.hiddenCards.value)
             assertEquals(emptySet<HideableCard>(), viewModel.state.value.hiddenCards)
+        }
+
+    @Test
+    fun themeModeStartsWithTheStoredValue() =
+        runTest(dispatcher) {
+            display.set(DisplayPreferences(themeMode = ThemeMode.DARK))
+
+            assertEquals(ThemeMode.DARK, viewModel().themeMode.value)
+        }
+
+    @Test
+    fun setThemeModePersistsKeepsTheOtherDisplaySettingsAndEmits() =
+        runTest(dispatcher) {
+            display.set(DisplayPreferences(keepScreenAlwaysOn = true))
+            val viewModel = viewModel()
+            backgroundScope.launch { viewModel.themeMode.collect {} }
+            subscribe(viewModel)
+
+            viewModel.setThemeMode(ThemeMode.LIGHT)
+            runCurrent()
+
+            assertEquals(DisplayPreferences(keepScreenAlwaysOn = true, themeMode = ThemeMode.LIGHT), display.display.value)
+            assertEquals(ThemeMode.LIGHT, viewModel.themeMode.value)
+            assertEquals(ThemeMode.LIGHT, viewModel.state.value.display.themeMode)
         }
 
     private fun TestScope.subscribe(viewModel: SettingsViewModel) {

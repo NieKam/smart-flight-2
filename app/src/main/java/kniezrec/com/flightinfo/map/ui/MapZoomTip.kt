@@ -21,8 +21,9 @@ internal const val MAP_ZOOM_TIP_TAG = "map-zoom-tip"
 
 /**
  * The max-zoom tip ("This is max zoom. Force bigger in settings.") with a "Settings" action, as the
- * original app's top snackbar: shown once each time [requested] turns true, in the original colors
- * (`page` container, `valueText` text, `accent` action).
+ * original app's top snackbar: shown once each time [requested] turns true, in the snackbar colors
+ * (`inverseSurface` container, `inverseOnSurface` text, `inversePrimary` action), so it stands out
+ * from the page in every theme.
  *
  * The screen places it at the top, below the toolbar, as the original: there it covers neither the
  * map's own buttons nor the app's bottom snackbars.
@@ -53,9 +54,9 @@ fun MapZoomTipHost(
         Snackbar(
             snackbarData = data,
             modifier = Modifier.testTag(MAP_ZOOM_TIP_TAG),
-            containerColor = colors.page,
-            contentColor = colors.valueText,
-            actionColor = colors.accent,
+            containerColor = colors.inverseSurface,
+            contentColor = colors.inverseOnSurface,
+            actionColor = colors.inversePrimary,
         )
     }
 }
