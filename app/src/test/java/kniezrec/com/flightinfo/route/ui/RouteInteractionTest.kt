@@ -38,7 +38,8 @@ class RouteInteractionTest {
 
     @Test fun routePickerSupportsDraftSelectionAndExplicitCancel() {
         val city = NearbyCityRecord(7L, "Berlin", "Germany", 52.5, 13.4, "Europe/Berlin")
-        var state by mutableStateOf(RoutePickerState(endpoint = RouteEndpoint.DEPARTURE, results = listOf(city)))
+        val other = NearbyCityRecord(8L, "Paris", "France", 48.8, 2.3, "Europe/Paris")
+        var state by mutableStateOf(RoutePickerState(endpoint = RouteEndpoint.DEPARTURE, results = listOf(city, other)))
         var confirmed = false
         var cancelled = false
         composeRule.setContent {
@@ -108,7 +109,7 @@ class RouteInteractionTest {
         composeRule.runOnIdle { assertTrue(searched == "  Berlin  ") }
     }
 
-    @Test fun routeCardWrapsLongNamesInRtlAtLargeFontScale() {
+    @Test fun routeCardEllipsizesLongNamesInRtlAtLargeFontScale() {
         val departure = NearbyCityRecord(11L, "Departure city with a deliberately long name", "US", 0.0, 0.0, "UTC")
         val destination = NearbyCityRecord(12L, "Destination city with a deliberately long name", "DE", 0.0, 1.0, "Europe/Berlin")
         composeRule.setContent {
@@ -124,8 +125,10 @@ class RouteInteractionTest {
                 )
             }
         }
-        composeRule.onNodeWithText("Departure: Departure city with a deliberately long name").assertIsDisplayed()
-        composeRule.onNodeWithText("Destination: Destination city with a deliberately long name").assertIsDisplayed()
+        // One line each (ellipsized as in the original), the full name kept for accessibility.
+        composeRule.onNodeWithText("Departure city with a deliberately long name").assertIsDisplayed()
+        composeRule.onNodeWithText("Destination city with a deliberately long name").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Departure, Departure city with a deliberately long name, US").assertHasClickAction()
     }
 
     @Test fun routePickerNearestNoCityIsReportedWithoutSelectingCity() {
@@ -216,13 +219,17 @@ class RouteInteractionTest {
                 onClearAll = { cleared = true },
             )
         }
-        composeRule.onNodeWithContentDescription("Departure, A very long departure city name").assertHasClickAction()
-        val departureAction = composeRule.onNodeWithContentDescription("Departure, A very long departure city name").assertHasClickAction()
+        composeRule.onNodeWithContentDescription("Departure, A very long departure city name, US").assertHasClickAction()
+        val departureAction =
+            composeRule
+                .onNodeWithContentDescription(
+                    "Departure, A very long departure city name, US",
+                ).assertHasClickAction()
         assertTrue(departureAction.fetchSemanticsNode().boundsInRoot.height >= 48f * composeRule.density.density)
-        composeRule.onNodeWithContentDescription("Destination, A very long destination city name").assertHasClickAction()
-        composeRule.onNodeWithText("Distance between cities").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Destination, A very long destination city name, DE").assertHasClickAction()
+        composeRule.onNodeWithText("Distance").assertIsDisplayed()
         composeRule.onNodeWithText("Waiting for current position").assertIsDisplayed()
-        composeRule.onNodeWithText("Clear route").performClick()
+        composeRule.onNodeWithContentDescription("Clear route").performClick()
         composeRule.runOnIdle { assertTrue(cleared) }
     }
 }

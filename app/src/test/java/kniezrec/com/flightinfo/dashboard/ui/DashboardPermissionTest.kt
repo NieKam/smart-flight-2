@@ -8,9 +8,10 @@ import androidx.annotation.StringRes
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.performClick
 import androidx.lifecycle.Lifecycle
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
@@ -19,6 +20,7 @@ import kniezrec.com.flightinfo.MainActivity
 import kniezrec.com.flightinfo.R
 import kniezrec.com.flightinfo.monitoring.LocationForegroundService
 import kniezrec.com.flightinfo.testutil.idleMainLooper
+import kniezrec.com.flightinfo.testutil.openFromOverflowMenu
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -69,22 +71,45 @@ class DashboardPermissionTest {
     @Test
     fun deniedShowsPermissionCardThenCourseAndHorizon() {
         composeRule.onNodeWithText(string(R.string.permission_title)).assertIsDisplayed()
-        // Robolectric has no rotation-vector sensor, so both show their unavailable titles.
-        composeRule.onNodeWithText(string(R.string.compass_unavailable)).assertIsDisplayed()
-        composeRule.onNodeWithText(string(R.string.horizon_unavailable)).assertExists()
+        // Robolectric has no rotation-vector sensor, so both show their missing-sensor messages.
+        composeRule.onNodeWithText(string(R.string.missing_sensor_course)).assertIsDisplayed()
+        composeRule.onNodeWithText(string(R.string.missing_sensor_horizon)).assertExists()
         composeRule.onAllNodesWithText(string(R.string.gnss_status_title)).assertCountEquals(0)
         composeRule.onAllNodesWithText(string(R.string.nearby_city_title)).assertCountEquals(0)
-        composeRule.onAllNodesWithText(string(R.string.route_title)).assertCountEquals(0)
+        composeRule.onAllNodesWithText(string(R.string.route_hint)).assertCountEquals(0)
+    }
+
+    // TASK-034: the permission card first, then Course and Horizon, and no location card.
+    @Test
+    fun deniedCardOrderIsPermissionCourseHorizon() {
+        composeRule.waitForIdle()
+        val tops =
+            listOf(DashboardCardTags.PERMISSION, DashboardCardTags.COURSE, DashboardCardTags.HORIZON).map { tag ->
+                composeRule
+                    .onNodeWithTag(tag)
+                    .fetchSemanticsNode()
+                    .positionInRoot.y
+            }
+        assertTrue("Cards out of order: $tops", tops.zipWithNext().all { (upper, lower) -> upper < lower })
+        for (tag in listOf(
+            DashboardCardTags.SATELLITES,
+            DashboardCardTags.FLIGHT_PARAMETERS,
+            DashboardCardTags.NEARBY_CITY,
+            DashboardCardTags.ROUTE,
+            DashboardCardTags.MAP,
+        )) {
+            composeRule.onAllNodesWithTag(tag).assertCountEquals(0)
+        }
     }
 
     @Test
     fun settingsAndAboutOpenWithoutPermission() {
-        composeRule.onNodeWithText(string(R.string.settings_title)).performClick()
+        composeRule.openFromOverflowMenu(string(R.string.settings_title))
         composeRule.onNodeWithText(string(R.string.units_section)).assertIsDisplayed()
         checkNotNull(scenario).onActivity { it.onBackPressedDispatcher.onBackPressed() }
         composeRule.waitForIdle()
 
-        composeRule.onNodeWithText(string(R.string.about_title)).performClick()
+        composeRule.openFromOverflowMenu(string(R.string.about_title))
         composeRule.onNodeWithText(string(R.string.about_disclaimer_heading)).assertIsDisplayed()
     }
 

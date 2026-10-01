@@ -13,16 +13,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import kniezrec.com.flightinfo.dashboard.HideableCard
 import kniezrec.com.flightinfo.dashboard.ui.DashboardHeader
 import kniezrec.com.flightinfo.display.DisplayPreferences
 import kniezrec.com.flightinfo.displayunits.AltitudeUnit
@@ -35,7 +40,10 @@ import kniezrec.com.flightinfo.gnss.GnssStatusState
 import kniezrec.com.flightinfo.gnss.ui.GnssStatusCard
 import kniezrec.com.flightinfo.map.ui.MapCard
 import kniezrec.com.flightinfo.map.ui.MapUiState
+import kniezrec.com.flightinfo.testutil.MORE_OPTIONS
+import kniezrec.com.flightinfo.testutil.openFromOverflowMenu
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertSame
 import org.junit.Rule
 import org.junit.Test
@@ -70,6 +78,38 @@ class UnitSettingsScreenTest {
         composeRule.onNode(hasContentDescription("Vertical speed, current value m/s, double tap to change")).assertExists()
         composeRule.onNode(hasContentDescription("Pressure, current value mbar, double tap to change")).assertExists()
         composeRule.onNodeWithContentDescription("Navigate up").assertExists()
+    }
+
+    @Test fun showHiddenCardsIsDisabledWhileNothingIsHidden() {
+        composeRule.setContent { UnitSettingsScreen(UnitPreferences(), {}, {}) }
+
+        composeRule
+            .onNodeWithText("Show hidden cards")
+            .performScrollTo()
+            .assertIsDisplayed()
+            .assertIsNotEnabled()
+        composeRule.onNodeWithText("No hidden cards").assertExists()
+    }
+
+    @Test fun showHiddenCardsListsTheHiddenCardsAndRestoresThem() {
+        var hidden by mutableStateOf(setOf(HideableCard.Horizon, HideableCard.Course))
+        composeRule.setContent {
+            UnitSettingsScreen(UnitPreferences(), {}, {}, hiddenCards = hidden, onShowHiddenCards = { hidden = emptySet() })
+        }
+        composeRule.onNodeWithText("Compass, Horizon").assertExists()
+
+        composeRule
+            .onNodeWithText("Show hidden cards")
+            .performScrollTo()
+            .assertIsEnabled()
+            .performClick()
+
+        composeRule.onNodeWithText("No hidden cards").assertExists()
+        composeRule.onNodeWithText("Show hidden cards").assertIsNotEnabled()
+        composeRule.runOnIdle { assertEquals(emptySet<HideableCard>(), hidden) }
+
+        composeRule.runOnIdle { hidden = setOf(HideableCard.Horizon) }
+        composeRule.onNodeWithText("Horizon").assertExists()
     }
 
     @Test fun selectingDistanceUpdatesSummaryAndCallbackImmediately() {
@@ -203,11 +243,11 @@ class UnitSettingsScreenTest {
                 }
             }
         }
-        composeRule.onNodeWithText("Settings").performClick()
+        composeRule.openFromOverflowMenu("Settings")
         composeRule.onNodeWithText("Units").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Navigate up").performClick()
         composeRule.onNodeWithText("GNSS status").assertIsDisplayed()
-        composeRule.onNodeWithText("Settings").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription(MORE_OPTIONS).assertIsDisplayed()
     }
 
     @Test fun settingsFlowRetainsMapViewportAndAppliesLargerZoomPolicyInPlace() {
@@ -246,7 +286,7 @@ class UnitSettingsScreenTest {
                 initialMap.controller.setZoom(8.0)
                 initialMap.controller.setCenter(GeoPoint(48.8566, 2.3522))
             }
-            composeRule.onNodeWithText("Settings").performClick()
+            composeRule.openFromOverflowMenu("Settings")
             composeRule.runOnIdle {
                 assertSame(initialMap, findMapView(composeRule.activity.window.decorView))
                 assertEquals(9.0, initialMap.maxZoomLevel, 0.0)
@@ -272,6 +312,38 @@ class UnitSettingsScreenTest {
             archive.delete()
         }
     }
+
+    @Test fun largerMapZoomRowFlashesWhenOpenedFromTheZoomTipAndThenReportsItIsDone() {
+        var highlight by mutableStateOf(true)
+        composeRule.mainClock.autoAdvance = false
+        composeRule.setContent {
+            UnitSettingsScreen(
+                UnitPreferences(),
+                {},
+                {},
+                highlightLargerMapZoom = highlight,
+                onHighlightFinished = { highlight = false },
+            )
+        }
+
+        composeRule.mainClock.advanceTimeBy(200)
+        composeRule.onNodeWithTag(LARGER_MAP_ZOOM_ROW_TAG).assert(highlighted(true))
+        // Only that row.
+        composeRule.onNodeWithText("Keep screen always on").assert(highlighted(false))
+
+        // Three flashes of 450 ms.
+        composeRule.mainClock.advanceTimeBy(2_000)
+        composeRule.onNodeWithTag(LARGER_MAP_ZOOM_ROW_TAG).assert(highlighted(false))
+        composeRule.runOnIdle { assertFalse(highlight) }
+    }
+
+    @Test fun withoutARequestNoRowIsHighlighted() {
+        composeRule.setContent { UnitSettingsScreen(UnitPreferences(), {}, {}) }
+
+        composeRule.onNodeWithTag(LARGER_MAP_ZOOM_ROW_TAG).assert(highlighted(false))
+    }
+
+    private fun highlighted(value: Boolean): SemanticsMatcher = SemanticsMatcher.expectValue(SettingHighlighted, value)
 
     private fun hasRole(role: Role): SemanticsMatcher = SemanticsMatcher.expectValue(SemanticsProperties.Role, role)
 

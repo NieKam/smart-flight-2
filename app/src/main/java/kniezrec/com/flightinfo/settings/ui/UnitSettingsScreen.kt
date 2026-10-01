@@ -1,5 +1,7 @@
 package kniezrec.com.flightinfo.settings.ui
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -10,6 +12,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -24,15 +28,25 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsPropertyKey
+import androidx.compose.ui.semantics.SemanticsPropertyReceiver
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
@@ -40,6 +54,7 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.toggleableState
 import androidx.compose.ui.unit.dp
 import kniezrec.com.flightinfo.R
+import kniezrec.com.flightinfo.dashboard.HideableCard
 import kniezrec.com.flightinfo.display.DisplayPreferences
 import kniezrec.com.flightinfo.displayunits.AltitudeUnit
 import kniezrec.com.flightinfo.displayunits.DistanceUnit
@@ -71,6 +86,20 @@ private sealed class Selector<T : UnitKey>(
     class Pressure : Selector<PressureUnit>(R.string.unit_pressure, PressureUnit.entries)
 }
 
+/** Test tag of the "Larger map zoom" row. */
+internal const val LARGER_MAP_ZOOM_ROW_TAG = "setting-larger-map-zoom"
+
+/** Semantics of a settings row: it is being highlighted (opened from the map's max-zoom tip). */
+internal val SettingHighlighted = SemanticsPropertyKey<Boolean>("SettingHighlighted")
+internal var SemanticsPropertyReceiver.settingHighlighted by SettingHighlighted
+
+/**
+ * The Settings screen.
+ *
+ * @param highlightLargerMapZoom the "Larger map zoom" row is scrolled into view and flashes
+ *   [HIGHLIGHT_FLASHES] times (opened from the map's max-zoom tip, as the original app's
+ *   `HIGHLIGHT_CUSTOM_SETTINGS`); [onHighlightFinished] is called when it has.
+ */
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
 fun UnitSettingsScreen(
@@ -83,6 +112,10 @@ fun UnitSettingsScreen(
     onBackgroundNotificationChange: (Boolean) -> Unit = {},
     notificationsBlocked: Boolean = false,
     onAllowNotifications: () -> Unit = {},
+    hiddenCards: Set<HideableCard> = emptySet(),
+    onShowHiddenCards: () -> Unit = {},
+    highlightLargerMapZoom: Boolean = false,
+    onHighlightFinished: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     var selector by remember { mutableStateOf<Selector<*>?>(null) }
@@ -143,9 +176,13 @@ fun UnitSettingsScreen(
                         if (displayPreferences.largerMapZoom) R.string.settings_on else R.string.settings_off,
                         displayPreferences.largerMapZoom,
                         if (displayPreferences.largerMapZoom) R.string.larger_map_zoom_warning else null,
+                        highlight = highlightLargerMapZoom,
+                        onHighlightFinished = onHighlightFinished,
+                        modifier = Modifier.testTag(LARGER_MAP_ZOOM_ROW_TAG),
                     ) {
                         onDisplayPreferenceChange(displayPreferences.copy(largerMapZoom = !displayPreferences.largerMapZoom))
                     }
+                    ShowHiddenCardsRow(hiddenCards, onShowHiddenCards)
                 }
                 ValueText(
                     stringResource(R.string.monitoring_section),
@@ -204,8 +241,27 @@ private fun displaysettingRow(
     checked: Boolean,
     warning: Int? = null,
     description: Int? = null,
+    highlight: Boolean = false,
+    onHighlightFinished: () -> Unit = {},
+    modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
+    val highlightAlpha = remember { Animatable(0f) }
+    val bringIntoViewRequester = remember { BringIntoViewRequester() }
+    val currentOnHighlightFinished by rememberUpdatedState(onHighlightFinished)
+    if (highlight) {
+        LaunchedEffect(Unit) {
+            // After the first layout, so the row has a position to scroll to.
+            withFrameNanos { }
+            bringIntoViewRequester.bringIntoView()
+            repeat(HIGHLIGHT_FLASHES) {
+                highlightAlpha.animateTo(1f, tween(HIGHLIGHT_FLASH_MILLIS / 2))
+                highlightAlpha.animateTo(0f, tween(HIGHLIGHT_FLASH_MILLIS / 2))
+            }
+            currentOnHighlightFinished()
+        }
+    }
+    val highlightColor = SmartFlightTheme.colors.accentLight
     val labelText = stringResource(label)
     val summaryText = stringResource(summary)
     val warningText = warning?.let { stringResource(it) }
@@ -218,12 +274,16 @@ private fun displaysettingRow(
         } else {
             stringResource(R.string.display_setting_warning_description, labelText, summaryText, warningText)
         }
-    Column {
+    Column(Modifier.bringIntoViewRequester(bringIntoViewRequester)) {
         Row(
-            Modifier
+            modifier
                 .fillMaxWidth()
                 .heightIn(min = 64.dp)
-                .clickable(onClick = onClick)
+                .drawBehind {
+                    // An interrupted highlight leaves no tint behind.
+                    val alpha = if (highlight) highlightAlpha.value * HIGHLIGHT_MAX_ALPHA else 0f
+                    if (alpha > 0f) drawRect(highlightColor.copy(alpha = alpha))
+                }.clickable(onClick = onClick)
                 .semantics(mergeDescendants = true) {
                     contentDescription = descriptionText
                     role = Role.Switch
@@ -231,6 +291,7 @@ private fun displaysettingRow(
                     toggleableState =
                         androidx.compose.ui.state
                             .ToggleableState(checked)
+                    settingHighlighted = highlight
                 }.padding(vertical = 12.dp),
             verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
         ) {
@@ -255,6 +316,65 @@ private fun displaysettingRow(
         HorizontalDivider()
     }
 }
+
+/**
+ * "Show hidden cards": lists the hidden cards, disabled while nothing is hidden. The confirmation
+ * is the subtitle itself: it turns to "No hidden cards" at once (announced as a polite live
+ * region) and the row disables, so no separate snackbar is needed.
+ */
+@Composable
+private fun ShowHiddenCardsRow(
+    hiddenCards: Set<HideableCard>,
+    onClick: () -> Unit,
+) {
+    val enabled = hiddenCards.isNotEmpty()
+    val summary =
+        if (enabled) {
+            HideableCard.entries
+                .filter { it in hiddenCards }
+                .map { stringResource(it.nameResource()) }
+                .joinToString(", ")
+        } else {
+            stringResource(R.string.no_hidden_cards)
+        }
+    Column {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .heightIn(min = 64.dp)
+                .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
+                .padding(vertical = 12.dp)
+                .alpha(if (enabled) 1f else DISABLED_ROW_ALPHA),
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f)) {
+                ValueText(stringResource(R.string.show_hidden_cards), style = MaterialTheme.typography.bodyLarge)
+                LabelText(
+                    summary,
+                    Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+        }
+        HorizontalDivider()
+    }
+}
+
+private fun HideableCard.nameResource(): Int =
+    when (this) {
+        HideableCard.Course -> R.string.hidden_card_course
+        HideableCard.Horizon -> R.string.hidden_card_horizon
+    }
+
+private const val DISABLED_ROW_ALPHA = 0.5f
+
+/** The highlighted row flashes `accentLight` (the original's `cyan_light` start color) this many times. */
+private const val HIGHLIGHT_FLASHES = 3
+
+/** One flash (fade in and out); three take the original highlight's 1350 ms. */
+private const val HIGHLIGHT_FLASH_MILLIS = 450
+
+private const val HIGHLIGHT_MAX_ALPHA = 0.8f
 
 @Composable
 private fun settingRow(

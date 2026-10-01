@@ -6,7 +6,6 @@ import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
-import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kniezrec.com.flightinfo.displayunits.DistanceUnit
@@ -60,14 +59,14 @@ class RouteCardContainerTest {
         composeRule.setContent {
             RouteCardContainer(DistanceUnit.KILOMETRES, onChoose = { chosen = it }, viewModel = viewModel)
         }
-        waitForText("Departure: Warsaw")
-        waitForText("Destination: Berlin")
+        waitForText("Warsaw")
+        waitForText("Berlin")
 
-        composeRule.onNodeWithContentDescription("Departure, Warsaw").performClick()
+        composeRule.onNodeWithContentDescription("Departure, Warsaw, Poland").performClick()
         composeRule.runOnIdle { assertEquals(RouteEndpoint.DEPARTURE, chosen) }
 
-        composeRule.onNodeWithText("Clear route").performClick()
-        waitForText("Departure: Choose departure city")
+        composeRule.onNodeWithContentDescription("Clear route").performClick()
+        waitForText("Pick departure")
         composeRule.runOnIdle {
             assertFalse(preferences.contains("route_departure_id"))
             assertFalse(preferences.contains("route_destination_id"))

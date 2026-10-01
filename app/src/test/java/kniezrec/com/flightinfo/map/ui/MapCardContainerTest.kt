@@ -18,6 +18,8 @@ import kniezrec.com.flightinfo.route.data.RouteRepository
 import kniezrec.com.flightinfo.route.ui.RouteViewModel
 import kniezrec.com.flightinfo.testutil.FakeDisplaySettingsRepository
 import kniezrec.com.flightinfo.testutil.FakeLocationDataSource
+import kniezrec.com.flightinfo.testutil.FakeMapTipRepository
+import kniezrec.com.flightinfo.testutil.FakeOrientationDataSource
 import kniezrec.com.flightinfo.testutil.ListCityDataSource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -72,6 +74,8 @@ class MapCardContainerTest {
                 MapArchiveRepository({ throw IOException("the archive is already in place") }, directory, Dispatchers.Unconfined),
                 locationRepository,
                 FakeDisplaySettingsRepository(),
+                FakeOrientationDataSource(),
+                FakeMapTipRepository(),
             )
         val routeViewModel =
             RouteViewModel(
@@ -103,6 +107,8 @@ class MapCardContainerTest {
                 ),
                 LocationRepository(location, repositoryScope),
                 FakeDisplaySettingsRepository(),
+                FakeOrientationDataSource(),
+                FakeMapTipRepository(),
             )
         val routeViewModel =
             RouteViewModel(

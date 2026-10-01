@@ -54,7 +54,10 @@ data class NearbyCityRecord(
 /** Mean Earth radius used by [distanceKilometres]. */
 internal const val EARTH_RADIUS_KILOMETRES = 6_371.0088
 
-/** Great-circle (haversine) distance on a sphere of [EARTH_RADIUS_KILOMETRES]. */
+/**
+ * Great-circle (haversine) distance on a sphere of [EARTH_RADIUS_KILOMETRES]. Used to rank cities by
+ * nearness; displayed distances use [ellipsoidalDistanceKm].
+ */
 internal fun distanceKilometres(
     first: NearbyCoordinate,
     second: NearbyCoordinate,

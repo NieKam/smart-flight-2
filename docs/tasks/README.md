@@ -57,15 +57,15 @@ The order follows four phases. Every task leaves the app building, tests green a
 | 025 | [Background notification on Android 13+ and plane notification icon](025-background-notification-permission/task.md) | 016, 024 | DONE |
 | 026 | [Compass sensor fallback, smoothing, rounding](026-compass-sensor-fallback/task.md) | 016 | DONE |
 | 027 | [Compass rose with N/E/S/W and animated plane](027-compass-rose/task.md) | 018, 026 | DONE |
-| 028 | [Horizon calibration persistence, long-press reset, filtering](028-horizon-calibration/task.md) | 016 | TODO |
-| 029 | [Hide unsupported Course/Horizon cards; "Show hidden cards" setting](029-hide-unsupported-cards/task.md) | 006, 015, 026, 028 | TODO |
-| 030 | [Map: great-circle route line and visible purple plane marker](030-map-route-line-and-plane-marker/task.md) | 014, 016, 018, 026 | TODO |
-| 031 | [Map controls, real expand, max-zoom tip leading to Settings](031-map-controls-and-zoom-tip/task.md) | 015, 016, 018, 030 | TODO |
-| 032 | [City picker: large centering map, single result auto-selected](032-city-picker-map/task.md) | 013, 018 | TODO |
-| 033 | [Route card visuals](033-route-card-visual/task.md) | 018, 021 | TODO |
-| 034 | [Toolbar with overflow menu, original launcher icon, card order](034-header-launcher-card-order/task.md) | 018, 024 | TODO |
-| 035 | [Displayed distances on the WGS84 ellipsoid](035-ellipsoidal-distances/task.md) | 011, 021 | TODO |
-| 036 | [Polish localization and translation-completeness check](036-polish-localization/task.md) | 019, 020, 021, 022, 023, 024, 025, 027, 028, 029, 030, 031, 032, 033, 034 | TODO |
+| 028 | [Horizon calibration persistence, long-press reset, filtering](028-horizon-calibration/task.md) | 016 | DONE |
+| 029 | [Hide unsupported Course/Horizon cards; "Show hidden cards" setting](029-hide-unsupported-cards/task.md) | 006, 015, 026, 028 | DONE |
+| 030 | [Map: great-circle route line and visible purple plane marker](030-map-route-line-and-plane-marker/task.md) | 014, 016, 018, 026 | DONE |
+| 031 | [Map controls, real expand, max-zoom tip leading to Settings](031-map-controls-and-zoom-tip/task.md) | 015, 016, 018, 030 | DONE |
+| 032 | [City picker: large centering map, single result auto-selected](032-city-picker-map/task.md) | 013, 018 | DONE |
+| 033 | [Route card visuals](033-route-card-visual/task.md) | 018, 021 | DONE |
+| 034 | [Toolbar with overflow menu, original launcher icon, card order](034-header-launcher-card-order/task.md) | 018, 024 | DONE |
+| 035 | [Displayed distances on the WGS84 ellipsoid](035-ellipsoidal-distances/task.md) | 011, 021 | DONE |
+| 036 | [Polish localization and translation-completeness check](036-polish-localization/task.md) | 019, 020, 021, 022, 023, 024, 025, 027, 028, 029, 030, 031, 032, 033, 034 | DONE |
 
 ## Coverage
 
@@ -208,8 +208,9 @@ The order follows four phases. Every task leaves the app building, tests green a
 - Parity palette section / finding 11 justify the accent change to #6CF0FF "for contrast". Per the human's palette decision TASK-018 restores #25E5FE and instead restricts small accent text on card surfaces.
 
 ## Open questions for the human
-1. **Muted label contrast.** The original label color #A1A0C4 has ≈2.5:1 contrast on cards (#5B5999) and ≈3.3:1 on the page (#484685), below WCAG AA. TASK-018 follows your palette decision and keeps it as a documented exception. Do you want a slightly lighter label shade instead (e.g. ≈#B9B8D9, still clearly "muted")? The plan proceeds with the original color unless you say otherwise.
-2. **Orientation sign defects (found in TASK-010, fix planned in TASK-028).** The TASK-010 rotation-matrix tests (`DisplayRelativeOrientationTest`) pin today's values; the correct ones are in the test comments. Please confirm on a device before TASK-028 fixes them.
-   - **Landscape / reverse landscape:** `DisplayRelativeOrientation.calculate` swaps Android's `remapCoordinateSystem` mappings for `ROTATION_90` and `ROTATION_270`. As a result the heading is off by 180° and pitch and roll have the opposite sign. Portrait and reverse portrait are correct.
-   - **Horizon pitch label:** nose-up gives negative pitch, and `HorizonCard` labels positive pitch as "up", so nose-up reads "N° down". The horizon picture itself moves the right way.
-   - **Horizon roll picture:** `rotationZ = +roll` turns the sky/ground layer clockwise when rolling right; an attitude indicator should turn it counter-clockwise. This was checked on paper only; please verify on a device.
+Both questions are answered; the decisions are recorded here.
+1. **Muted label contrast — decided: keep #A1A0C4.** The original label color #A1A0C4 has ≈2.5:1 contrast on cards (#5B5999) and ≈3.3:1 on the page (#484685), below WCAG AA. The human kept the original color as a documented exception (TASK-018); no lighter shade.
+2. **Orientation sign defects — decided: fix all three (TASK-028).** The correct values in the TASK-010 test comments were approved without waiting for a device check; the human reports device issues at the end. TASK-028 fixed:
+   - **Landscape / reverse landscape:** `DisplayRelativeOrientation.calculate` swapped Android's `remapCoordinateSystem` mappings for `ROTATION_90` and `ROTATION_270` (heading off by 180°, pitch and roll with the opposite sign). The remap now matches Android's; `DisplayRelativeOrientationTest` expects the portrait convention in every rotation.
+   - **Horizon pitch label:** samples give nose-up as negative pitch; the horizon now uses `reference - pitch` (as the original presenter), so nose-up reads "N° up". The picture still moves the right way.
+   - **Horizon roll picture:** rolling right now turns the sky/ground layer counter-clockwise (`rotationZ = -roll`), as an attitude indicator.

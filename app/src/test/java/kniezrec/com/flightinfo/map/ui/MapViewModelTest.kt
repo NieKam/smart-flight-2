@@ -3,9 +3,12 @@ package kniezrec.com.flightinfo.map.ui
 import kniezrec.com.flightinfo.display.DisplayPreferences
 import kniezrec.com.flightinfo.location.data.LocationRepository
 import kniezrec.com.flightinfo.map.MapCoordinate
+import kniezrec.com.flightinfo.map.MapRules
 import kniezrec.com.flightinfo.map.data.MapArchiveRepository
 import kniezrec.com.flightinfo.testutil.FakeDisplaySettingsRepository
 import kniezrec.com.flightinfo.testutil.FakeLocationDataSource
+import kniezrec.com.flightinfo.testutil.FakeMapTipRepository
+import kniezrec.com.flightinfo.testutil.FakeOrientationDataSource
 import kniezrec.com.flightinfo.testutil.flightFix
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -20,7 +23,9 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import java.io.ByteArrayInputStream
@@ -36,6 +41,8 @@ class MapViewModelTest {
     private val dispatcher = StandardTestDispatcher()
     private val location = FakeLocationDataSource()
     private val display = FakeDisplaySettingsRepository()
+    private val orientation = FakeOrientationDataSource()
+    private val tips = FakeMapTipRepository()
     private val directory: File = Files.createTempDirectory("map-view-model").toFile()
     private val archive = File(directory, "osmdroid.zip")
 
@@ -124,16 +131,77 @@ class MapViewModelTest {
             assertEquals(MapCoordinate(3.0, 4.0), ready(viewModel).position)
         }
 
-    @Test fun `the marker course follows the bearing and is 0 without one`() =
+    @Test fun `the marker follows the GPS track while moving and keeps it without a bearing`() =
         runTest(dispatcher) {
             val viewModel = viewModel()
             subscribe(viewModel)
 
             fix(latitude = 1.0, longitude = 2.0, bearing = -90.0)
-            assertEquals(270f, ready(viewModel).markerCourseDegrees)
+            assertEquals(270f, ready(viewModel).markerHeadingDegrees)
 
             fix(latitude = 1.0, longitude = 2.1)
-            assertEquals(0f, ready(viewModel).markerCourseDegrees)
+            assertEquals(270f, ready(viewModel).markerHeadingDegrees)
+        }
+
+    @Test fun `the marker follows the compass while standing still`() =
+        runTest(dispatcher) {
+            val viewModel = viewModel()
+            subscribe(viewModel)
+            assertEquals(1, orientation.activeCount)
+
+            fix(latitude = 1.0, longitude = 2.0, bearing = 90.0, speed = 0.5)
+            assertEquals(0f, ready(viewModel).markerHeadingDegrees)
+
+            orientation.emit(headingDegrees = 30.4)
+            runCurrent()
+            assertEquals(30f, ready(viewModel).markerHeadingDegrees)
+
+            // Moving again: the GPS track wins over the compass.
+            fix(latitude = 1.0, longitude = 2.1, bearing = 90.0, speed = 20.0)
+            assertEquals(90f, ready(viewModel).markerHeadingDegrees)
+            orientation.emit(headingDegrees = 30.4)
+            runCurrent()
+            assertEquals(90f, ready(viewModel).markerHeadingDegrees)
+        }
+
+    @Test fun `the compass is observed only while the map is`() =
+        runTest(dispatcher) {
+            val viewModel = viewModel()
+            runCurrent()
+            assertEquals(0, orientation.registerCount)
+
+            val subscription = subscribe(viewModel)
+            assertEquals(1, orientation.activeCount)
+
+            subscription.cancel()
+            advanceTimeBy(MapViewModel.STOP_TIMEOUT_MILLIS + 1)
+            runCurrent()
+            assertEquals(0, orientation.activeCount)
+        }
+
+    @Test fun `without a usable compass the marker relies on the GPS track`() =
+        runTest(dispatcher) {
+            orientation.failRegistration = true
+            val viewModel = viewModel()
+            subscribe(viewModel)
+
+            fix(latitude = 1.0, longitude = 2.0, bearing = 45.0)
+            assertEquals(MapCoordinate(1.0, 2.0), ready(viewModel).position)
+            assertEquals(45f, ready(viewModel).markerHeadingDegrees)
+
+            fix(latitude = 1.0, longitude = 2.0, bearing = 135.0, speed = 0.0)
+            assertEquals(45f, ready(viewModel).markerHeadingDegrees)
+        }
+
+    @Test fun `a device without an orientation sensor is not asked for one`() =
+        runTest(dispatcher) {
+            orientation.available = false
+            val viewModel = viewModel()
+            subscribe(viewModel)
+
+            fix(latitude = 1.0, longitude = 2.0, bearing = 45.0)
+            assertEquals(45f, ready(viewModel).markerHeadingDegrees)
+            assertEquals(0, orientation.registerCount)
         }
 
     @Test fun `fixes without a valid position change nothing`() =
@@ -146,7 +214,7 @@ class MapViewModelTest {
             fix(latitude = null, longitude = null)
 
             assertEquals(MapCoordinate(1.0, 2.0), ready(viewModel).position)
-            assertEquals(45f, ready(viewModel).markerCourseDegrees)
+            assertEquals(45f, ready(viewModel).markerHeadingDegrees)
         }
 
     @Test fun `the larger map zoom setting is part of the ready state`() =
@@ -159,6 +227,98 @@ class MapViewModelTest {
             runCurrent()
 
             assertEquals(true, ready(viewModel).largerMapZoom)
+        }
+
+    @Test fun `reaching the standard maximum zoom requests the tip and counts it`() =
+        runTest(dispatcher) {
+            val viewModel = viewModel()
+            assertFalse(viewModel.zoomTip.value)
+
+            zoom(viewModel, 5.0)
+            assertFalse(viewModel.zoomTip.value)
+            zoom(viewModel, MapRules.STANDARD_MAX_ZOOM)
+
+            assertTrue(viewModel.zoomTip.value)
+            assertEquals(1, tips.shownCount)
+
+            viewModel.onZoomTipShown()
+            assertFalse(viewModel.zoomTip.value)
+        }
+
+    @Test fun `repeated zoom events at the maximum count once`() =
+        runTest(dispatcher) {
+            val viewModel = viewModel()
+
+            zoom(viewModel, 6.0)
+            viewModel.onZoomTipShown()
+            zoom(viewModel, 6.0)
+            zoom(viewModel, 6.0)
+
+            assertFalse(viewModel.zoomTip.value)
+            assertEquals(1, tips.shownCount)
+
+            // Leaving the maximum and reaching it again is a new transition.
+            zoom(viewModel, 5.5)
+            zoom(viewModel, 6.0)
+            assertTrue(viewModel.zoomTip.value)
+            assertEquals(2, tips.shownCount)
+        }
+
+    @Test fun `a tip still waiting to be shown is not requested or counted again`() =
+        runTest(dispatcher) {
+            val viewModel = viewModel()
+
+            zoom(viewModel, 6.0)
+            zoom(viewModel, 5.0)
+            zoom(viewModel, 6.0)
+
+            assertTrue(viewModel.zoomTip.value)
+            assertEquals(1, tips.shownCount)
+        }
+
+    @Test fun `the tip is never requested after four shows`() =
+        runTest(dispatcher) {
+            val viewModel = viewModel()
+
+            repeat(MapRules.ZOOM_TIP_LIMIT + 2) {
+                zoom(viewModel, 5.0)
+                zoom(viewModel, 6.0)
+                if (viewModel.zoomTip.value) viewModel.onZoomTipShown()
+            }
+            assertEquals(4, tips.shownCount)
+
+            zoom(viewModel, 5.0)
+            zoom(viewModel, 6.0)
+            assertFalse(viewModel.zoomTip.value)
+            assertEquals(4, tips.shownCount)
+        }
+
+    @Test fun `a count stored as four already suppresses the tip`() =
+        runTest(dispatcher) {
+            tips.shownCount = 4
+            val viewModel = viewModel()
+
+            zoom(viewModel, 6.0)
+
+            assertFalse(viewModel.zoomTip.value)
+            assertEquals(4, tips.shownCount)
+        }
+
+    @Test fun `the tip is not requested while larger map zoom is on`() =
+        runTest(dispatcher) {
+            display.set(DisplayPreferences(largerMapZoom = true))
+            val viewModel = viewModel()
+
+            zoom(viewModel, 6.0)
+            zoom(viewModel, 9.0)
+
+            assertFalse(viewModel.zoomTip.value)
+            assertEquals(0, tips.shownCount)
+
+            // Switching it off while zoomed in clamps the map to 6: still at the maximum, no tip.
+            display.set(DisplayPreferences(largerMapZoom = false))
+            zoom(viewModel, 6.0)
+            assertFalse(viewModel.zoomTip.value)
         }
 
     @Test fun `nothing is prepared or observed before the state is collected`() =
@@ -236,7 +396,17 @@ class MapViewModelTest {
             MapArchiveRepository(::openAsset, directory, dispatcher),
             LocationRepository(location, backgroundScope),
             display,
+            orientation,
+            tips,
         )
+
+    private fun TestScope.zoom(
+        viewModel: MapViewModel,
+        level: Double,
+    ) {
+        viewModel.onZoomChanged(level)
+        runCurrent()
+    }
 
     private fun openAsset(): InputStream {
         assetOpens++
@@ -261,8 +431,11 @@ class MapViewModelTest {
         latitude: Double?,
         longitude: Double?,
         bearing: Double? = null,
+        speed: Double? = 10.0,
     ) {
-        location.emitFix(flightFix(latitude = latitude, longitude = longitude, bearingDegrees = bearing))
+        location.emitFix(
+            flightFix(speedMetresPerSecond = speed, latitude = latitude, longitude = longitude, bearingDegrees = bearing),
+        )
         runCurrent()
     }
 

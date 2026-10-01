@@ -5,6 +5,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.lifecycle.SavedStateHandle
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kniezrec.com.flightinfo.testutil.FakeOrientationDataSource
 import org.junit.Rule
@@ -19,16 +20,17 @@ class HorizonCardContainerTest {
     private val orientation = FakeOrientationDataSource()
 
     @Test fun showsPitchRelativeToTheReferenceAndCalibrateResetsIt() {
-        val viewModel = HorizonViewModel(orientation)
-        composeRule.setContent { HorizonCardContainer(viewModel = viewModel) }
+        val viewModel = HorizonViewModel(SavedStateHandle(), orientation)
+        composeRule.setContent { HorizonCardContainer(onHide = {}, viewModel = viewModel) }
 
         // The first sample becomes the level reference.
         emitUntilShown(pitchDegrees = 0.0, text = "Pitch: level")
-        emitUntilShown(pitchDegrees = 10.0, text = "Pitch: 10° up")
+        // Samples give nose-up as negative pitch.
+        emitUntilShown(pitchDegrees = -10.0, text = "Pitch: 10° up")
 
         composeRule.onNodeWithText("Calibrate").performClick()
 
-        emitUntilShown(pitchDegrees = 10.0, text = "Pitch: level")
+        emitUntilShown(pitchDegrees = -10.0, text = "Pitch: level")
     }
 
     /** Re-sends the sample until the ViewModel's registration (made when the card starts collecting) shows it. */

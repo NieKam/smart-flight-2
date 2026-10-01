@@ -22,6 +22,8 @@ import kniezrec.com.flightinfo.route.RouteEndpoint
 import kniezrec.com.flightinfo.route.data.RouteRepository
 import kniezrec.com.flightinfo.testutil.FakeDisplaySettingsRepository
 import kniezrec.com.flightinfo.testutil.FakeLocationDataSource
+import kniezrec.com.flightinfo.testutil.FakeMapTipRepository
+import kniezrec.com.flightinfo.testutil.FakeOrientationDataSource
 import kniezrec.com.flightinfo.testutil.ListCityDataSource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -67,6 +69,8 @@ class RoutePickerOverlayTest {
                 ),
                 LocationRepository(FakeLocationDataSource(), repositoryScope),
                 FakeDisplaySettingsRepository(),
+                FakeOrientationDataSource(),
+                FakeMapTipRepository(),
             )
         composeRule.setContent { RoutePickerOverlay(viewModel = viewModel, mapViewModel = mapViewModel) }
         composeRule.onAllNodesWithText("Choose destination").assertCountEquals(0)
@@ -75,8 +79,8 @@ class RoutePickerOverlayTest {
         composeRule.onNodeWithText("Choose destination").assertIsDisplayed()
         composeRule.onNodeWithText("City name").performTextInput("Berl")
         composeRule.onNodeWithText("City name").performImeAction()
-        composeRule.waitUntil { composeRule.onAllNodesWithText("Berlin (Germany)").fetchSemanticsNodes().isNotEmpty() }
-        composeRule.onNodeWithText("Berlin (Germany)").performClick()
+        // The single result is selected at once (TASK-032).
+        composeRule.waitUntil { composeRule.onAllNodesWithText("Selected: Berlin (Germany)").fetchSemanticsNodes().isNotEmpty() }
         composeRule.onNodeWithText("Confirm").assertIsEnabled().performClick()
 
         composeRule.waitUntil { composeRule.onAllNodesWithText("Choose destination").fetchSemanticsNodes().isEmpty() }

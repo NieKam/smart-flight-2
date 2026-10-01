@@ -93,7 +93,10 @@ class RoutePickerViewModel
             savedStateHandle[KEY_QUERY] = query
         }
 
-        /** Cities whose name contains [query] (see [CityRepository.search]). */
+        /**
+         * Cities whose name contains [query] (see [CityRepository.search]). A single match becomes
+         * the selection, as in the original app; with several matches the selection is kept.
+         */
         fun search(query: String) {
             startLookup(Lookup.Search(query), reload = false)
         }
@@ -167,7 +170,10 @@ class RoutePickerViewModel
             found: List<NearbyCityRecord>,
         ) {
             when (lookup) {
-                is Lookup.Search -> mutableState.update { it.copy(results = found, loading = false) }
+                is Lookup.Search -> {
+                    mutableState.update { it.copy(results = found, loading = false) }
+                    found.singleOrNull()?.let(::setSelected)
+                }
                 is Lookup.Nearest -> {
                     val city = found.firstOrNull()
                     when {

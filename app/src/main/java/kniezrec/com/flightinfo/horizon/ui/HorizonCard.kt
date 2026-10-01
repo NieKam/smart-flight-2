@@ -2,18 +2,20 @@ package kniezrec.com.flightinfo.horizon.ui
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.border
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
@@ -27,20 +29,23 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.liveRegion
-import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kniezrec.com.flightinfo.R
 import kniezrec.com.flightinfo.horizon.HorizonState
 import kniezrec.com.flightinfo.ui.theme.LabelText
+import kniezrec.com.flightinfo.ui.theme.MissingSensorPlaceholder
 import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
 import kniezrec.com.flightinfo.ui.theme.ValueText
 import java.text.NumberFormat
@@ -49,7 +54,9 @@ import java.text.NumberFormat
 internal fun HorizonCard(
     state: HorizonState,
     onCalibrate: () -> Unit,
+    onResetToAbsolute: () -> Unit,
     onRetry: () -> Unit,
+    onHide: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Card(
@@ -64,9 +71,11 @@ internal fun HorizonCard(
         when (state) {
             HorizonState.Waiting -> HorizonStatic(R.string.horizon_title, R.string.horizon_waiting)
             HorizonState.Recalibrating -> HorizonStatic(R.string.horizon_title, R.string.horizon_waiting)
-            HorizonState.Unavailable -> HorizonStatic(R.string.horizon_unavailable, R.string.horizon_unavailable_body)
+            // Only a missing sensor offers hiding; a refused registration (Error) can be retried.
+            HorizonState.Unavailable ->
+                MissingSensorPlaceholder(stringResource(R.string.missing_sensor_horizon), onHide) { HorizonPreview() }
             HorizonState.Error -> HorizonStatic(R.string.horizon_error, R.string.horizon_error_body, onRetry)
-            is HorizonState.Available -> HorizonAvailable(state, onCalibrate)
+            is HorizonState.Available -> HorizonAvailable(state, onCalibrate, onResetToAbsolute)
         }
     }
 }
@@ -128,6 +137,7 @@ private fun HorizonStatic(
 private fun HorizonAvailable(
     state: HorizonState.Available,
     onCalibrate: () -> Unit,
+    onResetToAbsolute: () -> Unit,
 ) {
     val pitch = attitudeValue(state.pitchDegrees, R.string.horizon_up, R.string.horizon_down)
     val roll = attitudeValue(state.rollDegrees, R.string.horizon_right, R.string.horizon_left)
@@ -142,8 +152,24 @@ private fun HorizonAvailable(
         )
         HorizonInstrument(state, Modifier.padding(top = 12.dp).fillMaxWidth())
         Box(Modifier.fillMaxWidth().padding(top = 12.dp), contentAlignment = Alignment.Center) {
-            HorizonAction(R.string.horizon_calibrate, R.string.horizon_calibrate_hint, onCalibrate)
+            // Long-press (or the "Reset to level" accessibility action) shows the absolute pitch.
+            HorizonAction(
+                R.string.horizon_calibrate,
+                R.string.horizon_calibrate_hint,
+                onCalibrate,
+                longClickLabel = R.string.horizon_reset_to_level,
+                onLongClick = onResetToAbsolute,
+            )
         }
+    }
+}
+
+/** Static, level instrument behind the missing-sensor overlay. */
+@Composable
+private fun HorizonPreview() {
+    Column(Modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 20.dp)) {
+        LabelText(stringResource(R.string.horizon_title), style = horizonTitle())
+        HorizonInstrument(HorizonState.Available(0, 0, 0f, 0f), Modifier.padding(top = 12.dp).fillMaxWidth())
     }
 }
 
@@ -234,11 +260,14 @@ private fun HorizonAction(
     label: Int,
     hint: Int,
     callback: () -> Unit,
+    longClickLabel: Int? = null,
+    onLongClick: (() -> Unit)? = null,
 ) {
     var focused by remember { mutableStateOf(false) }
     val actionHint = stringResource(hint)
-    TextButton(
-        onClick = callback,
+    val longClickText = longClickLabel?.let { stringResource(it) }
+    // A text button that also takes a long press (TextButton has no long click).
+    Box(
         modifier =
             Modifier
                 .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
@@ -254,10 +283,25 @@ private fun HorizonAction(
                         Modifier
                     },
                 ).onFocusChanged { focused = it.isFocused }
-                .semantics {
-                    role = Role.Button
+                .clip(ButtonDefaults.textShape)
+                .combinedClickable(
+                    role = Role.Button,
+                    onLongClickLabel = longClickText,
+                    onLongClick = onLongClick,
+                    onClick = callback,
+                ).semantics {
                     stateDescription = actionHint
-                },
+                    if (onLongClick != null && longClickText != null) {
+                        customActions =
+                            listOf(
+                                CustomAccessibilityAction(longClickText) {
+                                    onLongClick()
+                                    true
+                                },
+                            )
+                    }
+                }.padding(ButtonDefaults.TextButtonContentPadding),
+        contentAlignment = Alignment.Center,
     ) { Text(stringResource(label), color = SmartFlightTheme.colors.accent, style = horizonBody().copy(fontWeight = FontWeight.Medium)) }
 }
 
@@ -266,3 +310,9 @@ private fun horizonTitle() = MaterialTheme.typography.titleLarge.copy(fontSize =
 
 @Composable
 private fun horizonBody() = MaterialTheme.typography.bodyLarge.copy(fontSize = 18.sp, lineHeight = 25.sp)
+
+@Preview(widthDp = 411)
+@Composable
+private fun HorizonCardMissingSensorPreview() {
+    SmartFlightTheme { HorizonCard(HorizonState.Unavailable, onCalibrate = {}, onResetToAbsolute = {}, onRetry = {}, onHide = {}) }
+}

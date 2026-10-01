@@ -82,15 +82,46 @@ class RoutePickerViewModelTest {
             val viewModel = openedViewModel()
             viewModel.select(alpha)
 
-            viewModel.search("  BeTa  ")
+            viewModel.search("  A  ")
             assertTrue(viewModel.state.value.loading)
             runCurrent()
 
             val state = viewModel.state.value
-            assertEquals(listOf(beta), state.results)
+            assertEquals(listOf(alpha, beta, badZone), state.results)
             assertFalse(state.loading)
             assertNull(state.error)
             assertEquals(alpha, state.selected)
+        }
+
+    // TASK-032: as in the original (FindCityPresenter), a single match is selected at once.
+    @Test fun `a single search result is selected`() =
+        runTest(dispatcher) {
+            val handle = SavedStateHandle()
+            val viewModel = viewModel(savedStateHandle = handle).also { it.open(RouteEndpoint.DEPARTURE) }
+            runCurrent()
+            viewModel.select(alpha)
+
+            viewModel.search("  BeTa  ")
+            runCurrent()
+
+            val state = viewModel.state.value
+            assertEquals(listOf(beta), state.results)
+            assertEquals(beta, state.selected)
+            assertTrue(state.canConfirm)
+            assertEquals(beta.id, handle.get<Long>("route_picker_selected_id"))
+        }
+
+    @Test fun `several search results select nothing`() =
+        runTest(dispatcher) {
+            val viewModel = openedViewModel()
+
+            viewModel.search("a")
+            runCurrent()
+
+            val state = viewModel.state.value
+            assertEquals(listOf(alpha, beta, badZone), state.results)
+            assertNull(state.selected)
+            assertFalse(state.canConfirm)
         }
 
     @Test fun `a failed search shows SearchFailed and retry reloads the city data`() =

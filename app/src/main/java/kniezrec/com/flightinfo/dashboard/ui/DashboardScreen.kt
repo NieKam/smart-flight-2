@@ -1,22 +1,25 @@
 package kniezrec.com.flightinfo.dashboard.ui
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -25,8 +28,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
@@ -36,11 +42,13 @@ import kniezrec.com.flightinfo.R
 import kniezrec.com.flightinfo.about.AppVersion
 import kniezrec.com.flightinfo.about.ui.AboutDialog
 import kniezrec.com.flightinfo.course.ui.CourseCardContainer
+import kniezrec.com.flightinfo.dashboard.HideableCard
 import kniezrec.com.flightinfo.flight.ui.FlightParametersCardContainer
 import kniezrec.com.flightinfo.gnss.ui.GnssStatusCardContainer
 import kniezrec.com.flightinfo.horizon.ui.HorizonCardContainer
 import kniezrec.com.flightinfo.map.ui.MapCardContainer
 import kniezrec.com.flightinfo.map.ui.MapViewModel
+import kniezrec.com.flightinfo.map.ui.MapZoomTipHost
 import kniezrec.com.flightinfo.nearby.ui.NearbyCityCardContainer
 import kniezrec.com.flightinfo.route.ui.RouteCardContainer
 import kniezrec.com.flightinfo.route.ui.RoutePickerOverlay
@@ -49,7 +57,7 @@ import kniezrec.com.flightinfo.settings.ui.SettingsOverlay
 import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
 
 /**
- * The dashboard: header and the scrolling list of cards, with the city picker, Settings and About
+ * The dashboard: top app bar and the scrolling list of cards, with the city picker, Settings and About
  * as overlays. Every card container obtains its own (Activity-scoped) ViewModel; the open state of
  * Settings and About is saved, so it survives a configuration change (the picker keeps its own in
  * [RoutePickerViewModel]).
@@ -57,7 +65,11 @@ import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
  * While fine location is not granted ([permissionCard] not null) the dashboard shows, as the
  * original app, the permission card first and then only the cards that do not need location
  * (Course without GPS bearing, Horizon); Settings and About stay available. The location cards are
- * not composed, so their ViewModels are not created and nothing collects location.
+ * not composed, so their ViewModels are not created and nothing collects location. Course and
+ * Horizon cards the user hid (device without their sensor) are not composed either.
+ *
+ * The map's max-zoom tip is shown at the top of the card list; its "Settings" action opens Settings
+ * with the "Larger map zoom" row highlighted.
  *
  * @param permissionCard the location permission card, or null once location is granted.
  * @param onOpenLocationSettings action of the GNSS card when location is switched off, and "Yes" of
@@ -75,16 +87,28 @@ fun DashboardScreen(
     viewModel: DashboardViewModel = hiltViewModel(),
 ) {
     var showSettings by rememberSaveable { mutableStateOf(false) }
+    // Settings opened from the map's max-zoom tip: the "Larger map zoom" row flashes once.
+    var highlightLargerMapZoom by rememberSaveable { mutableStateOf(false) }
     var showAbout by rememberSaveable { mutableStateOf(false) }
+    val closeSettings = {
+        showSettings = false
+        highlightLargerMapZoom = false
+    }
     // Registered before the picker's own back handler, which therefore wins while it is open.
-    BackHandler(enabled = showSettings) { showSettings = false }
+    BackHandler(enabled = showSettings, onBack = closeSettings)
     BackHandler(enabled = showAbout) { showAbout = false }
     val locationGranted = permissionCard == null
+    val hiddenCards by viewModel.hiddenCards.collectAsStateWithLifecycle()
     // Settings is an overlay so the dashboard's AndroidView-backed map remains composed. This
     // preserves its viewport, overlays, and in-place zoom policy.
     Box(Modifier.fillMaxSize()) {
         if (showSettings) {
-            SettingsOverlay(onBack = { showSettings = false }, modifier = modifier.zIndex(1f))
+            SettingsOverlay(
+                onBack = closeSettings,
+                highlightLargerMapZoom = highlightLargerMapZoom,
+                onHighlightFinished = { highlightLargerMapZoom = false },
+                modifier = modifier.zIndex(1f),
+            )
         }
         Box(Modifier.fillMaxSize().then(modifier)) {
             Column(Modifier.fillMaxSize()) {
@@ -94,12 +118,36 @@ fun DashboardScreen(
                     Column(
                         Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 12.dp),
                     ) {
-                        DashboardSlot { permissionCard(cardModifier) }
-                        DashboardSlot { CourseCardContainer(locationPermitted = false, modifier = cardModifier) }
-                        DashboardSlot { HorizonCardContainer(cardModifier) }
+                        // The permission card, then the cards that work without location, in the
+                        // order of LocationDashboardCards.
+                        DashboardSlot(DashboardCardTags.PERMISSION) { permissionCard(cardModifier) }
+                        if (HideableCard.Course !in hiddenCards) {
+                            DashboardSlot(DashboardCardTags.COURSE) {
+                                CourseCardContainer(
+                                    locationPermitted = false,
+                                    onHide = { viewModel.hide(HideableCard.Course) },
+                                    modifier = cardModifier,
+                                )
+                            }
+                        }
+                        if (HideableCard.Horizon !in hiddenCards) {
+                            DashboardSlot(DashboardCardTags.HORIZON) {
+                                HorizonCardContainer(onHide = { viewModel.hide(HideableCard.Horizon) }, cardModifier)
+                            }
+                        }
                     }
                 } else {
-                    LocationDashboardCards(viewModel, cardModifier, onOpenLocationSettings, Modifier.weight(1f))
+                    LocationDashboardCards(
+                        viewModel = viewModel,
+                        hiddenCards = hiddenCards,
+                        cardModifier = cardModifier,
+                        onOpenLocationSettings = onOpenLocationSettings,
+                        onOpenLargerMapZoomSetting = {
+                            highlightLargerMapZoom = true
+                            showSettings = true
+                        },
+                        modifier = Modifier.weight(1f),
+                    )
                 }
             }
         }
@@ -117,104 +165,158 @@ fun DashboardScreen(
     }
 }
 
-/** Every card with location granted, and the city picker overlay over them. */
+/**
+ * Every card with location granted, the map's max-zoom tip at the top of the list, and the city
+ * picker overlay over them. The expanded map fits in the list's viewport (this box's height).
+ *
+ * Card order (TASK-034, decided by the planner): Satellites, Course, Horizon, Flight parameters,
+ * Nearby city, Route, Map. It is the original app's order (`CardViewContainer`) with only the
+ * Satellites card moved to the top, as in the store screenshots:
+ * - Satellites first: it is the status gate for everything below. Speed, altitude, nearby city,
+ *   route progress and the map position all need a GPS fix; this card tells the user that the app
+ *   is still waiting, that location is off, or to move closer to the window.
+ * - Course and Horizon next: they work from sensors without a fix, so the top of the screen is
+ *   useful from the first second; kept together in the original relative order.
+ * - Then the fix-dependent data (Flight parameters, Nearby city, Route), and the Map last: it is
+ *   the tallest card and would push everything else off-screen.
+ *
+ * Without location permission the dashboard shows the permission card, then Course and Horizon.
+ * Course and Horizon cards the user hid are skipped in both layouts.
+ */
 @Composable
 private fun LocationDashboardCards(
     viewModel: DashboardViewModel,
+    hiddenCards: Set<HideableCard>,
     cardModifier: Modifier,
     onOpenLocationSettings: () -> Unit,
+    onOpenLargerMapZoomSetting: () -> Unit,
     modifier: Modifier,
 ) {
     val units by viewModel.units.collectAsStateWithLifecycle()
     val routePickerViewModel: RoutePickerViewModel = hiltViewModel()
     val mapViewModel: MapViewModel = hiltViewModel()
-    Box(modifier) {
+    val zoomTip by mapViewModel.zoomTip.collectAsStateWithLifecycle()
+    BoxWithConstraints(modifier) {
+        val viewportHeight = maxHeight
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 12.dp)) {
-            DashboardSlot { GnssStatusCardContainer(onOpenLocationSettings = onOpenLocationSettings) }
-            DashboardSlot { FlightParametersCardContainer(units, cardModifier) }
-            DashboardSlot { CourseCardContainer(locationPermitted = true, modifier = cardModifier) }
-            DashboardSlot { HorizonCardContainer(cardModifier) }
-            DashboardSlot { NearbyCityCardContainer(units.distance, cardModifier) }
-            DashboardSlot { RouteCardContainer(units.distance, routePickerViewModel::open, cardModifier) }
-            DashboardSlot { MapCardContainer(cardModifier, viewModel = mapViewModel) }
+            // The card order: see the KDoc of this function.
+            DashboardSlot(DashboardCardTags.SATELLITES) { GnssStatusCardContainer(onOpenLocationSettings = onOpenLocationSettings) }
+            if (HideableCard.Course !in hiddenCards) {
+                DashboardSlot(DashboardCardTags.COURSE) {
+                    CourseCardContainer(
+                        locationPermitted = true,
+                        onHide = { viewModel.hide(HideableCard.Course) },
+                        modifier = cardModifier,
+                    )
+                }
+            }
+            if (HideableCard.Horizon !in hiddenCards) {
+                DashboardSlot(DashboardCardTags.HORIZON) {
+                    HorizonCardContainer(onHide = { viewModel.hide(HideableCard.Horizon) }, cardModifier)
+                }
+            }
+            DashboardSlot(DashboardCardTags.FLIGHT_PARAMETERS) { FlightParametersCardContainer(units, cardModifier) }
+            DashboardSlot(DashboardCardTags.NEARBY_CITY) { NearbyCityCardContainer(units.distance, cardModifier) }
+            DashboardSlot(DashboardCardTags.ROUTE) { RouteCardContainer(units.distance, routePickerViewModel::open, cardModifier) }
+            DashboardSlot(DashboardCardTags.MAP) {
+                MapCardContainer(cardModifier, maxMapHeight = viewportHeight, viewModel = mapViewModel)
+            }
         }
+        MapZoomTipHost(
+            requested = zoomTip,
+            onShown = mapViewModel::onZoomTipShown,
+            onOpenSettings = onOpenLargerMapZoomSetting,
+            modifier = Modifier.align(Alignment.TopCenter),
+        )
         RoutePickerOverlay(viewModel = routePickerViewModel, mapViewModel = mapViewModel)
     }
 }
 
-/** A full-width row of the card list with its card centered at the top. */
-@Composable
-private fun DashboardSlot(content: @Composable () -> Unit) {
-    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) { content() }
+/** Test tags of the dashboard's card slots, in the card order of [LocationDashboardCards]. */
+internal object DashboardCardTags {
+    const val PERMISSION = "dashboard_card_permission"
+    const val SATELLITES = "dashboard_card_satellites"
+    const val COURSE = "dashboard_card_course"
+    const val HORIZON = "dashboard_card_horizon"
+    const val FLIGHT_PARAMETERS = "dashboard_card_flight_parameters"
+    const val NEARBY_CITY = "dashboard_card_nearby_city"
+    const val ROUTE = "dashboard_card_route"
+    const val MAP = "dashboard_card_map"
 }
 
+/** A full-width row of the card list, tagged [tag], with its card centered at the top. */
+@Composable
+private fun DashboardSlot(
+    tag: String,
+    content: @Composable () -> Unit,
+) {
+    Box(Modifier.fillMaxWidth().testTag(tag), contentAlignment = Alignment.TopCenter) { content() }
+}
+
+/**
+ * The top app bar as in the original app (`activity_main.xml`, `menu/app_menu.xml`): card color
+ * (#5B5999; [AppScaffold][kniezrec.com.flightinfo.AppScaffold] paints the status-bar area above it in
+ * the same color), the centered white title "Smart Flight" and a white "⋮" overflow button whose
+ * menu holds Settings and About, on every screen width.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardHeader(
     onOpenSettings: () -> Unit,
     onOpenAbout: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // The top bar: card color (it continues the status-bar area above it) with white title and actions.
-    BoxWithConstraints(modifier.fillMaxWidth().background(SmartFlightTheme.colors.card).heightIn(min = 56.dp)) {
-        val compact = maxWidth < 360.dp
-        if (compact) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    stringResource(R.string.app_name),
-                    modifier = Modifier.weight(1f).padding(start = 12.dp),
-                    color = SmartFlightTheme.colors.toolbarTitle,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Medium,
-                )
-                CompactDashboardActions(onOpenSettings, onOpenAbout)
-            }
-        } else {
+    val colors = SmartFlightTheme.colors
+    CenterAlignedTopAppBar(
+        title = {
             Text(
                 stringResource(R.string.app_name),
-                modifier = Modifier.align(Alignment.Center),
-                color = SmartFlightTheme.colors.toolbarTitle,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Medium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
-            Row(Modifier.align(Alignment.CenterEnd)) {
-                DashboardAction(stringResource(R.string.settings_title), onOpenSettings)
-                DashboardAction(stringResource(R.string.about_title), onOpenAbout)
-            }
-        }
-    }
+        },
+        modifier = modifier.fillMaxWidth(),
+        actions = { DashboardOverflowMenu(onOpenSettings, onOpenAbout) },
+        // The dashboard is already inside the safe drawing area; the status bar is painted by the scaffold.
+        windowInsets = WindowInsets(0, 0, 0, 0),
+        colors =
+            TopAppBarDefaults.topAppBarColors(
+                containerColor = colors.card,
+                scrolledContainerColor = colors.card,
+                navigationIconContentColor = colors.toolbarTitle,
+                titleContentColor = colors.toolbarTitle,
+                actionIconContentColor = colors.toolbarTitle,
+            ),
+    )
 }
 
+/** The "⋮" button and its menu (Settings, About) in the page color with light text. */
 @Composable
-private fun DashboardAction(
-    label: String,
-    onClick: () -> Unit,
-) {
-    TextButton(onClick = onClick, modifier = Modifier.heightIn(min = 48.dp)) {
-        Text(label, color = SmartFlightTheme.colors.toolbarTitle)
-    }
-}
-
-@Composable
-private fun CompactDashboardActions(
+private fun DashboardOverflowMenu(
     onOpenSettings: () -> Unit,
     onOpenAbout: () -> Unit,
-    modifier: Modifier = Modifier,
 ) {
     var expanded by remember { mutableStateOf(false) }
-    Box(modifier) {
-        TextButton(
-            onClick = { expanded = true },
-            modifier = Modifier.heightIn(min = 48.dp),
-        ) {
-            Text(stringResource(R.string.dashboard_more_options), color = SmartFlightTheme.colors.toolbarTitle)
+    val colors = SmartFlightTheme.colors
+    Box {
+        IconButton(onClick = { expanded = true }) {
+            Icon(painterResource(R.drawable.ic_more_vert), stringResource(R.string.dashboard_more_options))
         }
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            containerColor = colors.page,
+        ) {
+            val itemColors = MenuDefaults.itemColors(textColor = colors.valueText)
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.settings_title)) },
                 onClick = {
                     expanded = false
                     onOpenSettings()
                 },
+                colors = itemColors,
             )
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.about_title)) },
@@ -222,6 +324,7 @@ private fun CompactDashboardActions(
                     expanded = false
                     onOpenAbout()
                 },
+                colors = itemColors,
             )
         }
     }

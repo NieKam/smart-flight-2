@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Smart Flight</string>
+    <string name="app_name" translatable="false">Smart Flight</string>
     <string name="dashboard_more_options">More options</string>
     <string name="permission_title">Location permission</string>
     <string name="permission_body">Smart Flight needs precise location permission to enable flight information cards.</string>
@@ -28,37 +28,36 @@
     <string name="flight_vertical_speed">Vertical speed</string>
     <string name="flight_altitude">Altitude</string>
     <string name="flight_pressure">Pressure</string>
-    <string name="flight_unavailable">—</string>
+    <string name="flight_unavailable" translatable="false">—</string>
     <string name="flight_unavailable_accessibility">unavailable</string>
-    <string name="flight_speed_value">%1$s %2$s</string>
-    <string name="flight_vertical_speed_value">%1$s %2$s</string>
-    <string name="flight_altitude_value">%1$s %2$s</string>
-    <string name="flight_pressure_value">%1$s %2$s</string>
-    <string name="flight_pressure_accessibility_value">%1$s %2$s</string>
+    <string name="flight_speed_value" translatable="false">%1$s %2$s</string>
+    <string name="flight_vertical_speed_value" translatable="false">%1$s %2$s</string>
+    <string name="flight_altitude_value" translatable="false">%1$s %2$s</string>
+    <string name="flight_pressure_value" translatable="false">%1$s %2$s</string>
+    <string name="flight_pressure_accessibility_value" translatable="false">%1$s %2$s</string>
 
     <string name="course_title">Course</string>
     <string name="course_waiting">Waiting for compass heading…</string>
     <string name="compass_unavailable">Compass unavailable</string>
-    <string name="compass_unavailable_body">This device cannot provide a compass heading.</string>
     <string name="compass_error">Unable to read compass</string>
     <string name="compass_error_body">Smart Flight could not start the compass.</string>
     <string name="course_try_again">Try again</string>
     <string name="course_try_again_hint">Retries compass</string>
     <string name="course_gps_bearing">GPS bearing</string>
-    <string name="course_unavailable">—</string>
+    <string name="course_unavailable" translatable="false">—</string>
     <string name="course_unavailable_spoken">unavailable</string>
-    <string name="course_degree_value">%1$s°</string>
-    <string name="course_heading_spoken">Compass heading, %1$s degrees, %2$s</string>
+    <string name="course_degree_value" translatable="false">%1$s°</string>
+    <plurals name="course_heading_spoken"><item quantity="one">Compass heading, %1$s degrees, %2$s</item><item quantity="other">Compass heading, %1$s degrees, %2$s</item></plurals>
     <string name="course_bearing_spoken">GPS bearing, %1$s</string>
     <string name="course_available_announcement">Compass heading available</string>
-    <string name="course_cardinal_north">N</string>
-    <string name="course_cardinal_north_east">NE</string>
-    <string name="course_cardinal_east">E</string>
-    <string name="course_cardinal_south_east">SE</string>
-    <string name="course_cardinal_south">S</string>
-    <string name="course_cardinal_south_west">SW</string>
-    <string name="course_cardinal_west">W</string>
-    <string name="course_cardinal_north_west">NW</string>
+    <string name="course_cardinal_north" translatable="false">N</string>
+    <string name="course_cardinal_north_east" translatable="false">NE</string>
+    <string name="course_cardinal_east" translatable="false">E</string>
+    <string name="course_cardinal_south_east" translatable="false">SE</string>
+    <string name="course_cardinal_south" translatable="false">S</string>
+    <string name="course_cardinal_south_west" translatable="false">SW</string>
+    <string name="course_cardinal_west" translatable="false">W</string>
+    <string name="course_cardinal_north_west" translatable="false">NW</string>
     <string name="course_cardinal_north_spoken">north</string>
     <string name="course_cardinal_north_east_spoken">northeast</string>
     <string name="course_cardinal_east_spoken">east</string>
@@ -69,20 +68,19 @@
     <string name="course_cardinal_north_west_spoken">northwest</string>
     <string name="horizon_title">Horizon</string>
     <string name="horizon_waiting">Waiting for attitude data…</string>
-    <string name="horizon_unavailable">Horizon unavailable</string>
-    <string name="horizon_unavailable_body">This device cannot provide attitude data.</string>
     <string name="horizon_error">Unable to read horizon</string>
     <string name="horizon_error_body">Smart Flight could not start the attitude sensor.</string>
     <string name="horizon_try_again">Try again</string>
     <string name="horizon_try_again_hint">Retries the attitude sensor.</string>
     <string name="horizon_calibrate">Calibrate</string>
     <string name="horizon_calibrate_hint">Sets the current pitch as level.</string>
+    <string name="horizon_reset_to_level">Reset to level</string>
     <string name="horizon_level">level</string>
     <string name="horizon_up">up</string>
     <string name="horizon_down">down</string>
     <string name="horizon_left">left</string>
     <string name="horizon_right">right</string>
-    <string name="horizon_degrees_direction">%1$s° %2$s</string>
+    <string name="horizon_degrees_direction" translatable="false">%1$s° %2$s</string>
     <string name="horizon_summary">Pitch: %1$s · Roll: %2$s</string>
     <string name="horizon_summary_spoken">Horizon. Pitch %1$s. Roll %2$s.</string>
     <string name="horizon_recalibrating_announcement">Horizon recalibrating. Waiting for attitude data.</string>
@@ -98,15 +96,15 @@
     <string name="nearby_city_country">Country</string>
     <string name="nearby_city_distance">Distance to the city</string>
     <string name="nearby_city_time">Time</string>
-    <string name="nearby_city_distance_value">%1$s</string>
-    <string name="nearby_city_distance_spoken">%1$s</string>
-    <string name="nearby_city_time_value">%1$s (%2$s)</string>
-    <string name="nearby_city_time_spoken">%1$s, %2$s</string>
-    <string name="nearby_city_utc_offset_plus">+</string>
-    <string name="nearby_city_utc_offset_minus">−</string>
+    <string name="nearby_city_distance_value" translatable="false">%1$s</string>
+    <string name="nearby_city_distance_spoken" translatable="false">%1$s</string>
+    <string name="nearby_city_time_value" translatable="false">%1$s (%2$s)</string>
+    <string name="nearby_city_time_spoken" translatable="false">%1$s, %2$s</string>
+    <string name="nearby_city_utc_offset_plus" translatable="false">+</string>
+    <string name="nearby_city_utc_offset_minus" translatable="false">−</string>
     <string name="nearby_city_utc_offset_spoken_plus">plus</string>
     <string name="nearby_city_utc_offset_spoken_minus">minus</string>
-    <string name="nearby_city_utc_offset_visible">UTC%1$s%2$02d:%3$02d</string>
+    <string name="nearby_city_utc_offset_visible" translatable="false">UTC%1$s%2$02d:%3$02d</string>
     <string name="nearby_city_utc_offset_spoken">UTC %1$s %2$s %3$s</string>
     <plurals name="nearby_city_utc_offset_hours"><item quantity="one">%d hour</item><item quantity="other">%d hours</item></plurals>
     <plurals name="nearby_city_utc_offset_minutes"><item quantity="one">%d minute</item><item quantity="other">%d minutes</item></plurals>
@@ -125,9 +123,14 @@
     <string name="map_ready_summary">Offline map showing the aircraft position</string>
     <string name="map_no_position">Current aircraft position unavailable</string>
     <string name="map_position_shown">Current aircraft position shown</string>
-    <string name="map_maximum_zoom_warning">Maximum offline map zoom reached.</string>
-    <string name="route_title">Route</string><string name="route_departure">Departure</string><string name="route_destination">Destination</string><string name="route_departure_icon_description">Departure</string><string name="route_destination_icon_description">Destination</string><string name="route_choose_departure">Choose departure city</string><string name="route_choose_destination">Choose destination city</string><string name="route_edit">Edit</string><string name="route_clear">Clear</string><string name="route_clear_all">Clear route</string><string name="route_distance">Distance between cities</string><string name="route_remaining">Distance to destination</string><string name="route_arrival">Estimated arrival</string><string name="route_waiting_position">Waiting for current position</string><string name="route_waiting_speed">Waiting for usable speed</string><string name="route_picker_departure">Choose departure</string><string name="route_picker_destination">Choose destination</string><string name="route_city_name">City name</string><string name="route_search">Search</string><string name="route_searching">Searching offline city data…</string><string name="route_no_cities">No cities found. Try another spelling or a map long press.</string><string name="route_map_instruction">Long-press a point on the offline map to find the nearest city.</string><string name="route_cancel">Cancel</string><string name="route_confirm">Confirm</string><string name="route_retry">Retry</string><string name="route_error">City data could not be loaded.</string><string name="route_invalid_city">This city record is invalid. Choose another city.</string><string name="route_restore_error">Unable to restore saved route. Retry to read city data.</string><string name="route_map_summary">Route overlay from %1$s to %2$s</string>
-    <string name="route_city_result">%1$s (%2$s)</string>
+    <string name="map_zoom_tip">This is max zoom. Force bigger in settings.</string>
+    <string name="route_departure">Departure</string><string name="route_destination">Destination</string><string name="route_choose_departure">Pick departure</string><string name="route_choose_destination">Pick destination</string><string name="route_clear_all">Clear route</string><string name="route_distance">Distance</string><string name="route_remaining">Distance to destination</string><string name="route_arrival">Estimated arrival</string><string name="route_waiting_position">Waiting for current position</string><string name="route_waiting_speed">Waiting for usable speed</string><string name="route_picker_departure">Choose departure</string><string name="route_picker_destination">Choose destination</string><string name="route_city_name">City name</string><string name="route_search">Search</string><string name="route_searching">Searching offline city data…</string><string name="route_no_cities">No cities found. Try another spelling or a map long press.</string><string name="route_map_instruction">Long-press a point on the offline map to find the nearest city.</string><string name="route_cancel">Cancel</string><string name="route_confirm">Confirm</string><string name="route_retry">Retry</string><string name="route_error">City data could not be loaded.</string><string name="route_invalid_city">This city record is invalid. Choose another city.</string><string name="route_restore_error">Unable to restore saved route. Retry to read city data.</string><string name="route_map_summary">Route overlay from %1$s to %2$s</string>
+    <string name="route_hint">Tap to select flight route</string>
+    <string name="route_clear_departure">Clear departure</string>
+    <string name="route_clear_destination">Clear destination</string>
+    <string name="route_endpoint_description" translatable="false">%1$s, %2$s</string>
+    <string name="route_endpoint_city_description" translatable="false">%1$s, %2$s, %3$s</string>
+    <string name="route_city_result" translatable="false">%1$s (%2$s)</string>
     <string name="route_selected_city">Selected: %1$s (%2$s)</string>
     <string name="route_picker_title_description">Offline city picker</string>
     <string name="route_picker_map_description">Offline city picker map. Long-press to find the nearest city.</string>
@@ -141,6 +144,14 @@
     <string name="show_background_notification">Show background notification</string><string name="background_notification_settings_description">Shows a notification while Smart Flight is waiting for a GPS position after the app leaves the foreground.</string><string name="background_notification_channel">Location</string><string name="background_notification_title">Smart Flight is waiting for GPS signal</string><string name="background_notification_content">Tap to return to Smart Flight</string><string name="background_service_content">Smart Flight monitoring is active</string><string name="notifications_blocked">Notifications are blocked</string><string name="allow_notifications">Allow notifications</string><string name="allow_notifications_hint">Allows the background notification</string><string name="keep_screen_always_on">Keep screen always on</string><string name="portrait_orientation">Portrait orientation</string><string name="larger_map_zoom">Larger map zoom</string>
     <string name="settings_on">On</string><string name="settings_off">Off</string><string name="orientation_portrait">Portrait</string><string name="orientation_sensor">Sensor</string>
     <string name="larger_map_zoom_warning">Extra zoom may show unavailable or grey map areas because offline tiles may not be available at those levels.</string>
+    <string name="missing_sensor_course">This device doesn\'t have a magnetic sensor. Hide this card?</string>
+    <string name="missing_sensor_horizon">This device doesn\'t have a motion sensor. Hide this card?</string>
+    <string name="hide_card">Hide</string>
+    <string name="hide_card_hint">Hides this card until Show hidden cards is used in Settings</string>
+    <string name="show_hidden_cards">Show hidden cards</string>
+    <string name="no_hidden_cards">No hidden cards</string>
+    <string name="hidden_card_course">Compass</string>
+    <string name="hidden_card_horizon">Horizon</string>
     <string name="display_setting_description">%1$s, current value %2$s</string>
     <string name="display_setting_warning_description">%1$s, current value %2$s. %3$s</string>
     <string name="about_title">About</string>
@@ -159,18 +170,18 @@
     <string name="about_attribution">This application uses AndroidX Jetpack Compose for its user interface and osmdroid for its offline map display.</string>
     <string name="about_close">OK</string>
     <string name="settings_row_description">%1$s, current value %2$s, double tap to change</string>
-    <string name="flight_value_accessibility">%1$s %2$s</string>
-    <string name="flight_row_accessibility">%1$s, %2$s</string>
-    <string name="card_row_description">%1$s, %2$s</string>
-    <string name="distance_value">%1$s %2$s</string>
-    <string name="distance_spoken_value">%1$s %2$s</string>
-    <string name="route_detail_description">%1$s, %2$s</string>
+    <string name="flight_value_accessibility" translatable="false">%1$s %2$s</string>
+    <string name="flight_row_accessibility" translatable="false">%1$s, %2$s</string>
+    <string name="card_row_description" translatable="false">%1$s, %2$s</string>
+    <string name="distance_value" translatable="false">%1$s %2$s</string>
+    <string name="distance_spoken_value" translatable="false">%1$s %2$s</string>
+    <string name="route_detail_description" translatable="false">%1$s, %2$s</string>
     <string name="unit_kmh_accessibility">kilometres per hour</string><string name="unit_mph_accessibility">miles per hour</string><string name="unit_kt_accessibility">knots</string>
     <string name="unit_m_accessibility">metres</string><string name="unit_ft_accessibility">feet</string>
     <string name="unit_km_accessibility">kilometres</string><string name="unit_mi_accessibility">miles</string>
     <string name="unit_ms_accessibility">metres per second</string><string name="unit_mmin_accessibility">metres per minute</string><string name="unit_ftmin_accessibility">feet per minute</string>
     <string name="unit_mbar_accessibility">millibars</string><string name="unit_inhg_accessibility">inches of mercury</string>
     <string name="unit_speed">Speed</string><string name="unit_altitude">Altitude</string><string name="unit_distance">Distance</string><string name="unit_vertical_speed">Vertical speed</string><string name="unit_pressure">Pressure</string>
-    <string name="unit_kmh">km/h</string><string name="unit_mph">mph</string><string name="unit_kt">kt</string><string name="unit_m">m</string><string name="unit_ft">ft</string><string name="unit_km">km</string><string name="unit_mi">mi</string><string name="unit_ms">m/s</string><string name="unit_mmin">m/min</string><string name="unit_ftmin">ft/min</string><string name="unit_mbar">mbar</string><string name="unit_inhg">inHg</string>
+    <string name="unit_kmh" translatable="false">km/h</string><string name="unit_mph" translatable="false">mph</string><string name="unit_kt" translatable="false">kt</string><string name="unit_m" translatable="false">m</string><string name="unit_ft" translatable="false">ft</string><string name="unit_km" translatable="false">km</string><string name="unit_mi" translatable="false">mi</string><string name="unit_ms" translatable="false">m/s</string><string name="unit_mmin" translatable="false">m/min</string><string name="unit_ftmin" translatable="false">ft/min</string><string name="unit_mbar" translatable="false">mbar</string><string name="unit_inhg" translatable="false">inHg</string>
     <string name="option_kmh">Kilometres per hour (km/h)</string><string name="option_mph">Miles per hour (mph)</string><string name="option_kt">Knots (kt)</string><string name="option_m">Metres (m)</string><string name="option_ft">Feet (ft)</string><string name="option_km">Kilometres (km)</string><string name="option_mi">Miles (mi)</string><string name="option_ms">Metres per second (m/s)</string><string name="option_mmin">Metres per minute (m/min)</string><string name="option_ftmin">Feet per minute (ft/min)</string><string name="option_mbar">Millibar (mbar)</string><string name="option_inhg">Inch of mercury (inHg)</string>
 </resources>

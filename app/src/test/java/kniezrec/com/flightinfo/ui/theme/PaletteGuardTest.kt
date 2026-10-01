@@ -42,6 +42,65 @@ class PaletteGuardTest {
         assertTrue("Color resources outside the palette: ${outside.mapValues { hex(it.value) }}", outside.isEmpty())
     }
 
+    @Test
+    fun mapRouteCardAndLauncherDrawablesUseOnlyPaletteColors() {
+        val drawables = File("src/main/res/drawable")
+        for (name in MAP_DRAWABLES + ROUTE_CARD_DRAWABLES + LAUNCHER_DRAWABLES) {
+            val file = File(drawables, "$name.xml")
+            assertTrue("Drawable not found: ${file.absolutePath}", file.isFile)
+            val colors =
+                DRAWABLE_COLOR
+                    .findAll(file.readText())
+                    .map { match ->
+                        val digits = match.groupValues[1]
+                        (if (digits.length == 6) "FF$digits" else digits).toLong(16).toInt()
+                    }.toList()
+            assertTrue("$name declares no colors", colors.isNotEmpty())
+            val outside = colors.filter { it !in PALETTE }
+            assertTrue("$name uses colors outside the palette: ${outside.map(::hex)}", outside.isEmpty())
+        }
+    }
+
+    @Test
+    fun launcherIconsUseThePaletteBackgroundAndThePlaneLayers() {
+        // TASK-034: the original icon, a plane on flat purple_dark, with a themed (monochrome) layer.
+        for (name in listOf("ic_launcher", "ic_launcher_round")) {
+            val file = File("src/main/res/mipmap-anydpi/$name.xml")
+            assertTrue("Launcher icon not found: ${file.absolutePath}", file.isFile)
+            val xml = file.readText()
+            assertTrue("$name background", xml.contains("<background android:drawable=\"@color/purple_dark\""))
+            assertTrue("$name foreground", xml.contains("<foreground android:drawable=\"@drawable/ic_launcher_foreground\""))
+            assertTrue("$name monochrome", xml.contains("<monochrome android:drawable=\"@drawable/ic_launcher_monochrome\""))
+        }
+    }
+
+    @Test
+    fun mapCardDeclaresNoColorsOfItsOwn() {
+        // The map buttons take their colors from the tokens (no background such as the former #DD25133F).
+        val file = File("src/main/java/kniezrec/com/flightinfo/map/ui/MapCard.kt")
+        assertTrue("Map card not found: ${file.absolutePath}", file.isFile)
+        val literals = COLOR_LITERAL.findAll(file.readText()).map { it.value }.toList()
+        assertTrue("MapCard.kt declares colors outside the tokens: $literals", literals.isEmpty())
+    }
+
+    @Test
+    fun cityPickerDeclaresNoColorsOfItsOwn() {
+        // TASK-032: every picker color comes from the tokens.
+        val file = File("src/main/java/kniezrec/com/flightinfo/route/ui/RoutePicker.kt")
+        assertTrue("City picker not found: ${file.absolutePath}", file.isFile)
+        val literals = COLOR_LITERAL.findAll(file.readText()).map { it.value }.toList()
+        assertTrue("RoutePicker.kt declares colors outside the tokens: $literals", literals.isEmpty())
+    }
+
+    @Test
+    fun routeCardDeclaresNoColorsOfItsOwn() {
+        // TASK-033: the route card's icons and texts are tinted with the tokens.
+        val file = File("src/main/java/kniezrec/com/flightinfo/route/ui/RouteCard.kt")
+        assertTrue("Route card not found: ${file.absolutePath}", file.isFile)
+        val literals = COLOR_LITERAL.findAll(file.readText()).map { it.value }.toList()
+        assertTrue("RouteCard.kt declares colors outside the tokens: $literals", literals.isEmpty())
+    }
+
     private fun tokens(colors: SmartFlightColors): Map<String, Int> =
         // A Color property compiles to a public getter returning the packed Long (value class).
         SmartFlightColors::class.java.declaredMethods
@@ -59,6 +118,29 @@ class PaletteGuardTest {
     private fun hex(argb: Int) = "#%08X".format(argb)
 
     private companion object {
+        /** The plane marker, the route pins, the city picker marker and the button icons drawn on the maps. */
+        val MAP_DRAWABLES =
+            listOf(
+                "ic_plane_marker",
+                "ic_map_pin_departure",
+                "ic_map_pin_destination",
+                "ic_city_found_marker",
+                "ic_expand",
+                "ic_shrink",
+                "drawing_pin_icon",
+            )
+
+        /** The original take-off, landing and trash icons of the route card. */
+        val ROUTE_CARD_DRAWABLES = listOf("ic_route_take_off", "ic_route_landing", "ic_route_delete")
+
+        /** The launcher icon's plane layers (TASK-034) and the top bar's overflow icon. */
+        val LAUNCHER_DRAWABLES = listOf("ic_launcher_foreground", "ic_launcher_monochrome", "ic_more_vert")
+
+        /** A Compose color literal (`Color(0x…)`, `Color(red, …)`) or an Android `Color.parseColor`/`Color.rgb`. */
+        val COLOR_LITERAL = Regex("""\bColor\s*\(\s*(0x|\d)|Color\.(parseColor|rgb|argb)\b""")
+
+        val DRAWABLE_COLOR = Regex("android:(?:fillColor|strokeColor)=\"#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})\"")
+
         val COLOR_RESOURCE = Regex("""<color\s+name="([^"]+)"\s*>\s*#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})\s*</color>""")
 
         val PALETTE =

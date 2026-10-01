@@ -3,19 +3,27 @@ package kniezrec.com.flightinfo.map.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kniezrec.com.flightinfo.course.normalizeCourseDegrees
 import kniezrec.com.flightinfo.display.data.DisplaySettingsRepository
 import kniezrec.com.flightinfo.flight.FlightLocationFix
 import kniezrec.com.flightinfo.location.data.LocationRegistrationException
 import kniezrec.com.flightinfo.location.data.LocationRepository
+import kniezrec.com.flightinfo.map.MapRules
 import kniezrec.com.flightinfo.map.MapTracking
 import kniezrec.com.flightinfo.map.data.MapArchiveRepository
+import kniezrec.com.flightinfo.map.data.MapTipRepository
+import kniezrec.com.flightinfo.orientation.HeadingSmoother
+import kniezrec.com.flightinfo.orientation.data.OrientationDataSource
+import kniezrec.com.flightinfo.orientation.data.OrientationRegistrationException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -24,10 +32,12 @@ import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.transformWhile
+import kotlinx.coroutines.launch
 import java.io.File
 import javax.inject.Inject
 
@@ -45,6 +55,17 @@ import javax.inject.Inject
  * keeps the map. When observation restarts, the archive is prepared again and the position waits
  * for a new fix. While the location is switched off, or after a failed GPS registration, the last
  * position is kept.
+ *
+ * The plane marker's heading follows [kniezrec.com.flightinfo.map.markerRotation]: the GPS track
+ * while moving, the compass heading (the Course card's value: display-relative, averaged over the
+ * last 10 sensor headings, whole degrees) while standing still, otherwise the previous heading. The
+ * orientation sensor is collected only while the map is observed; without one, or when its
+ * registration is refused, the marker relies on the GPS track alone.
+ *
+ * The max-zoom tip ([zoomTip]) is requested when the map reaches the standard maximum zoom
+ * ([onZoomChanged]) while "larger map zoom" is off, at most [MapRules.ZOOM_TIP_LIMIT] times in
+ * total (counted by [MapTipRepository] when requested). Zoom events repeat at the maximum; only the
+ * transition to it counts, and not while a requested tip is still waiting for [onZoomTipShown].
  */
 @HiltViewModel
 class MapViewModel
@@ -53,8 +74,22 @@ class MapViewModel
         private val mapArchiveRepository: MapArchiveRepository,
         private val locationRepository: LocationRepository,
         private val displaySettingsRepository: DisplaySettingsRepository,
+        private val orientationDataSource: OrientationDataSource,
+        private val mapTipRepository: MapTipRepository,
     ) : ViewModel() {
         private val retries = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+
+        private val zoomTipRequested = MutableStateFlow(false)
+
+        // Main thread only (map listener callbacks).
+        private var atStandardMaximum = false
+        private var zoomTipCheck: Job? = null
+
+        /**
+         * True while the max-zoom tip is to be shown; the UI shows it once and acknowledges it with
+         * [onZoomTipShown]. Survives a configuration change, so a tip interrupted by one is shown again.
+         */
+        val zoomTip: StateFlow<Boolean> = zoomTipRequested.asStateFlow()
 
         // Per observation; reset when the archive is ready.
         private val centered = MutableStateFlow(false)
@@ -80,6 +115,31 @@ class MapViewModel
         /** The map is centered on [MapUiState.Ready.centerRequest]; it is not requested again. */
         fun onCentered() {
             centered.value = true
+        }
+
+        /**
+         * The map's zoom level changed to [zoomLevel] (a new map reports its initial zoom). Reaching
+         * the standard maximum may request the max-zoom tip; see the class documentation.
+         */
+        fun onZoomChanged(zoomLevel: Double) {
+            val atMaximum = MapRules.isAtStandardMaximum(zoomLevel)
+            val reached = atMaximum && !atStandardMaximum
+            atStandardMaximum = atMaximum
+            if (!reached || zoomTipRequested.value || zoomTipCheck?.isActive == true) return
+            val largerMapZoom = displaySettingsRepository.display.value.largerMapZoom
+            if (largerMapZoom) return
+            zoomTipCheck =
+                viewModelScope.launch {
+                    if (MapRules.shouldShowZoomTip(largerMapZoom, mapTipRepository.zoomTipShownCount())) {
+                        mapTipRepository.recordZoomTipShown()
+                        zoomTipRequested.value = true
+                    }
+                }
+        }
+
+        /** The requested max-zoom tip was shown (and dismissed or acted on). */
+        fun onZoomTipShown() {
+            zoomTipRequested.value = false
         }
 
         private fun observe(): Flow<MapUiState> =
@@ -121,15 +181,22 @@ class MapViewModel
                     MapUiState.Ready(
                         archive = archive,
                         position = tracking.position,
-                        markerCourseDegrees = tracking.markerCourseDegrees,
+                        markerHeadingDegrees = tracking.markerHeadingDegrees,
                         centerRequest = if (isCentered) null else tracking.firstFix,
                         largerMapZoom = largerMapZoom,
                     )
                 }
             }
 
-        @OptIn(ExperimentalCoroutinesApi::class)
         private fun tracking(): Flow<MapTracking> =
+            merge(
+                fixes().map { fix -> { tracking: MapTracking -> tracking.accept(fix) } },
+                compassHeadings().map { heading -> { tracking: MapTracking -> tracking.acceptCompass(heading) } },
+            ).scan(MapTracking()) { tracking, update -> update(tracking) }
+                .distinctUntilChanged()
+
+        @OptIn(ExperimentalCoroutinesApi::class)
+        private fun fixes(): Flow<FlightLocationFix> =
             locationRepository.confirmedLocationEnabled
                 .flatMapLatest { enabled ->
                     if (enabled) {
@@ -137,8 +204,22 @@ class MapViewModel
                     } else {
                         emptyFlow<FlightLocationFix>()
                     }
-                }.scan(MapTracking()) { tracking, fix -> tracking.accept(fix) }
-                .distinctUntilChanged()
+                }
+
+        /** Compass headings as the Course card shows them; none without an orientation sensor. */
+        private fun compassHeadings(): Flow<Double> {
+            if (!orientationDataSource.isAvailable()) return emptyFlow()
+            return flow {
+                // One smoother per observation, as the Course card.
+                val smoother = HeadingSmoother()
+                orientationDataSource.samples.collect { sample ->
+                    if (sample.headingDegrees.isFinite()) {
+                        normalizeCourseDegrees(smoother.add(sample.headingDegrees))?.let { emit(it.toDouble()) }
+                    }
+                }
+            }.distinctUntilChanged()
+                .catch { cause -> if (cause !is OrientationRegistrationException) throw cause }
+        }
 
         internal companion object {
             /** Longer than a configuration change, shorter than a real trip to the background. */

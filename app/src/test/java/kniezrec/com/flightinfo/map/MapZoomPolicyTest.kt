@@ -14,10 +14,18 @@ class MapZoomPolicyTest {
         assertEquals(6.0, MapRules.FOLLOW_ZOOM, 0.0)
     }
 
-    @Test fun standardRangeWarningIsSuppressedForLargerZoom() {
-        assertEquals(true, MapRules.shouldShowMaximumZoomWarning(6.0, false))
-        assertEquals(false, MapRules.shouldShowMaximumZoomWarning(6.0, true))
-        assertEquals(false, MapRules.shouldShowMaximumZoomWarning(5.9, false))
+    @Test fun theStandardMaximumIsReachedAtZoomSix() {
+        assertEquals(true, MapRules.isAtStandardMaximum(6.0))
+        assertEquals(true, MapRules.isAtStandardMaximum(7.0))
+        assertEquals(false, MapRules.isAtStandardMaximum(5.9))
+    }
+
+    @Test fun zoomTipOnlyWithStandardZoomAndFewerThanFourShows() {
+        assertEquals(true, MapRules.shouldShowZoomTip(largerMapZoom = false, shownCount = 0))
+        assertEquals(true, MapRules.shouldShowZoomTip(largerMapZoom = false, shownCount = 3))
+        assertEquals(false, MapRules.shouldShowZoomTip(largerMapZoom = false, shownCount = 4))
+        assertEquals(false, MapRules.shouldShowZoomTip(largerMapZoom = false, shownCount = 5))
+        assertEquals(false, MapRules.shouldShowZoomTip(largerMapZoom = true, shownCount = 0))
     }
 
     @Test fun disablingLargerZoomClampsAnOutOfRangeViewport() {
@@ -34,17 +42,17 @@ class MapZoomPolicyTest {
         assertEquals(1, target.invalidateCount)
     }
 
-    @Test fun enablingInPlaceUpdatePreservesViewportAndWarningRestoresWhenDisabled() {
+    @Test fun enablingInPlaceUpdatePreservesTheViewportAndDisablingRestoresTheStandardMaximum() {
         val target = FakeMapZoomTarget(maxZoomLevel = 6.0, zoom = 6.0)
 
         assertEquals(true, applyMapZoomPolicy(target, largerMapZoom = true))
         assertEquals(6.0, target.zoomLevel, 0.0)
         assertEquals(9.0, target.maxZoomLevel, 0.0)
         assertEquals(1, target.invalidateCount)
-        assertEquals(false, MapRules.shouldShowMaximumZoomWarning(target.zoomLevel, true))
 
         assertEquals(true, applyMapZoomPolicy(target, largerMapZoom = false))
-        assertEquals(true, MapRules.shouldShowMaximumZoomWarning(target.zoomLevel, false))
+        assertEquals(6.0, target.zoomLevel, 0.0)
+        assertEquals(6.0, target.maxZoomLevel, 0.0)
     }
 
     private class FakeMapZoomTarget(

@@ -22,12 +22,16 @@ internal object DisplayRelativeOrientation {
         rotation: DisplayRotation,
     ): OrientationSample? {
         if (rotationMatrix.size < 9 || rotationMatrix.take(9).any { !it.isFinite() }) return null
+        // Remapped x and y columns are these (signed, 1-based) device columns. This equals
+        // `SensorManager.remapCoordinateSystem` with (AXIS_Y, AXIS_MINUS_X) for ROTATION_90 and
+        // (AXIS_MINUS_Y, AXIS_X) for ROTATION_270: Android moves device column x INTO remapped
+        // column X, so its arguments read inverted here.
         val (xAxis, yAxis) =
             when (rotation) {
                 DisplayRotation.Portrait -> 1 to 2
-                DisplayRotation.Landscape -> 2 to -1
+                DisplayRotation.Landscape -> -2 to 1
                 DisplayRotation.ReversePortrait -> -1 to -2
-                DisplayRotation.ReverseLandscape -> -2 to 1
+                DisplayRotation.ReverseLandscape -> 2 to -1
             }
         val remapped = FloatArray(9)
         for (row in 0..2) {

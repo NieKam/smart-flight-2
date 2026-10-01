@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -34,6 +35,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
@@ -44,6 +46,7 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kniezrec.com.flightinfo.R
@@ -52,6 +55,7 @@ import kniezrec.com.flightinfo.course.CourseState
 import kniezrec.com.flightinfo.course.compassCardinal
 import kniezrec.com.flightinfo.course.shortestRotationTarget
 import kniezrec.com.flightinfo.ui.theme.LabelText
+import kniezrec.com.flightinfo.ui.theme.MissingSensorPlaceholder
 import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
 import kniezrec.com.flightinfo.ui.theme.ValueText
 import java.text.NumberFormat
@@ -60,6 +64,7 @@ import java.text.NumberFormat
 internal fun CourseCard(
     state: CourseState,
     onRetry: () -> Unit,
+    onHide: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Card(
@@ -73,7 +78,9 @@ internal fun CourseCard(
         CourseStateAnnouncement(state)
         when (state) {
             CourseState.Waiting -> StaticCourse(R.string.course_title, R.string.course_waiting)
-            CourseState.Unavailable -> StaticCourse(R.string.compass_unavailable, R.string.compass_unavailable_body)
+            // Only a missing sensor offers hiding; a refused registration (Error) can be retried.
+            CourseState.Unavailable ->
+                MissingSensorPlaceholder(stringResource(R.string.missing_sensor_course), onHide) { CoursePreview() }
             CourseState.Error -> StaticCourse(R.string.compass_error, R.string.compass_error_body, onRetry)
             is CourseState.Available -> CourseReading(state)
         }
@@ -108,6 +115,19 @@ private fun StaticCourse(
     }
 }
 
+/** Static, level compass rose behind the missing-sensor overlay. */
+@Composable
+private fun CoursePreview() {
+    Box(Modifier.fillMaxSize().padding(24.dp)) {
+        LabelText(
+            stringResource(R.string.course_title),
+            Modifier.align(Alignment.TopStart),
+            style = MaterialTheme.typography.titleLarge.copy(fontSize = 22.sp, fontWeight = FontWeight.Medium),
+        )
+        Box(Modifier.align(Alignment.Center)) { CompassRose(0) }
+    }
+}
+
 @Composable
 private fun CourseReading(state: CourseState.Available) {
     val heading = NumberFormat.getIntegerInstance().format(state.headingDegrees)
@@ -126,12 +146,12 @@ private fun CourseReading(state: CourseState.Available) {
         BoxWithConstraints(Modifier.fillMaxWidth().padding(top = 16.dp)) {
             if (maxWidth >= 360.dp && LocalDensity.current.fontScale <= 1.3f) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    HeadingValue(heading, headingValue, cardinalValue, cardinalSpoken, Modifier.weight(1f))
+                    HeadingValue(state.headingDegrees, heading, headingValue, cardinalValue, cardinalSpoken, Modifier.weight(1f))
                     CompassRose(state.headingDegrees)
                 }
             } else {
                 Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.Start) {
-                    HeadingValue(heading, headingValue, cardinalValue, cardinalSpoken)
+                    HeadingValue(state.headingDegrees, heading, headingValue, cardinalValue, cardinalSpoken)
                     Box(
                         Modifier.fillMaxWidth().padding(top = 12.dp),
                         contentAlignment = Alignment.Center,
@@ -145,13 +165,15 @@ private fun CourseReading(state: CourseState.Available) {
 
 @Composable
 private fun HeadingValue(
+    headingDegrees: Int,
     heading: String,
     headingValue: String,
     cardinalValue: String,
     cardinalSpoken: String,
     modifier: Modifier = Modifier,
 ) {
-    val contentDescription = stringResource(R.string.course_heading_spoken, heading, cardinalSpoken)
+    // A plural: the Polish word for "degrees" depends on the number (stopień, stopnie, stopni).
+    val contentDescription = pluralStringResource(R.plurals.course_heading_spoken, headingDegrees, heading, cardinalSpoken)
     Column(
         modifier.testTag("course-heading").semantics(mergeDescendants = true) {
             this.contentDescription = contentDescription
@@ -300,4 +322,10 @@ private fun CourseRetryAction(onRetry: () -> Unit) {
     ) {
         Text(stringResource(R.string.course_try_again), color = SmartFlightTheme.colors.accent)
     }
+}
+
+@Preview(widthDp = 411)
+@Composable
+private fun CourseCardMissingSensorPreview() {
+    SmartFlightTheme { CourseCard(CourseState.Unavailable, onRetry = {}, onHide = {}) }
 }
