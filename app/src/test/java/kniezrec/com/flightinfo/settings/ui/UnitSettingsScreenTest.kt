@@ -17,9 +17,13 @@ import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isSelectable
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -30,6 +34,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import kniezrec.com.flightinfo.dashboard.HideableCard
 import kniezrec.com.flightinfo.dashboard.ui.DashboardHeader
 import kniezrec.com.flightinfo.display.DisplayPreferences
+import kniezrec.com.flightinfo.display.ThemeMode
 import kniezrec.com.flightinfo.displayunits.AltitudeUnit
 import kniezrec.com.flightinfo.displayunits.DistanceUnit
 import kniezrec.com.flightinfo.displayunits.PressureUnit
@@ -78,6 +83,38 @@ class UnitSettingsScreenTest {
         composeRule.onNode(hasContentDescription("Vertical speed, current value m/s, double tap to change")).assertExists()
         composeRule.onNode(hasContentDescription("Pressure, current value mbar, double tap to change")).assertExists()
         composeRule.onNodeWithContentDescription("Navigate up").assertExists()
+    }
+
+    @Test fun themeRowOffersSystemLightAndDarkAndReportsTheChoice() {
+        var display by mutableStateOf(DisplayPreferences())
+        val chosen = mutableListOf<ThemeMode>()
+        composeRule.setContent {
+            UnitSettingsScreen(
+                UnitPreferences(),
+                {},
+                {},
+                displayPreferences = display,
+                onThemeModeChange = {
+                    chosen += it
+                    display = display.copy(themeMode = it)
+                },
+            )
+        }
+        val row = hasContentDescription("Theme, current value System default, double tap to change")
+        composeRule
+            .onNode(row)
+            .performScrollTo()
+            .assertIsDisplayed()
+            .performClick()
+
+        // The dialog lists the three options, the current one selected.
+        composeRule.onNode(hasText("System default") and isSelectable()).assertIsSelected()
+        composeRule.onNode(hasText("Light") and isSelectable()).assertIsNotSelected()
+        composeRule.onNode(hasText("Dark") and isSelectable()).assertIsNotSelected().performClick()
+
+        composeRule.runOnIdle { assertEquals(listOf(ThemeMode.DARK), chosen) }
+        composeRule.onNode(hasContentDescription("Theme, current value Dark, double tap to change")).assertExists()
+        composeRule.onNode(hasText("Light") and isSelectable()).assertDoesNotExist()
     }
 
     @Test fun showHiddenCardsIsDisabledWhileNothingIsHidden() {

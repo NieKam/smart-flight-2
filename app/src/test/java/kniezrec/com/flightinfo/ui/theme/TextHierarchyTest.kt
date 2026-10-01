@@ -112,7 +112,7 @@ class TextHierarchyTest {
     @Test
     fun flightValuesAreNotClippedAtFontScaleTwoOnANarrowScreen() {
         composeRule.setContent {
-            SmartFlightTheme(content = {
+            SmartFlightTheme(darkTheme = true, content = {
                 CompositionLocalProvider(LocalDensity provides Density(composeRule.density.density, 2f)) {
                     Box(Modifier.requiredWidth(320.dp).padding(horizontal = 12.dp)) {
                         FlightParametersCard(FlightParametersState.Readings(1234.5, -12.3, 12500.0, 1013.25))
@@ -148,7 +148,7 @@ class TextHierarchyTest {
         )
 
     private fun show(content: @Composable () -> Unit) {
-        composeRule.setContent { SmartFlightTheme(content = content) }
+        composeRule.setContent { SmartFlightTheme(darkTheme = true, content = content) }
         composeRule.waitForIdle()
     }
 

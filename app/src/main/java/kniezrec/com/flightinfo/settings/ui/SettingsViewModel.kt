@@ -6,6 +6,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kniezrec.com.flightinfo.dashboard.HideableCard
 import kniezrec.com.flightinfo.dashboard.data.CardVisibilityRepository
 import kniezrec.com.flightinfo.display.DisplayPreferences
+import kniezrec.com.flightinfo.display.ThemeMode
 import kniezrec.com.flightinfo.display.data.DisplaySettingsRepository
 import kniezrec.com.flightinfo.displayunits.UnitPreferences
 import kniezrec.com.flightinfo.displayunits.data.UnitSettingsRepository
@@ -78,6 +79,18 @@ class SettingsViewModel
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), currentState())
 
         /**
+         * The Theme setting (TASK-037). Starts with the stored value, so the first frame already uses
+         * the chosen theme.
+         */
+        val themeMode: StateFlow<ThemeMode> =
+            displaySettingsRepository.themeMode
+                .stateIn(
+                    viewModelScope,
+                    SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
+                    displaySettingsRepository.display.value.themeMode,
+                )
+
+        /**
          * Requests for the Activity: show the POST_NOTIFICATIONS dialog or open the notification
          * settings. Nothing is kept for a collector that subscribes later.
          */
@@ -96,6 +109,13 @@ class SettingsViewModel
 
         fun setDisplay(value: DisplayPreferences) {
             viewModelScope.launch { displaySettingsRepository.set(value) }
+        }
+
+        /** The Theme setting: persisted with the other display settings. */
+        fun setThemeMode(mode: ThemeMode) {
+            viewModelScope.launch {
+                displaySettingsRepository.set(displaySettingsRepository.display.value.copy(themeMode = mode))
+            }
         }
 
         /** "Show hidden cards": every hidden card returns to the dashboard, persistently. */

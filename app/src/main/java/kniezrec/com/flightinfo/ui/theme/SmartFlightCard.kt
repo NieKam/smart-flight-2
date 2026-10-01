@@ -64,13 +64,20 @@ object SmartFlightCardDefaults {
 @Preview(name = "Card, dark", widthDp = 360)
 @Composable
 private fun SmartFlightCardDarkPreview() {
-    SmartFlightTheme { SmartFlightCardPreviewContent() }
+    SmartFlightTheme(darkTheme = true) { SmartFlightCardPreviewContent() }
+}
+
+@Preview(name = "Card, light", widthDp = 360)
+@Composable
+private fun SmartFlightCardLightPreview() {
+    SmartFlightTheme(darkTheme = false) { SmartFlightCardPreviewContent() }
 }
 
 @Composable
 private fun SmartFlightCardPreviewContent() {
     SmartFlightCard(Modifier.padding(12.dp), minHeight = SmartFlightCardDefaults.MinHeight) {
-        LabelText("Speed")
-        ValueText("812 km/h")
+        LabelText("Flight parameters", style = MaterialTheme.typography.titleLarge)
+        LabelValueRow("Speed", withSmallerUnit("812.0 km/h", "km/h"), MaterialTheme.typography.headlineMedium)
+        LabelValueRow("Altitude", withSmallerUnit("10668.0 m", "m"), MaterialTheme.typography.headlineMedium)
     }
 }

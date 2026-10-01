@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Original Smart Flight palette; only what XML resources use (Compose uses ui/theme tokens). -->
+    <!-- Only what XML resources use (Compose uses the ui/theme tokens); every value is in the token table. -->
+    <!-- Original purple_dark: launcher icon background. -->
     <color name="purple_dark">#FF484685</color>
+    <!-- Window background before Compose draws: the page token of the light and the dark scheme. -->
+    <color name="window_light">#FFEFEEF8</color>
+    <color name="window_dark">#FF38366E</color>
 </resources>

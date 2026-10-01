@@ -209,6 +209,10 @@
     <string name="hide_card">Ukryj</string>
     <string name="hide_card_hint">Ukrywa tę kartę do czasu użycia opcji Pokaż ukryte karty w Ustawieniach</string>
     <string name="show_hidden_cards">Pokaż ukryte karty</string>
+    <string name="theme">Motyw</string>
+    <string name="theme_system">Domyślny systemowy</string>
+    <string name="theme_light">Jasny</string>
+    <string name="theme_dark">Ciemny</string>
     <string name="no_hidden_cards">Brak ukrytych kart</string>
     <string name="hidden_card_course">Kompas</string>
     <string name="hidden_card_horizon">Horyzont</string>

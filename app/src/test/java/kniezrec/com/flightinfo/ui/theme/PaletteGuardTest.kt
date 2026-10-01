@@ -119,7 +119,7 @@ class PaletteGuardTest {
     private fun hex(argb: Int) = "#%08X".format(argb)
 
     private companion object {
-        val SCHEMES = listOf("dark" to DarkSmartFlightColors)
+        val SCHEMES = listOf("dark" to DarkSmartFlightColors, "light" to LightSmartFlightColors)
 
         /** The plane marker, the route pins, the city picker marker and the button icons drawn on the maps. */
         val MAP_DRAWABLES =
@@ -162,10 +162,10 @@ class PaletteGuardTest {
                 0xFF4CAF50, // satellite_green: dark satelliteUsed
                 0x80000000, // dark_overlay_alpha_50: scrim
                 0x33000000, // dark_overlay_alpha_20: dividers, switch track
-                0xFF2C2163, // toast_background: dark snackbar text
-                0xFFFFFFFF, // white: dark toolbar title, horizon line
+                0xFF2C2163, // toast_background: dark snackbar text, light toolbar title and snackbar
+                0xFFFFFFFF, // white: dark toolbar title, light dialogs, horizon line
                 // Dark scheme, derived (TASK-037)
-                0xFF38366E, // page: purple_dark one step darker
+                0xFF38366E, // page: purple_dark one step darker (and window_dark)
                 0xFF4F4D8E, // raised: dialogs and menus
                 0xFF67659F, // topBarScrolled
                 0xFFCAC9E3, // labelText (AA on page, card, raised)
@@ -174,6 +174,19 @@ class PaletteGuardTest {
                 0xFFFFC0B8, // error
                 0xFFE8E7F5, // inverseSurface (snackbar)
                 0xFF00687A, // inversePrimary (snackbar action)
+                // Light scheme, derived (TASK-037)
+                0xFFEFEEF8, // page (and window_light)
+                0xFFFBFAFE, // card
+                0xFFE4E3F3, // topBar
+                0xFFD8D6EC, // topBarScrolled
+                0xFF00687A, // accent: dark teal (also the dark scheme's inversePrimary)
+                0x8000687A, // accentPressed
+                0xFF55537D, // labelText
+                0xFF1E1C3A, // valueText
+                0xFF2E7D32, // satelliteUsed: satellite_green darkened to 3:1 on the light card
+                0xFFC62828, // satelliteUnused: satellite_red darkened
+                0xFFB3261E, // error
+                0xFFF1F0FA, // inverseOnSurface (the dark valueText)
                 // Horizon instrument (theme-independent)
                 0xFF7775B5, // horizon sky
                 0xFF3F3D70, // horizon ground

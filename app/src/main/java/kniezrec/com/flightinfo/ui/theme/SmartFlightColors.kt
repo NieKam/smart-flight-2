@@ -88,7 +88,7 @@ private val HorizonGround = Color(0xFF3F3D70)
 private val MapHalo = Color(0xFFD9D9ED)
 private val ToastPurple = Color(0xFF2C2163)
 
-/** The dark scheme: the original purple palette. */
+/** The dark scheme: the original purple palette, refined for contrast. */
 val DarkSmartFlightColors =
     SmartFlightColors(
         page = Color(0xFF38366E),
@@ -108,6 +108,40 @@ val DarkSmartFlightColors =
         inverseSurface = Color(0xFFE8E7F5),
         inverseOnSurface = ToastPurple,
         inversePrimary = Color(0xFF00687A),
+        overlay50 = Overlay50,
+        overlay20 = Overlay20,
+        horizonSky = HorizonSky,
+        horizonGround = HorizonGround,
+        horizonLine = White,
+        mapInk = PurpleDark,
+        mapHalo = MapHalo,
+    )
+
+/**
+ * The light scheme, derived from the same hues: near-white lavender page and cards, a lavender top
+ * bar, dark purple text and a dark teal accent that passes AA on the light surfaces. Snackbars use
+ * the original toast purple with the original cyan action. The map overlays and the horizon
+ * instrument keep their colors.
+ */
+val LightSmartFlightColors =
+    SmartFlightColors(
+        page = Color(0xFFEFEEF8),
+        card = Color(0xFFFBFAFE),
+        raised = White,
+        topBar = Color(0xFFE4E3F3),
+        topBarScrolled = Color(0xFFD8D6EC),
+        accent = Color(0xFF00687A),
+        accentPressed = Color(0x8000687A),
+        accentLight = CyanLight,
+        labelText = Color(0xFF55537D),
+        valueText = Color(0xFF1E1C3A),
+        toolbarTitle = ToastPurple,
+        satelliteUsed = Color(0xFF2E7D32),
+        satelliteUnused = Color(0xFFC62828),
+        error = Color(0xFFB3261E),
+        inverseSurface = ToastPurple,
+        inverseOnSurface = Color(0xFFF1F0FA),
+        inversePrimary = CyanMain,
         overlay50 = Overlay50,
         overlay20 = Overlay20,
         horizonSky = HorizonSky,

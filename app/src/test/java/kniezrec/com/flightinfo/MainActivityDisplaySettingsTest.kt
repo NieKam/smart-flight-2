@@ -6,14 +6,22 @@ import android.content.Context
 import android.content.pm.ActivityInfo
 import android.view.WindowManager
 import androidx.annotation.StringRes
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isSelectable
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kniezrec.com.flightinfo.testutil.openFromOverflowMenu
+import kniezrec.com.flightinfo.ui.theme.DarkSmartFlightColors
+import kniezrec.com.flightinfo.ui.theme.LightSmartFlightColors
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Before
@@ -21,12 +29,16 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Shadows.shadowOf
+import org.robolectric.annotation.Config
 import java.io.File
 import java.io.FileOutputStream
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
-/** Keep-screen-on and requested orientation follow the display settings, on launch and after toggling. */
+/**
+ * Keep-screen-on, requested orientation and the Theme setting follow the display settings, on
+ * launch and after a change in Settings.
+ */
 @RunWith(AndroidJUnit4::class)
 class MainActivityDisplaySettingsTest {
     @get:Rule val composeRule = createEmptyComposeRule()
@@ -97,6 +109,59 @@ class MainActivityDisplaySettingsTest {
         clickDisplayRow(R.string.portrait_orientation, R.string.orientation_sensor)
 
         assertWindow(keepScreenOn = false, orientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT)
+    }
+
+    @Test
+    fun choosingDarkInSettingsPersistsAndAppliesTheDarkScheme() {
+        // Robolectric's default configuration is not night: the System default theme is light.
+        launch()
+        composeRule.openFromOverflowMenu(string(R.string.settings_title))
+        assertEquals(LightSmartFlightColors.toolbarTitle, textColor(string(R.string.settings_title)))
+
+        composeRule
+            .onNodeWithContentDescription(
+                string(R.string.settings_row_description, string(R.string.theme), string(R.string.theme_system)),
+            ).performScrollTo()
+            .performClick()
+        composeRule.onNode(hasText(string(R.string.theme_dark)) and isSelectable()).performClick()
+        composeRule.waitForIdle()
+
+        val stored = application.getSharedPreferences("display_behavior", Context.MODE_PRIVATE)
+        assertEquals("dark", stored.getString("theme_mode", null))
+        assertEquals(DarkSmartFlightColors.toolbarTitle, textColor(string(R.string.settings_title)))
+    }
+
+    @Test
+    @Config(qualifiers = "+night")
+    fun storedLightThemeOverridesANightSystemOnLaunch() {
+        application
+            .getSharedPreferences("display_behavior", Context.MODE_PRIVATE)
+            .edit()
+            .putString("theme_mode", "light")
+            .commit()
+
+        launch()
+
+        assertEquals(LightSmartFlightColors.toolbarTitle, textColor(string(R.string.app_name)))
+    }
+
+    @Test
+    @Config(qualifiers = "+night")
+    fun systemThemeFollowsANightSystemOnLaunch() {
+        launch()
+
+        assertEquals(DarkSmartFlightColors.toolbarTitle, textColor(string(R.string.app_name)))
+    }
+
+    /** The color [text] is laid out with. */
+    private fun textColor(text: String): Color {
+        composeRule.waitForIdle()
+        val node = composeRule.onNodeWithText(text, useUnmergedTree = true).fetchSemanticsNode()
+        val results = mutableListOf<TextLayoutResult>()
+        node.config[SemanticsActions.GetTextLayoutResult].action?.invoke(results)
+        return results
+            .single()
+            .layoutInput.style.color
     }
 
     private fun launch() {

@@ -34,7 +34,7 @@ class SatelliteChartPixelTest {
     @Test
     fun usedAndUnusedBarsAreDrawnInTheSatelliteColorsOnTheCard() {
         composeRule.setContent {
-            SmartFlightTheme {
+            SmartFlightTheme(darkTheme = true) {
                 GnssStatusCard(
                     GnssStatusState.Available(listOf(GnssSatellite(true, 30f), GnssSatellite(false, 25f))),
                     onOpenLocationSettings = {},

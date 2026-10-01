@@ -131,6 +131,6 @@ class ContrastTest {
         const val COMPONENT_MINIMUM = 3f
         val WHITE_TILE = Color(0xFFFFFFFF)
         val BLACK_TILE = Color(0xFF000000)
-        val SCHEMES = listOf("dark" to DarkSmartFlightColors)
+        val SCHEMES = listOf("dark" to DarkSmartFlightColors, "light" to LightSmartFlightColors)
     }
 }

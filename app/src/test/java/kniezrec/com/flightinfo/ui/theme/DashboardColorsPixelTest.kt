@@ -14,7 +14,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -52,7 +51,12 @@ class DashboardColorsPixelTest {
 
     @Test
     fun pageCardAndTopBarAreDrawnInTheDarkTokens() {
-        assertDashboardColors(DarkSmartFlightColors) { content -> SmartFlightTheme(content) }
+        assertDashboardColors(DarkSmartFlightColors, darkTheme = true)
+    }
+
+    @Test
+    fun pageCardAndTopBarAreDrawnInTheLightTokens() {
+        assertDashboardColors(LightSmartFlightColors, darkTheme = false)
     }
 
     @OptIn(ExperimentalMaterial3Api::class)
@@ -60,7 +64,7 @@ class DashboardColorsPixelTest {
     fun topBarTakesItsScrolledToneWhenTheListScrollsUnderIt() {
         val colors = DarkSmartFlightColors
         composeRule.setContent {
-            SmartFlightTheme {
+            SmartFlightTheme(darkTheme = true) {
                 val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
                 Column(Modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection)) {
                     DashboardHeader(onOpenSettings = {}, onOpenAbout = {}, scrollBehavior = scrollBehavior)
@@ -91,10 +95,10 @@ class DashboardColorsPixelTest {
 
     private fun assertDashboardColors(
         colors: SmartFlightColors,
-        theme: @Composable (@Composable () -> Unit) -> Unit,
+        darkTheme: Boolean,
     ) {
         composeRule.setContent {
-            theme {
+            SmartFlightTheme(darkTheme = darkTheme) {
                 AppScaffold(remember { SnackbarHostState() }) { contentModifier ->
                     Column(contentModifier.fillMaxSize()) {
                         DashboardHeader(onOpenSettings = {}, onOpenAbout = {})

@@ -1,8 +1,10 @@
 package kniezrec.com.flightinfo.ui.theme
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
@@ -14,8 +16,11 @@ import androidx.compose.runtime.ReadOnlyComposable
  * dialogs and menus, `inverseSurface` for snackbars. `surfaceTint` equals `surface`, so Material's
  * own tonal overlay does not tint anything further.
  */
-internal fun smartFlightColorScheme(colors: SmartFlightColors): ColorScheme =
-    darkColorScheme(
+internal fun smartFlightColorScheme(
+    colors: SmartFlightColors,
+    dark: Boolean,
+): ColorScheme =
+    (if (dark) darkColorScheme() else lightColorScheme()).copy(
         primary = colors.accent,
         onPrimary = colors.page,
         primaryContainer = colors.raised,
@@ -54,14 +59,23 @@ internal fun smartFlightColorScheme(colors: SmartFlightColors): ColorScheme =
         surfaceDim = colors.page,
     )
 
-private val darkScheme = smartFlightColorScheme(DarkSmartFlightColors)
+private val darkScheme = smartFlightColorScheme(DarkSmartFlightColors, dark = true)
+private val lightScheme = smartFlightColorScheme(LightSmartFlightColors, dark = false)
 
-/** The app theme: the Smart Flight palette with any wallpaper (no dynamic color). */
+/**
+ * The app theme: [DarkSmartFlightColors] (the purple palette) when [darkTheme], otherwise
+ * [LightSmartFlightColors]. The brand stays fixed: no dynamic (wallpaper) color.
+ *
+ * @param darkTheme the system night mode by default; the app's Theme setting overrides it.
+ */
 @Composable
-fun SmartFlightTheme(content: @Composable () -> Unit) {
-    CompositionLocalProvider(LocalSmartFlightColors provides DarkSmartFlightColors) {
+fun SmartFlightTheme(
+    darkTheme: Boolean = isSystemInDarkTheme(),
+    content: @Composable () -> Unit,
+) {
+    CompositionLocalProvider(LocalSmartFlightColors provides if (darkTheme) DarkSmartFlightColors else LightSmartFlightColors) {
         MaterialTheme(
-            colorScheme = darkScheme,
+            colorScheme = if (darkTheme) darkScheme else lightScheme,
             typography = appTypography,
             content = content,
         )

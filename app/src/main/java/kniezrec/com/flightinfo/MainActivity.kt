@@ -14,10 +14,14 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import dagger.hilt.android.AndroidEntryPoint
@@ -25,6 +29,7 @@ import kniezrec.com.flightinfo.about.AboutIntentFactory
 import kniezrec.com.flightinfo.about.AndroidExternalIntentLauncher
 import kniezrec.com.flightinfo.about.AppVersionProvider
 import kniezrec.com.flightinfo.display.data.DisplaySettingsRepository
+import kniezrec.com.flightinfo.display.ui.applyApplicationNightMode
 import kniezrec.com.flightinfo.display.ui.applyDisplayPreferences
 import kniezrec.com.flightinfo.monitoring.AppVisibility
 import kniezrec.com.flightinfo.monitoring.LocationForegroundService
@@ -40,6 +45,7 @@ import kniezrec.com.flightinfo.permission.ui.LocationPermissionViewModel
 import kniezrec.com.flightinfo.settings.ui.NotificationAction
 import kniezrec.com.flightinfo.settings.ui.SettingsViewModel
 import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -81,12 +87,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Transparent bars with light icons in every system theme: the app's top bar draws the card
-        // color behind the status bar and the page shows behind the navigation bar (no white scrim).
-        enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.dark(Color.Transparent.toArgb()),
-            navigationBarStyle = SystemBarStyle.dark(Color.Transparent.toArgb()),
-        )
+        // Before the first frame: the bars' icons for the stored Theme setting (updated below on change).
+        applySystemBarStyle(settingsViewModel.themeMode.value.isDark(resources.configuration.isNightModeActive))
         refreshPermissionState()
         refreshNotificationAccess()
         // Synchronous current value: window flags and orientation are set before the first frame.
@@ -94,6 +96,13 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 displaySettingsRepository.display.collect { applyDisplayPreferences(it) }
+            }
+        }
+        lifecycleScope.launch {
+            // A changed Theme setting becomes the app's own night mode (the current value is already
+            // in effect, so it is skipped; a recreated Activity does not apply it again).
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                settingsViewModel.themeMode.drop(1).collect { applyApplicationNightMode(it) }
             }
         }
         lifecycleScope.launch {
@@ -116,7 +125,11 @@ class MainActivity : ComponentActivity() {
         }
         val aboutVersion = appVersionProvider.read()
         setContent {
-            SmartFlightTheme {
+            // The stored Theme setting is the flow's initial value, so the first frame uses it.
+            val themeMode by settingsViewModel.themeMode.collectAsStateWithLifecycle()
+            val darkTheme = themeMode.isDark(systemDark = isSystemInDarkTheme())
+            LaunchedEffect(darkTheme) { applySystemBarStyle(darkTheme) }
+            SmartFlightTheme(darkTheme = darkTheme) {
                 AppRoot(
                     onRequestLocationPermission = { requestLocationPermission() },
                     onOpenAppSettings = { openAppSettings() },
@@ -127,6 +140,16 @@ class MainActivity : ComponentActivity() {
                 )
             }
         }
+    }
+
+    /**
+     * Edge to edge with transparent bars: the top bar paints the status bar and the page shows behind
+     * the navigation bar. Light icons on the dark scheme, dark icons on the light one.
+     */
+    private fun applySystemBarStyle(darkTheme: Boolean) {
+        val transparent = Color.Transparent.toArgb()
+        val style = if (darkTheme) SystemBarStyle.dark(transparent) else SystemBarStyle.light(transparent, transparent)
+        enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
     }
 
     override fun onResume() {

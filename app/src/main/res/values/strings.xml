@@ -149,6 +149,10 @@
     <string name="hide_card">Hide</string>
     <string name="hide_card_hint">Hides this card until Show hidden cards is used in Settings</string>
     <string name="show_hidden_cards">Show hidden cards</string>
+    <string name="theme">Theme</string>
+    <string name="theme_system">System default</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
     <string name="no_hidden_cards">No hidden cards</string>
     <string name="hidden_card_course">Compass</string>
     <string name="hidden_card_horizon">Horizon</string>
