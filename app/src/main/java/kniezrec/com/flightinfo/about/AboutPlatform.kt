@@ -3,9 +3,12 @@ package kniezrec.com.flightinfo.about
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageInfo
+import android.content.pm.PackageManager
 import android.net.Uri
-import android.os.Build
+import dagger.hilt.android.qualifiers.ApplicationContext
 import java.net.URLEncoder
+import javax.inject.Inject
+import javax.inject.Singleton
 
 data class AppVersion(
     val name: String?,
@@ -23,27 +26,24 @@ fun formatAppVersion(version: AppVersion): String {
     }
 }
 
-class AndroidAppVersionProvider(
-    private val context: Context? = null,
-    private val packageInfoReader: () -> PackageInfo? = {
-        context?.let { current ->
-            current.packageManager.getPackageInfo(current.packageName, 0)
-        }
-    },
-) {
-    fun read(): AppVersion {
-        val info = runCatching { packageInfoReader() }.getOrNull() ?: return AppVersion(null, null)
-        val code =
-            runCatching {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                    info.longVersionCode
-                } else {
-                    @Suppress("DEPRECATION")
-                    info.versionCode.toLong()
-                }
-            }.getOrNull()?.takeIf { it > 0 }
-        return AppVersion(info.versionName, code)
+/** Version of the installed app, read from the package manager. */
+@Singleton
+class AppVersionProvider
+    @Inject
+    constructor(
+        private val packageManager: PackageManager,
+        @ApplicationContext context: Context,
+    ) {
+        private val packageName = context.packageName
+
+        fun read(): AppVersion = appVersion(runCatching { packageManager.getPackageInfo(packageName, 0) }.getOrNull())
     }
+
+/** [AppVersion] of [info]; a missing package or a non-positive version code reads as absent. */
+fun appVersion(info: PackageInfo?): AppVersion {
+    if (info == null) return AppVersion(null, null)
+    val code = runCatching { info.longVersionCode }.getOrNull()?.takeIf { it > 0 }
+    return AppVersion(info.versionName, code)
 }
 
 object AboutIntentFactory {

@@ -1,0 +1,454 @@
+package kniezrec.com.flightinfo.map.ui
+
+import kniezrec.com.flightinfo.display.DisplayPreferences
+import kniezrec.com.flightinfo.location.data.LocationRepository
+import kniezrec.com.flightinfo.map.MapCoordinate
+import kniezrec.com.flightinfo.map.MapRules
+import kniezrec.com.flightinfo.map.data.MapArchiveRepository
+import kniezrec.com.flightinfo.testutil.FakeDisplaySettingsRepository
+import kniezrec.com.flightinfo.testutil.FakeLocationDataSource
+import kniezrec.com.flightinfo.testutil.FakeMapTipRepository
+import kniezrec.com.flightinfo.testutil.FakeOrientationDataSource
+import kniezrec.com.flightinfo.testutil.flightFix
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
+import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.setMain
+import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Before
+import org.junit.Test
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
+import java.io.File
+import java.io.InputStream
+import java.nio.file.Files
+import java.util.zip.ZipEntry
+import java.util.zip.ZipOutputStream
+
+@OptIn(ExperimentalCoroutinesApi::class)
+class MapViewModelTest {
+    private val dispatcher = StandardTestDispatcher()
+    private val location = FakeLocationDataSource()
+    private val display = FakeDisplaySettingsRepository()
+    private val orientation = FakeOrientationDataSource()
+    private val tips = FakeMapTipRepository()
+    private val directory: File = Files.createTempDirectory("map-view-model").toFile()
+    private val archive = File(directory, "osmdroid.zip")
+
+    /** Number of asset copies that fail before one succeeds. */
+    private var assetFailuresLeft = 0
+    private var assetOpens = 0
+
+    @Before fun setUp() = Dispatchers.setMain(dispatcher)
+
+    @After fun tearDown() {
+        Dispatchers.resetMain()
+        directory.deleteRecursively()
+    }
+
+    @Test fun `loading is followed by the ready archive without a position`() =
+        runTest(dispatcher) {
+            val viewModel = viewModel()
+            val states = subscribeRecording(viewModel)
+
+            assertEquals(listOf(MapUiState.Loading, MapUiState.Ready(archive)), states)
+        }
+
+    @Test fun `a failed preparation is unavailable and retry prepares again`() =
+        runTest(dispatcher) {
+            assetFailuresLeft = 1
+            val viewModel = viewModel()
+            subscribe(viewModel)
+            assertEquals(MapUiState.Unavailable, viewModel.state.value)
+
+            viewModel.retry()
+            runCurrent()
+
+            assertEquals(MapUiState.Ready(archive), viewModel.state.value)
+            assertEquals(2, assetOpens)
+        }
+
+    @Test fun `a map that cannot open the archive is unavailable until retry`() =
+        runTest(dispatcher) {
+            val viewModel = viewModel()
+            subscribe(viewModel)
+            fix(latitude = 1.0, longitude = 2.0)
+
+            viewModel.onMapOpenFailed()
+            runCurrent()
+            assertEquals(MapUiState.Unavailable, viewModel.state.value)
+            assertEquals("fixes are released", 0, location.fixRegistrations.activeCount)
+
+            viewModel.retry()
+            runCurrent()
+            assertEquals(MapUiState.Ready(archive), viewModel.state.value)
+        }
+
+    @Test fun `the first fix is centered once per observation`() =
+        runTest(dispatcher) {
+            val viewModel = viewModel()
+            subscribe(viewModel)
+
+            fix(latitude = 1.0, longitude = 2.0)
+            assertEquals(MapCoordinate(1.0, 2.0), ready(viewModel).centerRequest)
+            assertEquals(MapCoordinate(1.0, 2.0), ready(viewModel).position)
+
+            viewModel.onCentered()
+            runCurrent()
+            assertNull(ready(viewModel).centerRequest)
+
+            fix(latitude = 3.0, longitude = 4.0)
+            assertEquals(MapCoordinate(3.0, 4.0), ready(viewModel).position)
+            assertNull(ready(viewModel).centerRequest)
+
+            viewModel.retry()
+            runCurrent()
+            assertEquals(MapUiState.Ready(archive), viewModel.state.value)
+            fix(latitude = 5.0, longitude = 6.0)
+            assertEquals(MapCoordinate(5.0, 6.0), ready(viewModel).centerRequest)
+        }
+
+    @Test fun `an unacknowledged center request stays on the first fix`() =
+        runTest(dispatcher) {
+            val viewModel = viewModel()
+            subscribe(viewModel)
+
+            fix(latitude = 1.0, longitude = 2.0)
+            fix(latitude = 3.0, longitude = 4.0)
+
+            assertEquals(MapCoordinate(1.0, 2.0), ready(viewModel).centerRequest)
+            assertEquals(MapCoordinate(3.0, 4.0), ready(viewModel).position)
+        }
+
+    @Test fun `the marker follows the GPS track while moving and keeps it without a bearing`() =
+        runTest(dispatcher) {
+            val viewModel = viewModel()
+            subscribe(viewModel)
+
+            fix(latitude = 1.0, longitude = 2.0, bearing = -90.0)
+            assertEquals(270f, ready(viewModel).markerHeadingDegrees)
+
+            fix(latitude = 1.0, longitude = 2.1)
+            assertEquals(270f, ready(viewModel).markerHeadingDegrees)
+        }
+
+    @Test fun `the marker follows the compass while standing still`() =
+        runTest(dispatcher) {
+            val viewModel = viewModel()
+            subscribe(viewModel)
+            assertEquals(1, orientation.activeCount)
+
+            fix(latitude = 1.0, longitude = 2.0, bearing = 90.0, speed = 0.5)
+            assertEquals(0f, ready(viewModel).markerHeadingDegrees)
+
+            orientation.emit(headingDegrees = 30.4)
+            runCurrent()
+            assertEquals(30f, ready(viewModel).markerHeadingDegrees)
+
+            // Moving again: the GPS track wins over the compass.
+            fix(latitude = 1.0, longitude = 2.1, bearing = 90.0, speed = 20.0)
+            assertEquals(90f, ready(viewModel).markerHeadingDegrees)
+            orientation.emit(headingDegrees = 30.4)
+            runCurrent()
+            assertEquals(90f, ready(viewModel).markerHeadingDegrees)
+        }
+
+    @Test fun `the compass is observed only while the map is`() =
+        runTest(dispatcher) {
+            val viewModel = viewModel()
+            runCurrent()
+            assertEquals(0, orientation.registerCount)
+
+            val subscription = subscribe(viewModel)
+            assertEquals(1, orientation.activeCount)
+
+            subscription.cancel()
+            advanceTimeBy(MapViewModel.STOP_TIMEOUT_MILLIS + 1)
+            runCurrent()
+            assertEquals(0, orientation.activeCount)
+        }
+
+    @Test fun `without a usable compass the marker relies on the GPS track`() =
+        runTest(dispatcher) {
+            orientation.failRegistration = true
+            val viewModel = viewModel()
+            subscribe(viewModel)
+
+            fix(latitude = 1.0, longitude = 2.0, bearing = 45.0)
+            assertEquals(MapCoordinate(1.0, 2.0), ready(viewModel).position)
+            assertEquals(45f, ready(viewModel).markerHeadingDegrees)
+
+            fix(latitude = 1.0, longitude = 2.0, bearing = 135.0, speed = 0.0)
+            assertEquals(45f, ready(viewModel).markerHeadingDegrees)
+        }
+
+    @Test fun `a device without an orientation sensor is not asked for one`() =
+        runTest(dispatcher) {
+            orientation.available = false
+            val viewModel = viewModel()
+            subscribe(viewModel)
+
+            fix(latitude = 1.0, longitude = 2.0, bearing = 45.0)
+            assertEquals(45f, ready(viewModel).markerHeadingDegrees)
+            assertEquals(0, orientation.registerCount)
+        }
+
+    @Test fun `fixes without a valid position change nothing`() =
+        runTest(dispatcher) {
+            val viewModel = viewModel()
+            subscribe(viewModel)
+            fix(latitude = 1.0, longitude = 2.0, bearing = 45.0)
+
+            fix(latitude = Double.NaN, longitude = 2.0, bearing = 90.0)
+            fix(latitude = null, longitude = null)
+
+            assertEquals(MapCoordinate(1.0, 2.0), ready(viewModel).position)
+            assertEquals(45f, ready(viewModel).markerHeadingDegrees)
+        }
+
+    @Test fun `the larger map zoom setting is part of the ready state`() =
+        runTest(dispatcher) {
+            val viewModel = viewModel()
+            subscribe(viewModel)
+            assertEquals(false, ready(viewModel).largerMapZoom)
+
+            display.set(DisplayPreferences(largerMapZoom = true))
+            runCurrent()
+
+            assertEquals(true, ready(viewModel).largerMapZoom)
+        }
+
+    @Test fun `reaching the standard maximum zoom requests the tip and counts it`() =
+        runTest(dispatcher) {
+            val viewModel = viewModel()
+            assertFalse(viewModel.zoomTip.value)
+
+            zoom(viewModel, 5.0)
+            assertFalse(viewModel.zoomTip.value)
+            zoom(viewModel, MapRules.STANDARD_MAX_ZOOM)
+
+            assertTrue(viewModel.zoomTip.value)
+            assertEquals(1, tips.shownCount)
+
+            viewModel.onZoomTipShown()
+            assertFalse(viewModel.zoomTip.value)
+        }
+
+    @Test fun `repeated zoom events at the maximum count once`() =
+        runTest(dispatcher) {
+            val viewModel = viewModel()
+
+            zoom(viewModel, 6.0)
+            viewModel.onZoomTipShown()
+            zoom(viewModel, 6.0)
+            zoom(viewModel, 6.0)
+
+            assertFalse(viewModel.zoomTip.value)
+            assertEquals(1, tips.shownCount)
+
+            // Leaving the maximum and reaching it again is a new transition.
+            zoom(viewModel, 5.5)
+            zoom(viewModel, 6.0)
+            assertTrue(viewModel.zoomTip.value)
+            assertEquals(2, tips.shownCount)
+        }
+
+    @Test fun `a tip still waiting to be shown is not requested or counted again`() =
+        runTest(dispatcher) {
+            val viewModel = viewModel()
+
+            zoom(viewModel, 6.0)
+            zoom(viewModel, 5.0)
+            zoom(viewModel, 6.0)
+
+            assertTrue(viewModel.zoomTip.value)
+            assertEquals(1, tips.shownCount)
+        }
+
+    @Test fun `the tip is never requested after four shows`() =
+        runTest(dispatcher) {
+            val viewModel = viewModel()
+
+            repeat(MapRules.ZOOM_TIP_LIMIT + 2) {
+                zoom(viewModel, 5.0)
+                zoom(viewModel, 6.0)
+                if (viewModel.zoomTip.value) viewModel.onZoomTipShown()
+            }
+            assertEquals(4, tips.shownCount)
+
+            zoom(viewModel, 5.0)
+            zoom(viewModel, 6.0)
+            assertFalse(viewModel.zoomTip.value)
+            assertEquals(4, tips.shownCount)
+        }
+
+    @Test fun `a count stored as four already suppresses the tip`() =
+        runTest(dispatcher) {
+            tips.shownCount = 4
+            val viewModel = viewModel()
+
+            zoom(viewModel, 6.0)
+
+            assertFalse(viewModel.zoomTip.value)
+            assertEquals(4, tips.shownCount)
+        }
+
+    @Test fun `the tip is not requested while larger map zoom is on`() =
+        runTest(dispatcher) {
+            display.set(DisplayPreferences(largerMapZoom = true))
+            val viewModel = viewModel()
+
+            zoom(viewModel, 6.0)
+            zoom(viewModel, 9.0)
+
+            assertFalse(viewModel.zoomTip.value)
+            assertEquals(0, tips.shownCount)
+
+            // Switching it off while zoomed in clamps the map to 6: still at the maximum, no tip.
+            display.set(DisplayPreferences(largerMapZoom = false))
+            zoom(viewModel, 6.0)
+            assertFalse(viewModel.zoomTip.value)
+        }
+
+    @Test fun `nothing is prepared or observed before the state is collected`() =
+        runTest(dispatcher) {
+            val viewModel = viewModel()
+            viewModel.retry()
+            runCurrent()
+
+            assertEquals(MapUiState.Loading, viewModel.state.value)
+            assertEquals(0, assetOpens)
+            assertEquals(0, location.fixRegistrations.registerCount)
+        }
+
+    @Test fun `collecting again within the stop timeout keeps the position`() =
+        runTest(dispatcher) {
+            val viewModel = viewModel()
+            val first = subscribe(viewModel)
+            fix(latitude = 1.0, longitude = 2.0)
+
+            first.cancel()
+            advanceTimeBy(MapViewModel.STOP_TIMEOUT_MILLIS - 1_000)
+            subscribe(viewModel)
+
+            assertEquals(MapCoordinate(1.0, 2.0), ready(viewModel).position)
+            assertEquals(1, location.fixRegistrations.registerCount)
+        }
+
+    @Test fun `observation restarted after the stop timeout loads again and centers the next first fix`() =
+        runTest(dispatcher) {
+            val viewModel = viewModel()
+            val first = subscribe(viewModel)
+            fix(latitude = 1.0, longitude = 2.0)
+            viewModel.onCentered()
+            runCurrent()
+
+            first.cancel()
+            advanceTimeBy(MapViewModel.STOP_TIMEOUT_MILLIS + 1)
+            runCurrent()
+            assertEquals(0, location.fixRegistrations.activeCount)
+            val states = subscribeRecording(viewModel)
+
+            assertEquals(listOf(MapUiState.Loading, MapUiState.Ready(archive)), states.drop(1))
+            fix(latitude = 3.0, longitude = 4.0)
+            assertEquals(MapCoordinate(3.0, 4.0), ready(viewModel).centerRequest)
+        }
+
+    @Test fun `location switched off keeps the position and fixes count again once it is back on`() =
+        runTest(dispatcher) {
+            val viewModel = viewModel()
+            subscribe(viewModel)
+            fix(latitude = 1.0, longitude = 2.0)
+
+            location.switchLocation(false)
+            runCurrent()
+            assertEquals(MapCoordinate(1.0, 2.0), ready(viewModel).position)
+            assertEquals(0, location.fixRegistrations.activeCount)
+
+            location.switchLocation(true)
+            runCurrent()
+            fix(latitude = 3.0, longitude = 4.0)
+            assertEquals(MapCoordinate(3.0, 4.0), ready(viewModel).position)
+        }
+
+    @Test fun `a failed GPS registration keeps the map ready without a position`() =
+        runTest(dispatcher) {
+            location.failFixRegistration = true
+            val viewModel = viewModel()
+            subscribe(viewModel)
+
+            assertEquals(MapUiState.Ready(archive), viewModel.state.value)
+        }
+
+    private fun TestScope.viewModel() =
+        MapViewModel(
+            MapArchiveRepository(::openAsset, directory, dispatcher),
+            LocationRepository(location, backgroundScope),
+            display,
+            orientation,
+            tips,
+        )
+
+    private fun TestScope.zoom(
+        viewModel: MapViewModel,
+        level: Double,
+    ) {
+        viewModel.onZoomChanged(level)
+        runCurrent()
+    }
+
+    private fun openAsset(): InputStream {
+        assetOpens++
+        if (assetFailuresLeft > 0) {
+            assetFailuresLeft--
+            return ByteArrayInputStream("not a zip archive".toByteArray())
+        }
+        return ByteArrayInputStream(validArchive())
+    }
+
+    private fun TestScope.subscribe(viewModel: MapViewModel): Job =
+        backgroundScope.launch { viewModel.state.collect {} }.also { runCurrent() }
+
+    private fun TestScope.subscribeRecording(viewModel: MapViewModel): List<MapUiState> {
+        val states = mutableListOf<MapUiState>()
+        backgroundScope.launch { viewModel.state.collect { states += it } }
+        runCurrent()
+        return states
+    }
+
+    private fun TestScope.fix(
+        latitude: Double?,
+        longitude: Double?,
+        bearing: Double? = null,
+        speed: Double? = 10.0,
+    ) {
+        location.emitFix(
+            flightFix(speedMetresPerSecond = speed, latitude = latitude, longitude = longitude, bearingDegrees = bearing),
+        )
+        runCurrent()
+    }
+
+    private fun ready(viewModel: MapViewModel): MapUiState.Ready =
+        viewModel.state.value as? MapUiState.Ready ?: throw AssertionError("Not ready: ${viewModel.state.value}")
+
+    private fun validArchive(): ByteArray =
+        ByteArrayOutputStream()
+            .also { bytes ->
+                ZipOutputStream(bytes).use { zip ->
+                    zip.putNextEntry(ZipEntry("tile.jpg"))
+                    zip.write(byteArrayOf(0))
+                    zip.closeEntry()
+                }
+            }.toByteArray()
+}

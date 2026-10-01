@@ -1,5 +1,6 @@
 package kniezrec.com.flightinfo.displayunits
 
+import java.math.RoundingMode
 import java.text.NumberFormat
 import java.util.Locale
 import kotlin.math.abs
@@ -52,6 +53,10 @@ fun convertPressure(
         }
     }
 
+/**
+ * One decimal as the original app's `"%.1f"`: no grouping separator, halves rounded up (1013.25 →
+ * "1013.3"); the decimal separator follows [locale]. [signed] adds "+" or "−".
+ */
 fun formatUnitNumber(
     value: Double?,
     signed: Boolean = false,
@@ -62,6 +67,8 @@ fun formatUnitNumber(
         NumberFormat
             .getNumberInstance(locale)
             .apply {
+                isGroupingUsed = false
+                roundingMode = RoundingMode.HALF_UP
                 minimumFractionDigits = 1
                 maximumFractionDigits = 1
             }.format(abs(value))

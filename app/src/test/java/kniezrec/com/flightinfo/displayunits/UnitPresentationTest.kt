@@ -21,4 +21,11 @@ class UnitPresentationTest {
         assertNull(formatUnitNumber(Double.NaN))
         assertNull(convertDistance(Double.POSITIVE_INFINITY, DistanceUnit.MILES))
     }
+
+    @Test fun formatsLikeTheOriginalWithoutGroupingAndRoundingHalfUp() {
+        assertEquals("1013.3", formatUnitNumber(1013.25, locale = java.util.Locale.US))
+        assertEquals("35000.0", formatUnitNumber(35_000.0, locale = java.util.Locale.US))
+        assertEquals("−0.3", formatUnitNumber(-0.25, signed = true, locale = java.util.Locale.US))
+        assertEquals("1013,3", formatUnitNumber(1013.25, locale = java.util.Locale.GERMANY))
+    }
 }

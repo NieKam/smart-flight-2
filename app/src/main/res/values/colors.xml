@@ -1,10 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="purple_200">#FFBB86FC</color>
-    <color name="purple_500">#FF6200EE</color>
-    <color name="purple_700">#FF3700B3</color>
-    <color name="teal_200">#FF03DAC5</color>
-    <color name="teal_700">#FF018786</color>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
+    <!-- Only what XML resources use (Compose uses the ui/theme tokens); every value is in the token table. -->
+    <!-- Original purple_dark: launcher icon background. -->
+    <color name="purple_dark">#FF484685</color>
+    <!-- Window background before Compose draws: the page token of the light and the dark scheme. -->
+    <color name="window_light">#FFEFEEF8</color>
+    <color name="window_dark">#FF38366E</color>
 </resources>

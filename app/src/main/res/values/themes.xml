@@ -1,5 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.SmartFlight" parent="android:Theme.Material.Light.NoActionBar" />
+    <!--
+        Light window in the light page color, so nothing of the wrong theme shows before Compose
+        draws (values-night holds the dark one). The in-app Theme setting overrides the night mode
+        per app (UiModeManager.setApplicationNightMode), so this resource already matches it at launch.
+    -->
+    <style name="Theme.SmartFlight" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/window_light</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+    </style>
 </resources>

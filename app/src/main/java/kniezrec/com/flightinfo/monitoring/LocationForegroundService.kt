@@ -17,32 +17,63 @@ import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import androidx.core.content.ContextCompat
+import dagger.hilt.android.AndroidEntryPoint
 import kniezrec.com.flightinfo.MainActivity
 import kniezrec.com.flightinfo.R
-import kniezrec.com.flightinfo.flight.AndroidFlightLocationPlatform
-import kniezrec.com.flightinfo.gnss.AndroidGnssStatusPlatform
+import kniezrec.com.flightinfo.di.MainDispatcher
+import kniezrec.com.flightinfo.location.data.LocationRegistrationException
+import kniezrec.com.flightinfo.location.data.LocationRepository
+import kniezrec.com.flightinfo.monitoring.data.BackgroundNotificationSettingsRepository
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-/** Foreground lifetime for the service-owned location/GNSS monitoring session. */
-internal interface MonitoringSession {
-    fun start(): Boolean
+/**
+ * Keeps the location registration alive while the dashboard is hidden, until the first usable fix.
+ *
+ * Rules, re-evaluated whenever visibility, the notification setting or the fix state changes:
+ * - hidden after a usable fix of this run: stop;
+ * - not eligible (permission or providers lost): stop;
+ * - hidden with the background notification turned off: stop;
+ * - hidden while notifications cannot be posted (permission denied, app or channel blocked): stop,
+ *   so GPS never keeps running in the background without a visible notification;
+ * - otherwise show the notification, with the "waiting" copy when hidden without a fix.
+ */
+@AndroidEntryPoint
+internal open class LocationForegroundService : Service() {
+    // Injected in super.onCreate() (Hilt_LocationForegroundService); test subclasses inherit them.
+    // Tests replace the observed dependencies after onCreate() (before onStartCommand).
+    @Inject lateinit var backgroundNotificationSettingsRepository: BackgroundNotificationSettingsRepository
 
-    fun stop()
-}
+    @Inject lateinit var locationManager: LocationManager
 
-internal open class LocationForegroundService :
-    Service(),
-    BackgroundMonitoringService {
+    @Inject lateinit var locationRepository: LocationRepository
+
+    @Inject lateinit var appVisibility: AppVisibility
+
+    @MainDispatcher
+    @Inject
+    lateinit var mainDispatcher: CoroutineDispatcher
+
     private val handler = Handler(Looper.getMainLooper())
     private var providerReceiver: BroadcastReceiver? = null
     private var started = false
-    private var monitoringSession: MonitoringSession? = null
-    private var bridgeGeneration: Long? = null
+    private var monitoringScope: CoroutineScope? = null
+
+    /** Whether the current run has received a fix; a new run starts without one. */
+    private val hasUsableFix = MutableStateFlow(false)
 
     private val eligibilityCheck =
         object : Runnable {
             override fun run() {
                 if (!isMonitoringEligible()) {
-                    stopForEligibility()
+                    stopRun()
                 } else {
                     handler.postDelayed(this, CHECK_INTERVAL_MS)
                 }
@@ -71,16 +102,13 @@ internal open class LocationForegroundService :
                 return START_NOT_STICKY
             }
             started = true
-            val generation = BackgroundMonitoringBridge.attach(this)
-            bridgeGeneration = generation
-            createMonitoringSession(generation).also { session ->
-                monitoringSession = session
-                if (!session.start()) {
-                    stopMonitoring()
-                    stopSelf()
-                    return START_NOT_STICKY
-                }
+            if (!locationRepository.isLocationEnabled() || !locationRepository.hasGnssHardware()) {
+                stopMonitoring()
+                stopSelf()
+                return START_NOT_STICKY
             }
+            hasUsableFix.value = false
+            startRun()
             registerProviderReceiver()
             handler.post(eligibilityCheck)
         }
@@ -91,8 +119,6 @@ internal open class LocationForegroundService :
 
     override fun onDestroy() {
         stopMonitoring()
-        bridgeGeneration?.let { BackgroundMonitoringBridge.detach(this, it) }
-        bridgeGeneration = null
         super.onDestroy()
     }
 
@@ -102,45 +128,28 @@ internal open class LocationForegroundService :
         super.onTaskRemoved(rootIntent)
     }
 
-    override fun reconcile(
+    /** Applies the rules in the class documentation to the current state. */
+    private fun applyRules(
         activityVisible: Boolean,
+        showBackgroundNotification: Boolean,
         hasUsableFix: Boolean,
     ) {
-        if (!started || !isMonitoringEligible()) {
-            if (!isMonitoringEligible()) {
-                stopForEligibility()
-            }
-            return
+        if (!started) return
+        when {
+            !activityVisible && hasUsableFix -> stopRun()
+            !isMonitoringEligible() -> stopRun()
+            !activityVisible && !showBackgroundNotification -> stopRun()
+            !activityVisible && !canPostNotifications() -> stopRun()
+            else -> updateNotification(showWaiting = !activityVisible && !hasUsableFix)
         }
-        if (!activityVisible && !showBackgroundNotification()) {
-            stopMonitoring()
-            stopSelf()
-            return
-        }
-        updateNotification(showWaiting = !activityVisible && !hasUsableFix && canPostNotifications())
-    }
-
-    override fun onUsableFix() {
-        stopMonitoring()
-        stopSelf()
-    }
-
-    override fun stopForPreferenceDisabled() {
-        stopMonitoring()
-        stopSelf()
     }
 
     protected open fun isMonitoringEligible(): Boolean =
         ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED &&
-            getSystemService(LocationManager::class.java).let { locationManager ->
+            (
                 locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) ||
                     locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
-            }
-
-    protected open fun showBackgroundNotification(): Boolean =
-        BackgroundNotificationPreferencesStore(
-            getSharedPreferences(BackgroundNotificationPreferencesStore.PREFERENCES_NAME, MODE_PRIVATE),
-        ).read().showBackgroundNotification
+            )
 
     private fun registerProviderReceiver() {
         if (providerReceiver != null) return
@@ -151,23 +160,23 @@ internal open class LocationForegroundService :
                     intent: Intent,
                 ) {
                     if (intent.action == LocationManager.PROVIDERS_CHANGED_ACTION && !isMonitoringEligible()) {
-                        stopForEligibility()
+                        stopRun()
                     }
                 }
             }
         registerReceiver(providerReceiver, IntentFilter(LocationManager.PROVIDERS_CHANGED_ACTION))
     }
 
-    private fun stopForEligibility() {
-        BackgroundMonitoringBridge.notifyEligibilityLost()
+    private fun stopRun() {
         stopMonitoring()
         stopSelf()
     }
 
     private fun stopMonitoring() {
         handler.removeCallbacks(eligibilityCheck)
-        monitoringSession?.stop()
-        monitoringSession = null
+        // Cancelling the last collectors releases the repository's platform registrations.
+        monitoringScope?.cancel()
+        monitoringScope = null
         providerReceiver?.let { unregisterReceiver(it) }
         providerReceiver = null
         getSystemService(NotificationManager::class.java).cancel(NOTIFICATION_ID)
@@ -180,9 +189,12 @@ internal open class LocationForegroundService :
         )
     }
 
-    protected open fun canPostNotifications(): Boolean =
-        android.os.Build.VERSION.SDK_INT < 33 ||
-            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+    protected open fun canPostNotifications(): Boolean {
+        val permitted =
+            android.os.Build.VERSION.SDK_INT < POST_NOTIFICATIONS_SDK ||
+                ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+        return permitted && getSystemService(NotificationManager::class.java).backgroundNotificationsEnabled()
+    }
 
     protected open fun startForegroundServiceNotification(): Boolean =
         runCatching {
@@ -197,23 +209,35 @@ internal open class LocationForegroundService :
         if (started) getSystemService(NotificationManager::class.java).notify(NOTIFICATION_ID, notification(showWaiting))
     }
 
-    protected open fun createMonitoringSession(generation: Long): MonitoringSession =
-        LocationGnssMonitoringSession(
-            locationPlatform =
-                AndroidFlightLocationPlatform(
-                    getSystemService(LocationManager::class.java),
-                    packageManager,
-                    mainExecutor,
-                ),
-            gnssPlatform =
-                AndroidGnssStatusPlatform(
-                    getSystemService(LocationManager::class.java),
-                    packageManager,
-                    mainExecutor,
-                ),
-            onLocation = { fix -> BackgroundMonitoringBridge.forwardLocation(generation, fix) },
-            onGnssStatus = { status -> BackgroundMonitoringBridge.forwardGnssStatus(generation, status) },
-        )
+    /**
+     * Holds the repository's fix and satellite registrations until [stopMonitoring] (the dashboard
+     * collects the same registrations itself) and applies the rules on every state change. A
+     * registration failure (reported asynchronously, after the first collection starts) stops the
+     * service, as a failed registration in [onStartCommand] did before.
+     */
+    private fun startRun() {
+        val scope = CoroutineScope(SupervisorJob() + mainDispatcher)
+        monitoringScope = scope
+        scope.launch {
+            try {
+                coroutineScope {
+                    launch { locationRepository.fixes.collect { hasUsableFix.value = true } }
+                    // Values unused here: collecting keeps the GNSS registration of the run alive.
+                    launch { locationRepository.satellites.collect { } }
+                }
+            } catch (_: LocationRegistrationException) {
+                if (monitoringScope === scope) stopRun()
+            }
+        }
+        scope.launch {
+            combine(
+                appVisibility.visible,
+                backgroundNotificationSettingsRepository.settings,
+                hasUsableFix,
+            ) { visible, settings, fix -> Triple(visible, settings.showBackgroundNotification, fix) }
+                .collect { (visible, showNotification, fix) -> applyRules(visible, showNotification, fix) }
+        }
+    }
 
     private fun notification(showWaiting: Boolean): Notification {
         val openApp =
@@ -232,7 +256,7 @@ internal open class LocationForegroundService :
             )
         return Notification
             .Builder(this, CHANNEL_ID)
-            .setSmallIcon(R.mipmap.ic_launcher)
+            .setSmallIcon(R.drawable.ic_stat_plane)
             .setContentTitle(getString(if (showWaiting) R.string.background_notification_title else R.string.app_name))
             .setContentText(getString(if (showWaiting) R.string.background_notification_content else R.string.background_service_content))
             .setContentIntent(openApp)
@@ -249,3 +273,8 @@ internal open class LocationForegroundService :
         private const val CHECK_INTERVAL_MS = 1_000L
     }
 }
+
+/** Notifications are on for the app and the background notification channel is not blocked. */
+internal fun NotificationManager.backgroundNotificationsEnabled(): Boolean =
+    areNotificationsEnabled() &&
+        getNotificationChannel(LocationForegroundService.CHANNEL_ID)?.importance != NotificationManager.IMPORTANCE_NONE

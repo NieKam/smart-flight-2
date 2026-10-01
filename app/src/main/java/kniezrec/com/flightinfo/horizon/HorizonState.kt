@@ -20,18 +20,24 @@ sealed interface HorizonState {
     ) : HorizonState
 }
 
+/**
+ * Maps the pitch relative to the level reference (positive nose-up) and the roll (positive right
+ * wing down) to the horizon picture, as an attitude indicator: nose-up lowers the horizon layer
+ * behind the fixed aircraft, rolling right turns it counter-clockwise.
+ */
 internal fun mapHorizonAttitude(
-    relativePitchDegrees: Double,
+    noseUpPitchDegrees: Double,
     rollDegrees: Double,
 ): HorizonState.Available? {
-    if (!relativePitchDegrees.isFinite() || !rollDegrees.isFinite()) return null
-    val pitch = relativePitchDegrees.coerceIn(-30.0, 30.0)
+    if (!noseUpPitchDegrees.isFinite() || !rollDegrees.isFinite()) return null
+    val pitch = noseUpPitchDegrees.coerceIn(-30.0, 30.0)
     val roll = rollDegrees.coerceIn(-45.0, 45.0)
     return HorizonState.Available(
         pitchDegrees = pitch.roundToInt(),
         rollDegrees = roll.roundToInt(),
-        // Positive pitch raises the ground/horizon layer; the fixed aircraft stays centered.
-        verticalOffsetFraction = (-pitch / 30.0 * 0.35).toFloat(),
-        visualRollDegrees = roll.toFloat(),
+        // Positive translation moves the layer down.
+        verticalOffsetFraction = (pitch / 30.0 * 0.35).toFloat(),
+        // Positive rotation is clockwise; `0.0 - roll` keeps level at 0f instead of -0f.
+        visualRollDegrees = (0.0 - roll).toFloat(),
     )
 }

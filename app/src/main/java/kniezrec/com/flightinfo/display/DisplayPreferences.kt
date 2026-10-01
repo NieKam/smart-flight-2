@@ -1,62 +1,32 @@
 package kniezrec.com.flightinfo.display
 
-import android.content.SharedPreferences
-
 data class DisplayPreferences(
     val keepScreenAlwaysOn: Boolean = false,
     val portraitOrientation: Boolean = true,
     val largerMapZoom: Boolean = false,
+    val themeMode: ThemeMode = ThemeMode.SYSTEM,
 )
 
-interface DisplayEffectSink {
-    fun setKeepScreenAlwaysOn(enabled: Boolean)
-
-    fun requestOrientation(orientation: Int)
-}
-
-class DisplayPreferencesApplier(
-    private val sink: DisplayEffectSink,
-    private val portraitOrientation: Int,
-    private val sensorOrientation: Int,
+/** The app's Theme setting (TASK-037): follow the system night mode, or force light or dark. */
+enum class ThemeMode(
+    /** The value stored under the `theme_mode` key. */
+    val storageValue: String,
 ) {
-    fun apply(
-        preferences: DisplayPreferences,
-        currentOrientation: Int,
-    ) {
-        sink.setKeepScreenAlwaysOn(preferences.keepScreenAlwaysOn)
-        val requested = if (preferences.portraitOrientation) portraitOrientation else sensorOrientation
-        if (currentOrientation != requested) sink.requestOrientation(requested)
-    }
-}
+    SYSTEM("system"),
+    LIGHT("light"),
+    DARK("dark"),
+    ;
 
-class DisplayPreferencesStore(
-    private val preferences: SharedPreferences,
-) {
-    fun read() =
-        DisplayPreferences(
-            keepScreenAlwaysOn = booleanOrDefault(KEY_KEEP_SCREEN, false),
-            portraitOrientation = booleanOrDefault(KEY_PORTRAIT, true),
-            largerMapZoom = booleanOrDefault(KEY_LARGER_ZOOM, false),
-        )
+    /** Whether the dark scheme applies, given whether the system is in night mode. */
+    fun isDark(systemDark: Boolean): Boolean =
+        when (this) {
+            SYSTEM -> systemDark
+            LIGHT -> false
+            DARK -> true
+        }
 
-    fun write(value: DisplayPreferences) {
-        preferences
-            .edit()
-            .putBoolean(KEY_KEEP_SCREEN, value.keepScreenAlwaysOn)
-            .putBoolean(KEY_PORTRAIT, value.portraitOrientation)
-            .putBoolean(KEY_LARGER_ZOOM, value.largerMapZoom)
-            .commit()
-    }
-
-    private fun booleanOrDefault(
-        key: String,
-        default: Boolean,
-    ): Boolean = if (preferences.all[key] is Boolean) preferences.getBoolean(key, default) else default
-
-    private companion object {
-        const val KEY_PREFIX = "display_behavior_"
-        const val KEY_KEEP_SCREEN = KEY_PREFIX + "keep_screen_always_on"
-        const val KEY_PORTRAIT = KEY_PREFIX + "portrait_orientation"
-        const val KEY_LARGER_ZOOM = KEY_PREFIX + "larger_map_zoom"
+    companion object {
+        /** The mode stored as [value]; a missing or unknown value is [SYSTEM]. */
+        fun fromStorage(value: String?): ThemeMode = entries.firstOrNull { it.storageValue == value } ?: SYSTEM
     }
 }
