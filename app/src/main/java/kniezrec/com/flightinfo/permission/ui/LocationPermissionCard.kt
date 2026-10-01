@@ -107,12 +107,7 @@ private fun PermissionStateCard(
                 text = stringResource(content.title),
                 modifier = Modifier.semantics { if (announceStateChange) liveRegion = LiveRegionMode.Polite },
                 style =
-                    MaterialTheme.typography.titleLarge.copy(
-                        fontSize = 22.sp,
-                        lineHeight = 28.sp,
-                        fontWeight = FontWeight.Medium,
-                        textAlign = TextAlign.Center,
-                    ),
+                    MaterialTheme.typography.titleLarge.copy(textAlign = TextAlign.Center),
             )
             // The original description was a muted label; the light value color keeps this body text
             // readable (WCAG AA), as the rest of the app's body text.

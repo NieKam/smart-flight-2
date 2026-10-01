@@ -311,7 +311,7 @@ private fun HorizonAction(
 }
 
 @Composable
-private fun horizonTitle() = MaterialTheme.typography.titleLarge.copy(fontSize = 22.sp, lineHeight = 28.sp, fontWeight = FontWeight.Medium)
+private fun horizonTitle() = MaterialTheme.typography.titleLarge
 
 @Composable
 private fun horizonBody() = MaterialTheme.typography.bodyLarge.copy(fontSize = 18.sp, lineHeight = 25.sp)

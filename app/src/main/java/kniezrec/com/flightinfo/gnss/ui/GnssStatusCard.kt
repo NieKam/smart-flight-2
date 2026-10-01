@@ -141,12 +141,7 @@ private data class StaticState(
             liveRegion = LiveRegionMode.Polite
         },
         style =
-            MaterialTheme.typography.titleLarge.copy(
-                fontSize = 22.sp,
-                lineHeight = 28.sp,
-                fontWeight = FontWeight.Medium,
-                textAlign = TextAlign.Center,
-            ),
+            MaterialTheme.typography.titleLarge.copy(textAlign = TextAlign.Center),
     )
     ValueText(
         stringResource(body),
@@ -164,11 +159,7 @@ private data class StaticState(
                 liveRegion = LiveRegionMode.Polite
             },
             style =
-                MaterialTheme.typography.titleLarge.copy(
-                    fontSize = 22.sp,
-                    lineHeight = 28.sp,
-                    fontWeight = FontWeight.Medium,
-                ),
+                MaterialTheme.typography.titleLarge,
         )
         ValueText(
             pluralStringResource(R.plurals.gnss_satellites_used, chart.usedCount, chart.usedCount),

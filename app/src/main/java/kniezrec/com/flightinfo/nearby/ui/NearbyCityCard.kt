@@ -25,7 +25,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -36,10 +36,12 @@ import kniezrec.com.flightinfo.displayunits.formatUnitNumber
 import kniezrec.com.flightinfo.displayunits.ui.labels
 import kniezrec.com.flightinfo.nearby.NearbyCityState
 import kniezrec.com.flightinfo.ui.theme.LabelText
+import kniezrec.com.flightinfo.ui.theme.LabelValueRow
 import kniezrec.com.flightinfo.ui.theme.SmartFlightCard
 import kniezrec.com.flightinfo.ui.theme.SmartFlightCardDefaults
 import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
 import kniezrec.com.flightinfo.ui.theme.ValueText
+import kniezrec.com.flightinfo.ui.theme.withSmallerUnit
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -86,15 +88,12 @@ internal fun NearbyCityCard(
     Title(R.string.nearby_city_title)
     Spacer(Modifier.height(16.dp))
     val number = formatUnitNumber(convertDistance(state.distanceKilometres, distanceUnit)) ?: "—"
-    Row(R.string.nearby_city_closest, state.cityName)
-    Row(R.string.nearby_city_country, state.country)
+    val unit = stringResource(distanceUnit.labels.symbol)
+    Row(R.string.nearby_city_closest, AnnotatedString(state.cityName), state.cityName)
+    Row(R.string.nearby_city_country, AnnotatedString(state.country), state.country)
     Row(
         R.string.nearby_city_distance,
-        stringResource(
-            R.string.distance_value,
-            number,
-            stringResource(distanceUnit.labels.symbol),
-        ),
+        withSmallerUnit(stringResource(R.string.distance_value, number, unit), unit),
         stringResource(
             R.string.distance_spoken_value,
             number,
@@ -105,7 +104,7 @@ internal fun NearbyCityCard(
     val localTime = localTimeText(state.instant, state.zoneId)
     Row(
         R.string.nearby_city_time,
-        stringResource(R.string.nearby_city_time_value, localTime, offset.visible),
+        AnnotatedString(stringResource(R.string.nearby_city_time_value, localTime, offset.visible)),
         stringResource(R.string.nearby_city_time_spoken, localTime, offset.spoken),
     )
 }
@@ -181,23 +180,24 @@ private data class UtcOffsetText(
 ) = LabelText(
     stringResource(text),
     textAlign = align,
-    style = MaterialTheme.typography.titleLarge.copy(fontSize = 22.sp, lineHeight = 28.sp, fontWeight = FontWeight.Medium),
+    style = MaterialTheme.typography.titleLarge,
 )
 
+/** A label and its secondary value (Material `titleMedium`, tabular figures), read as one description. */
 @Composable private fun Row(
     label: Int,
-    value: String,
-    spoken: String = value,
+    value: AnnotatedString,
+    spoken: String,
 ) {
     val name = stringResource(label)
     val rowDescription = stringResource(R.string.card_row_description, name, spoken)
-    androidx.compose.foundation.layout.Row(
-        Modifier.fillMaxWidth().heightIn(min = 48.dp).semantics(mergeDescendants = true) {
-            contentDescription = rowDescription
-        },
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        LabelText(name, Modifier.weight(1f))
-        ValueText(value, fontWeight = FontWeight.Medium, textAlign = TextAlign.End)
-    }
+    LabelValueRow(
+        label = name,
+        value = value,
+        valueStyle = MaterialTheme.typography.titleMedium,
+        modifier =
+            Modifier.heightIn(min = 48.dp).semantics(mergeDescendants = true) {
+                contentDescription = rowDescription
+            },
+    )
 }
