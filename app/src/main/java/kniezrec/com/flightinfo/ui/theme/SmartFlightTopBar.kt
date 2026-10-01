@@ -22,7 +22,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
  * [SmartFlightColors.topBarScrolled] while content scrolls under it ([scrollBehavior]), animated.
  * Read the state in the draw phase ([topBarBackground]) so scrolling does not recompose the bar.
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@ExperimentalMaterial3Api
 @Composable
 fun rememberTopBarContainerColor(scrollBehavior: TopAppBarScrollBehavior?): State<Color> {
     val colors = SmartFlightTheme.colors

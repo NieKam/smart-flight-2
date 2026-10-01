@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kniezrec.com.flightinfo.AppScaffold
 import kniezrec.com.flightinfo.dashboard.ui.DashboardHeader
+import kniezrec.com.flightinfo.dashboard.ui.DashboardTopBar
 import kniezrec.com.flightinfo.flight.FlightParametersState
 import kniezrec.com.flightinfo.flight.ui.FlightParametersCard
 import org.junit.Assert.assertTrue
@@ -67,7 +68,7 @@ class DashboardColorsPixelTest {
             SmartFlightTheme(darkTheme = true) {
                 val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
                 Column(Modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection)) {
-                    DashboardHeader(onOpenSettings = {}, onOpenAbout = {}, scrollBehavior = scrollBehavior)
+                    DashboardTopBar(onOpenSettings = {}, onOpenAbout = {}, scrollBehavior = scrollBehavior)
                     Column(Modifier.weight(1f).testTag(LIST_TAG).verticalScroll(rememberScrollState())) {
                         repeat(4) { FlightParametersCard(FlightParametersState.Waiting, modifier = Modifier.padding(12.dp)) }
                         Column(Modifier.fillMaxWidth().height(2000.dp)) {}

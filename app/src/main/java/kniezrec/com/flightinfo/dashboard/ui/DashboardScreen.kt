@@ -120,7 +120,7 @@ fun DashboardScreen(
         }
         Box(Modifier.fillMaxSize().then(modifier)) {
             Column(Modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection)) {
-                DashboardHeader(
+                DashboardTopBar(
                     onOpenSettings = { showSettings = true },
                     onOpenAbout = { showAbout = true },
                     scrollBehavior = scrollBehavior,
@@ -269,7 +269,7 @@ private fun DashboardSlot(
  * The top app bar as in the original app (`activity_main.xml`, `menu/app_menu.xml`): the centered
  * title "Smart Flight" and a "⋮" overflow button whose menu holds Settings and About, on every screen
  * width. Its container ([SmartFlightColors.topBar][kniezrec.com.flightinfo.ui.theme.SmartFlightColors.topBar])
- * changes to the scrolled tone while the card list scrolls under it ([scrollBehavior]); the status
+ * changes to the scrolled tone while the card list scrolls under it ([DashboardTopBar]); the status
  * bar above it is painted in the same color.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -278,7 +278,21 @@ fun DashboardHeader(
     onOpenSettings: () -> Unit,
     onOpenAbout: () -> Unit,
     modifier: Modifier = Modifier,
-    scrollBehavior: TopAppBarScrollBehavior? = null,
+) {
+    DashboardTopBar(onOpenSettings, onOpenAbout, modifier, scrollBehavior = null)
+}
+
+/**
+ * [DashboardHeader] reacting to [scrollBehavior]. Kept apart so the public header's signature has
+ * no experimental Material type (its opt-in would propagate to every caller).
+ */
+@ExperimentalMaterial3Api
+@Composable
+internal fun DashboardTopBar(
+    onOpenSettings: () -> Unit,
+    onOpenAbout: () -> Unit,
+    modifier: Modifier = Modifier,
+    scrollBehavior: TopAppBarScrollBehavior?,
 ) {
     val containerColor = rememberTopBarContainerColor(scrollBehavior)
     CenterAlignedTopAppBar(
