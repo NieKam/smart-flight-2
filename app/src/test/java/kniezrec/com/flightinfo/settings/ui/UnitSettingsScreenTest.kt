@@ -154,7 +154,11 @@ class UnitSettingsScreenTest {
         composeRule.setContent {
             UnitSettingsScreen(selected, { selected = it }, {})
         }
-        composeRule.onNode(hasContentDescription("Distance, current value km, double tap to change")).performClick()
+        // Below the fold of a phone window since the Theme row was added: scroll it in like a user would.
+        composeRule
+            .onNode(hasContentDescription("Distance, current value km, double tap to change"))
+            .performScrollTo()
+            .performClick()
         composeRule.onNodeWithText("Miles (mi)").assertIsDisplayed().performClick()
         composeRule.runOnIdle { assertEquals(DistanceUnit.MILES, selected.distance) }
         composeRule.onNode(hasContentDescription("Distance, current value mi, double tap to change")).assertExists()

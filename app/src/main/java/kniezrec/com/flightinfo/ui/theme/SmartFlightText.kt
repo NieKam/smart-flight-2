@@ -121,9 +121,10 @@ fun LabelValueRow(
     val labelStyle = MaterialTheme.typography.labelLarge
     BoxWithConstraints(modifier.fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
         if (LocalDensity.current.fontScale > STACKED_FONT_SCALE) {
+            // Each on full-width lines of its own: both wrap instead of being cut off.
             Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                LabelText(label, style = labelStyle)
-                ValueText(value, style = valueStyle)
+                LabelText(label, Modifier.fillMaxWidth(), style = labelStyle)
+                ValueText(value, Modifier.fillMaxWidth(), style = valueStyle)
             }
         } else {
             val valueMaxWidth = maxWidth * VALUE_MAX_WIDTH_FRACTION

@@ -124,7 +124,13 @@ class TextHierarchyTest {
 
         for (text in listOf("Vertical speed", "1234.5 km/h", "−12.3 m/s", "12500.0 m", "1013.3 mbar")) {
             composeRule.onNodeWithText(text, useUnmergedTree = true).assertIsDisplayed()
-            assertFalse("$text is clipped", layout(text).hasVisualOverflow)
+            val layout = layout(text)
+            assertFalse("$text is clipped", layout.hasVisualOverflow)
+            // Every line lies inside the text's own bounds.
+            for (line in 0 until layout.lineCount) {
+                assertTrue("$text line $line is cut off at the end", layout.getLineRight(line) <= layout.size.width + 0.5f)
+                assertTrue("$text line $line is cut off at the bottom", layout.getLineBottom(line) <= layout.size.height + 0.5f)
+            }
         }
     }
 
