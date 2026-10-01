@@ -15,6 +15,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.DrawScope
 
 /**
  * The container color of a top bar (TASK-037): [SmartFlightColors.topBar] at rest and
@@ -37,18 +38,28 @@ fun rememberTopBarContainerColor(scrollBehavior: TopAppBarScrollBehavior?): Stat
 /**
  * Paints [color] behind the top bar and behind the whole window band above it (the status bar), so
  * the status bar always matches the bar, at rest and scrolled. The app is edge to edge and the bar
- * sits right below the status bar; nothing between them clips drawing.
+ * sits right below the status bar; nothing between them may clip drawing (see [statusBarBand]).
  */
 fun Modifier.topBarBackground(color: State<Color>): Modifier =
     drawBehind {
-        val fill = color.value
-        drawRect(fill)
-        drawRect(
-            fill,
-            topLeft = Offset(-size.width, -STATUS_BAND_HEIGHT_PX),
-            size = Size(size.width * 3, STATUS_BAND_HEIGHT_PX),
-        )
+        drawRect(color.value)
+        drawStatusBand(color.value)
     }
+
+/**
+ * Paints [color] behind the window band above this element only. For a screen whose container clips
+ * its content (a Material `Scaffold` is a clipping surface) and whose top bar is at its top edge:
+ * applied to the container's modifier, the band is drawn outside the clip.
+ */
+fun Modifier.statusBarBand(color: State<Color>): Modifier = drawBehind { drawStatusBand(color.value) }
+
+private fun DrawScope.drawStatusBand(fill: Color) {
+    drawRect(
+        fill,
+        topLeft = Offset(-size.width, -STATUS_BAND_HEIGHT_PX),
+        size = Size(size.width * 3, STATUS_BAND_HEIGHT_PX),
+    )
+}
 
 /**
  * Top bar content colors: [SmartFlightColors.toolbarTitle] title and icons on a transparent

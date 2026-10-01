@@ -74,6 +74,7 @@ import kniezrec.com.flightinfo.ui.theme.rememberTopBarContainerColor
 import kniezrec.com.flightinfo.ui.theme.smartFlightRadioButtonColors
 import kniezrec.com.flightinfo.ui.theme.smartFlightSwitchColors
 import kniezrec.com.flightinfo.ui.theme.smartFlightTopAppBarColors
+import kniezrec.com.flightinfo.ui.theme.statusBarBand
 import kniezrec.com.flightinfo.ui.theme.topBarBackground
 
 private sealed class Selector<T : UnitKey>(
@@ -131,7 +132,8 @@ fun UnitSettingsScreen(
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val topBarColor = rememberTopBarContainerColor(scrollBehavior)
     Scaffold(
-        modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        // The Scaffold clips its content: the status bar above it is painted from outside the clip.
+        modifier = modifier.statusBarBand(topBarColor).nestedScroll(scrollBehavior.nestedScrollConnection),
         containerColor = colors.page,
         contentColor = colors.valueText,
         topBar = {
