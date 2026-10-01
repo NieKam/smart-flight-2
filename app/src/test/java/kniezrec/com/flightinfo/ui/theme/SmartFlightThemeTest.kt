@@ -50,21 +50,23 @@ class SmartFlightThemeTest {
             composeRule.activity.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK ==
                 Configuration.UI_MODE_NIGHT_YES,
         )
-        val colors = DefaultSmartFlightColors
+        val colors = DarkSmartFlightColors
         val actual = checkNotNull(scheme)
         assertEquals(colors, tokens)
         assertEquals(colors.accent, actual.primary)
         assertEquals(colors.page, actual.onPrimary)
         assertEquals(colors.page, actual.background)
         assertEquals(colors.valueText, actual.onBackground)
-        assertEquals(colors.card, actual.surface)
-        assertEquals(colors.card, actual.surfaceContainerHigh)
-        assertEquals(colors.card, actual.surfaceTint)
+        assertEquals(colors.page, actual.surface)
+        assertEquals(colors.card, actual.surfaceContainer)
+        assertEquals(colors.raised, actual.surfaceContainerHigh)
+        assertEquals(colors.page, actual.surfaceTint)
         assertEquals(colors.valueText, actual.onSurface)
         assertEquals(colors.labelText, actual.onSurfaceVariant)
         assertEquals(colors.labelText, actual.outline)
         assertEquals(colors.error, actual.error)
-        assertEquals(colors.toastBackground, actual.inverseSurface)
-        assertEquals(colors.accent, actual.inversePrimary)
+        assertEquals(colors.inverseSurface, actual.inverseSurface)
+        assertEquals(colors.inverseOnSurface, actual.inverseOnSurface)
+        assertEquals(colors.inversePrimary, actual.inversePrimary)
     }
 }

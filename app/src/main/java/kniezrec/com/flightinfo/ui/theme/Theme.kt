@@ -8,34 +8,36 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
 
 /**
- * The one Material color scheme of the app, built from [colors]. Every role is set explicitly so no
- * Material default (or wallpaper color) leaks into a component. `surfaceTint` equals `surface`, so
- * tonal elevation does not tint cards.
+ * The Material color scheme built from [colors]. Every role is set explicitly so no Material default
+ * (or wallpaper color) leaks into a component. Elevation is tonal through distinct surface roles:
+ * `surface`/`background` for the page, `surfaceContainer` for cards, `surfaceContainerHigh` for
+ * dialogs and menus, `inverseSurface` for snackbars. `surfaceTint` equals `surface`, so Material's
+ * own tonal overlay does not tint anything further.
  */
 internal fun smartFlightColorScheme(colors: SmartFlightColors): ColorScheme =
     darkColorScheme(
         primary = colors.accent,
         onPrimary = colors.page,
-        primaryContainer = colors.card,
+        primaryContainer = colors.raised,
         onPrimaryContainer = colors.valueText,
-        inversePrimary = colors.accent,
+        inversePrimary = colors.inversePrimary,
         secondary = colors.accent,
         onSecondary = colors.page,
-        secondaryContainer = colors.card,
+        secondaryContainer = colors.raised,
         onSecondaryContainer = colors.valueText,
         tertiary = colors.accentLight,
         onTertiary = colors.page,
-        tertiaryContainer = colors.card,
+        tertiaryContainer = colors.raised,
         onTertiaryContainer = colors.valueText,
         background = colors.page,
         onBackground = colors.valueText,
-        surface = colors.card,
+        surface = colors.page,
         onSurface = colors.valueText,
         surfaceVariant = colors.card,
         onSurfaceVariant = colors.labelText,
-        surfaceTint = colors.card,
-        inverseSurface = colors.toastBackground,
-        inverseOnSurface = colors.valueText,
+        surfaceTint = colors.page,
+        inverseSurface = colors.inverseSurface,
+        inverseOnSurface = colors.inverseOnSurface,
         error = colors.error,
         onError = colors.page,
         errorContainer = colors.card,
@@ -43,26 +45,23 @@ internal fun smartFlightColorScheme(colors: SmartFlightColors): ColorScheme =
         outline = colors.labelText,
         outlineVariant = colors.overlay20,
         scrim = colors.overlay50,
-        surfaceBright = colors.card,
+        surfaceBright = colors.raised,
         surfaceContainer = colors.card,
-        surfaceContainerHigh = colors.card,
-        surfaceContainerHighest = colors.card,
+        surfaceContainerHigh = colors.raised,
+        surfaceContainerHighest = colors.raised,
         surfaceContainerLow = colors.card,
-        surfaceContainerLowest = colors.card,
+        surfaceContainerLowest = colors.page,
         surfaceDim = colors.page,
     )
 
-private val smartFlightColorScheme = smartFlightColorScheme(DefaultSmartFlightColors)
+private val darkScheme = smartFlightColorScheme(DarkSmartFlightColors)
 
-/**
- * The app theme: the original Smart Flight palette, identical in light and dark system themes and
- * with any wallpaper (no dynamic color).
- */
+/** The app theme: the Smart Flight palette with any wallpaper (no dynamic color). */
 @Composable
 fun SmartFlightTheme(content: @Composable () -> Unit) {
-    CompositionLocalProvider(LocalSmartFlightColors provides DefaultSmartFlightColors) {
+    CompositionLocalProvider(LocalSmartFlightColors provides DarkSmartFlightColors) {
         MaterialTheme(
-            colorScheme = smartFlightColorScheme,
+            colorScheme = darkScheme,
             typography = appTypography,
             content = content,
         )

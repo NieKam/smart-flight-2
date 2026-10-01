@@ -9,16 +9,17 @@ import java.io.File
 import java.lang.reflect.Modifier
 
 /**
- * Every color token and every color resource is in the palette table of TASK-018: the original
- * Smart Flight palette plus the documented extras. A new color needs a line in that table first.
+ * Every color token (of every scheme) and every color resource is in the token table of TASK-037:
+ * colors of the original Smart Flight palette and tones derived from it. A new color needs a line in
+ * that table first.
  */
 class PaletteGuardTest {
     @Test
     fun everySmartFlightColorsTokenIsInThePalette() {
-        val tokens = tokens(DefaultSmartFlightColors)
+        val tokens = SCHEMES.flatMap { (scheme, colors) -> tokens(colors).map { (name, argb) -> "$scheme.$name" to argb } }.toMap()
         // Every property is seen (a getter the scan misses would escape the guard).
         val properties = SmartFlightColors::class.java.declaredFields.count { !Modifier.isStatic(it.modifiers) }
-        assertEquals(properties, tokens.size)
+        assertEquals(properties * SCHEMES.size, tokens.size)
 
         val outside = tokens.filterValues { it !in PALETTE }
         assertTrue("Tokens outside the palette: ${outside.mapValues { hex(it.value) }}", outside.isEmpty())
@@ -118,6 +119,8 @@ class PaletteGuardTest {
     private fun hex(argb: Int) = "#%08X".format(argb)
 
     private companion object {
+        val SCHEMES = listOf("dark" to DarkSmartFlightColors)
+
         /** The plane marker, the route pins, the city picker marker and the button icons drawn on the maps. */
         val MAP_DRAWABLES =
             listOf(
@@ -143,24 +146,35 @@ class PaletteGuardTest {
 
         val COLOR_RESOURCE = Regex("""<color\s+name="([^"]+)"\s*>\s*#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})\s*</color>""")
 
+        /**
+         * The token table of TASK-037 (derived from the original palette; see `SmartFlightColors`).
+         * A new color needs a line here first.
+         */
         val PALETTE =
             setOf(
-                // Original colors.xml
-                0xFF484685, // purple_dark: page
-                0xFF5B5999, // purple_main: card
-                0xFF25E5FE, // cyan_main: accent
-                0x8025E5FE, // cyan_main_50: accentPressed
+                // Original colors.xml, still in use
+                0xFF484685, // purple_dark: dark card, map ink, launcher background
+                0xFF5B5999, // purple_main: dark top bar
+                0xFF25E5FE, // cyan_main: dark accent, light snackbar action
+                0x8025E5FE, // cyan_main_50: dark accentPressed
                 0xFF99E5FC, // cyan_light: accentLight
-                0xFFA1A0C4, // text_color_dark: labelText
-                0xFFD9D9ED, // text_color_light: valueText
-                0xFF4CAF50, // satellite_green
-                0xFFF44336, // satellite_red
-                0x80000000, // dark_overlay_alpha_50
-                0x33000000, // dark_overlay_alpha_20
-                0xFF2C2163, // toast_background
-                0xFFFFFFFF, // toolbar title (dark action bar)
-                // Documented extras
-                0xFFFFB4AB, // error
+                0xFFD9D9ED, // text_color_light: map halo (button container, pin and marker outline)
+                0xFF4CAF50, // satellite_green: dark satelliteUsed
+                0x80000000, // dark_overlay_alpha_50: scrim
+                0x33000000, // dark_overlay_alpha_20: dividers, switch track
+                0xFF2C2163, // toast_background: dark snackbar text
+                0xFFFFFFFF, // white: dark toolbar title, horizon line
+                // Dark scheme, derived (TASK-037)
+                0xFF38366E, // page: purple_dark one step darker
+                0xFF4F4D8E, // raised: dialogs and menus
+                0xFF67659F, // topBarScrolled
+                0xFFCAC9E3, // labelText (AA on page, card, raised)
+                0xFFF1F0FA, // valueText
+                0xFFFF7A6E, // satelliteUnused: satellite_red lightened to 3:1 on the card
+                0xFFFFC0B8, // error
+                0xFFE8E7F5, // inverseSurface (snackbar)
+                0xFF00687A, // inversePrimary (snackbar action)
+                // Horizon instrument (theme-independent)
                 0xFF7775B5, // horizon sky
                 0xFF3F3D70, // horizon ground
             ).map { it.toInt() }.toSet()

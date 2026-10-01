@@ -283,8 +283,8 @@ fun DashboardHeader(
         windowInsets = WindowInsets(0, 0, 0, 0),
         colors =
             TopAppBarDefaults.topAppBarColors(
-                containerColor = colors.card,
-                scrolledContainerColor = colors.card,
+                containerColor = colors.topBar,
+                scrolledContainerColor = colors.topBar,
                 navigationIconContentColor = colors.toolbarTitle,
                 titleContentColor = colors.toolbarTitle,
                 actionIconContentColor = colors.toolbarTitle,

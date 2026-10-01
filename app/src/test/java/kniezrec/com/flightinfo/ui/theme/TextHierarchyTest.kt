@@ -26,7 +26,7 @@ import java.time.ZoneId
 class TextHierarchyTest {
     @get:Rule val composeRule = createAndroidComposeRule<ComponentActivity>()
 
-    private val colors = DefaultSmartFlightColors
+    private val colors = DarkSmartFlightColors
 
     @Test
     fun flightParametersLabelsAreMutedAndValuesLight() {

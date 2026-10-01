@@ -200,7 +200,7 @@ private fun HorizonInstrument(
     state: HorizonState.Available,
     modifier: Modifier,
 ) {
-    val horizonText = SmartFlightTheme.colors.valueText
+    val horizonText = SmartFlightTheme.colors.horizonLine
     val sky = SmartFlightTheme.colors.horizonSky
     val ground = SmartFlightTheme.colors.horizonGround
     Box(

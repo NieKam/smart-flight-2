@@ -5,69 +5,120 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 
 /**
- * The app's own color tokens: the original Smart Flight palette (`colors.xml` of the original app)
- * plus a few documented extras. Every screen, card, dialog and overlay takes its colors from here
- * (directly or through [SmartFlightTheme]'s Material color scheme); read them through
- * [SmartFlightTheme.colors]. `PaletteGuardTest` keeps new tokens inside the palette.
+ * The app's own color tokens, derived from the original Smart Flight palette (`colors.xml` of the
+ * original app). Every screen, card, dialog and overlay takes its colors from here (directly or
+ * through [SmartFlightTheme]'s Material color scheme); read them through [SmartFlightTheme.colors].
+ *
+ * The token table (with the contrast of every pair the app draws) is pinned by `PaletteGuardTest`
+ * and `ContrastTest`: a new color needs a line in that table first.
+ *
+ * Dark scheme (TASK-037): every surface moved one step darker than the original so muted labels,
+ * values and the cyan accent pass WCAG AA as text (the original card #5B5999 left no room for a
+ * muted label at 4.5:1). The original `purple_main` stays the top bar and `purple_dark` becomes the
+ * card, so the dashboard keeps the original look.
  */
 @Immutable
 data class SmartFlightColors(
-    /** `purple_dark`: page (window) background, dialogs, city picker. */
+    /** Page (window) background, Settings and the city picker (Material `background`/`surface`). */
     val page: Color,
-    /** `purple_main`: cards, top bar and status bar, picker buttons. */
+    /** Cards and picker buttons (Material `surfaceContainer`). */
     val card: Color,
-    /** `cyan_main`: actions, switches, radio buttons, text-field indicator, compass cardinal. */
+    /** Dialogs and menus, one tone above the card (Material `surfaceContainerHigh`). */
+    val raised: Color,
+    /** Top bar at rest, and the status bar behind it. */
+    val topBar: Color,
+    /** Top bar while content scrolls under it. */
+    val topBarScrolled: Color,
+    /** Actions, switches, radio buttons, text-field indicator, compass cardinal (Material `primary`). */
     val accent: Color,
-    /** `cyan_main_50`: pressed/highlight accent, checked switch track. */
+    /** Pressed/highlight accent, checked switch track (accent at 50%). */
     val accentPressed: Color,
-    /** `cyan_light`: secondary accent, only where the original app used it. */
+    /** Secondary accent: the Settings row highlight. */
     val accentLight: Color,
-    /** `text_color_dark`: muted labels, card titles, dialog titles, secondary text. */
+    /** Muted labels, card titles, dialog titles, secondary text. */
     val labelText: Color,
-    /** `text_color_light`: values, body text, dialog content, primary text. */
+    /** Values, body text, dialog content, primary text. */
     val valueText: Color,
-    /** `satellite_green`: satellite used in the fix. */
-    val satelliteUsed: Color,
-    /** `satellite_red`: satellite not used in the fix. */
-    val satelliteUnused: Color,
-    /** `dark_overlay_alpha_50`: strong dim overlay. */
-    val overlay50: Color,
-    /** `dark_overlay_alpha_20`: light dim overlay, dividers, unchecked switch track. */
-    val overlay20: Color,
-    /** `toast_background`: toast and snackbar background. */
-    val toastBackground: Color,
-    /** Top bar title and icons (white, as the original dark action bar). */
+    /** Top bar title and icons. */
     val toolbarTitle: Color,
-    /** Documented extra: inline error text. */
+    /** Satellite used in the fix (chart bar). */
+    val satelliteUsed: Color,
+    /** Satellite not used in the fix (chart bar). */
+    val satelliteUnused: Color,
+    /** Inline error text. */
     val error: Color,
-    /** Documented extra: artificial horizon sky half. */
+    /** Snackbar container (Material `inverseSurface`). */
+    val inverseSurface: Color,
+    /** Snackbar text (Material `inverseOnSurface`). */
+    val inverseOnSurface: Color,
+    /** Snackbar action (Material `inversePrimary`). */
+    val inversePrimary: Color,
+    /** `dark_overlay_alpha_50`: scrim. */
+    val overlay50: Color,
+    /** `dark_overlay_alpha_20`: dividers, unchecked switch track. */
+    val overlay20: Color,
+    /** Artificial horizon sky half (the instrument looks the same in every theme). */
     val horizonSky: Color,
-    /** Documented extra: artificial horizon ground half. */
+    /** Artificial horizon ground half. */
     val horizonGround: Color,
+    /** Artificial horizon line, ticks and aircraft symbol. */
+    val horizonLine: Color,
+    /**
+     * Drawn on the map tiles (theme-independent, the tiles are the same in every theme): route line,
+     * map button icons, pin and plane marker fill.
+     */
+    val mapInk: Color,
+    /** Light halo on the map tiles: map button container (at [MAP_BUTTON_CONTAINER_ALPHA]), pin and marker outline. */
+    val mapHalo: Color,
 )
 
-internal val DefaultSmartFlightColors =
+/** Opacity of the map buttons' [SmartFlightColors.mapHalo] circle, so the icon reads on any tile. */
+const val MAP_BUTTON_CONTAINER_ALPHA = 0.8f
+
+// Shared by both schemes: the map overlays and the horizon instrument do not change with the theme.
+private val PurpleMain = Color(0xFF5B5999)
+private val PurpleDark = Color(0xFF484685)
+private val CyanMain = Color(0xFF25E5FE)
+private val CyanLight = Color(0xFF99E5FC)
+private val White = Color(0xFFFFFFFF)
+private val Overlay50 = Color(0x80000000)
+private val Overlay20 = Color(0x33000000)
+private val HorizonSky = Color(0xFF7775B5)
+private val HorizonGround = Color(0xFF3F3D70)
+private val MapHalo = Color(0xFFD9D9ED)
+private val ToastPurple = Color(0xFF2C2163)
+
+/** The dark scheme: the original purple palette. */
+val DarkSmartFlightColors =
     SmartFlightColors(
-        page = Color(0xFF484685),
-        card = Color(0xFF5B5999),
-        accent = Color(0xFF25E5FE),
+        page = Color(0xFF38366E),
+        card = PurpleDark,
+        raised = Color(0xFF4F4D8E),
+        topBar = PurpleMain,
+        topBarScrolled = Color(0xFF67659F),
+        accent = CyanMain,
         accentPressed = Color(0x8025E5FE),
-        accentLight = Color(0xFF99E5FC),
-        labelText = Color(0xFFA1A0C4),
-        valueText = Color(0xFFD9D9ED),
+        accentLight = CyanLight,
+        labelText = Color(0xFFCAC9E3),
+        valueText = Color(0xFFF1F0FA),
+        toolbarTitle = White,
         satelliteUsed = Color(0xFF4CAF50),
-        satelliteUnused = Color(0xFFF44336),
-        overlay50 = Color(0x80000000),
-        overlay20 = Color(0x33000000),
-        toastBackground = Color(0xFF2C2163),
-        toolbarTitle = Color(0xFFFFFFFF),
-        error = Color(0xFFFFB4AB),
-        horizonSky = Color(0xFF7775B5),
-        horizonGround = Color(0xFF3F3D70),
+        satelliteUnused = Color(0xFFFF7A6E),
+        error = Color(0xFFFFC0B8),
+        inverseSurface = Color(0xFFE8E7F5),
+        inverseOnSurface = ToastPurple,
+        inversePrimary = Color(0xFF00687A),
+        overlay50 = Overlay50,
+        overlay20 = Overlay20,
+        horizonSky = HorizonSky,
+        horizonGround = HorizonGround,
+        horizonLine = White,
+        mapInk = PurpleDark,
+        mapHalo = MapHalo,
     )
 
 /**
  * Provides [SmartFlightColors]; the default lets composables rendered without [SmartFlightTheme]
- * (for example in tests) use the same colors.
+ * (for example in tests) use the dark scheme.
  */
-val LocalSmartFlightColors = staticCompositionLocalOf { DefaultSmartFlightColors }
+val LocalSmartFlightColors = staticCompositionLocalOf { DarkSmartFlightColors }

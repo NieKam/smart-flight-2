@@ -113,7 +113,7 @@ internal fun AppScaffold(
                     Modifier
                         .fillMaxWidth()
                         .windowInsetsTopHeight(WindowInsets.safeDrawing)
-                        .background(SmartFlightTheme.colors.card),
+                        .background(SmartFlightTheme.colors.topBar),
                 )
                 content(Modifier.padding(innerPadding).safeDrawingPadding())
             }

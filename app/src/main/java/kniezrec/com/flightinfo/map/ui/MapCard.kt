@@ -56,6 +56,7 @@ import kniezrec.com.flightinfo.map.MapZoomTarget
 import kniezrec.com.flightinfo.map.applyMapZoomPolicy
 import kniezrec.com.flightinfo.route.RouteOverlay
 import kniezrec.com.flightinfo.ui.theme.LabelText
+import kniezrec.com.flightinfo.ui.theme.MAP_BUTTON_CONTAINER_ALPHA
 import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
 import kniezrec.com.flightinfo.ui.theme.ValueText
 import kotlinx.coroutines.launch
@@ -125,7 +126,7 @@ fun MapCard(
                             .bringIntoViewRequester(bringIntoViewRequester)
                             .testTag(MAP_AREA_TAG),
                     ) {
-                        val routeLineColor = SmartFlightTheme.colors.page.toArgb()
+                        val routeLineColor = SmartFlightTheme.colors.mapInk.toArgb()
                         val instance = remember(state.archive) { MapInstance(MapOverlays(context, routeLineColor)) }
                         OfflineMap(
                             state = state,
@@ -217,9 +218,10 @@ private fun MapMessage(
 }
 
 /**
- * An icon button drawn on the map (48 dp touch target): the original purple (`page`) icon, as the
- * original app, on a subtle `valueText` circle at 60% alpha so it stays visible on dark or missing
- * tiles. A new kind crossfades from the old one (expand and collapse).
+ * An icon button drawn on the map (48 dp touch target): the original purple icon (`mapInk`), as the
+ * original app, on a light `mapHalo` circle at [MAP_BUTTON_CONTAINER_ALPHA] so it stays visible (3:1)
+ * on dark or missing tiles. Theme-independent, as the tiles. A new kind crossfades from the old one
+ * (expand and collapse).
  */
 @Composable
 private fun MapButton(
@@ -231,21 +233,19 @@ private fun MapButton(
     IconButton(onClick = onClick, modifier = modifier.size(48.dp)) {
         Crossfade(targetState = kind, label = "map button icon") { shown ->
             Box(
-                Modifier.size(40.dp).background(colors.valueText.copy(alpha = MAP_BUTTON_BACKGROUND_ALPHA), CircleShape),
+                Modifier.size(40.dp).background(colors.mapHalo.copy(alpha = MAP_BUTTON_CONTAINER_ALPHA), CircleShape),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     painter = painterResource(shown.icon),
                     contentDescription = stringResource(shown.description),
                     modifier = Modifier.size(32.dp).testTag(mapButtonIconTag(shown)),
-                    tint = colors.page,
+                    tint = colors.mapInk,
                 )
             }
         }
     }
 }
-
-private const val MAP_BUTTON_BACKGROUND_ALPHA = 0.6f
 
 /** The map view of one Ready archive and its overlays; not Compose state (see [OfflineMap]). */
 private class MapInstance(

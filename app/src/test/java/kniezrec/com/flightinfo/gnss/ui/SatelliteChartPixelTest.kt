@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kniezrec.com.flightinfo.gnss.GnssSatellite
 import kniezrec.com.flightinfo.gnss.GnssStatusState
+import kniezrec.com.flightinfo.ui.theme.DarkSmartFlightColors
 import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -22,8 +23,8 @@ import org.robolectric.annotation.GraphicsMode
 import kotlin.math.abs
 
 /**
- * Rendered colors of the satellite chart (native graphics): a used satellite in #4CAF50 and an
- * unused one in #F44336 on the #5B5999 card.
+ * Rendered colors of the satellite chart (native graphics): used and unused satellites in their
+ * tokens on the card.
  */
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -52,9 +53,10 @@ class SatelliteChartPixelTest {
         val pixels = IntArray(bitmap.width * bitmap.height)
         bitmap.getPixels(pixels, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
 
-        assertContains("used bar", Color(0xFF4CAF50), pixels)
-        assertContains("unused bar", Color(0xFFF44336), pixels)
-        assertContains("card", Color(0xFF5B5999), pixels)
+        val colors = DarkSmartFlightColors
+        assertContains("used bar", colors.satelliteUsed, pixels)
+        assertContains("unused bar", colors.satelliteUnused, pixels)
+        assertContains("card", colors.card, pixels)
     }
 
     private fun assertContains(

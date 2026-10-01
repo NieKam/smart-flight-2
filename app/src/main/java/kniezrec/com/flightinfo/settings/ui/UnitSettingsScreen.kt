@@ -129,8 +129,8 @@ fun UnitSettingsScreen(
                 title = { Text(stringResource(R.string.settings_title)) },
                 colors =
                     TopAppBarDefaults.topAppBarColors(
-                        containerColor = colors.card,
-                        scrolledContainerColor = colors.card,
+                        containerColor = colors.topBar,
+                        scrolledContainerColor = colors.topBar,
                         navigationIconContentColor = colors.toolbarTitle,
                         titleContentColor = colors.toolbarTitle,
                         actionIconContentColor = colors.toolbarTitle,

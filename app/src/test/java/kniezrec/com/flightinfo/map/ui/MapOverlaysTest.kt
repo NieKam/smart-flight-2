@@ -8,7 +8,7 @@ import kniezrec.com.flightinfo.R
 import kniezrec.com.flightinfo.map.MapCoordinate
 import kniezrec.com.flightinfo.nearby.NearbyCoordinate
 import kniezrec.com.flightinfo.route.RouteOverlay
-import kniezrec.com.flightinfo.ui.theme.DefaultSmartFlightColors
+import kniezrec.com.flightinfo.ui.theme.DarkSmartFlightColors
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -131,7 +131,7 @@ class MapOverlaysTest {
 
         assertTrue(line.isGeodesic)
         assertEquals(ROUTE_LINE_COLOR, line.outlinePaint.color)
-        assertEquals(DefaultSmartFlightColors.page.toArgb(), line.outlinePaint.color)
+        assertEquals(DarkSmartFlightColors.mapInk.toArgb(), line.outlinePaint.color)
         assertEquals(7f, line.outlinePaint.strokeWidth, 0f)
         assertEquals(Paint.Cap.ROUND, line.outlinePaint.strokeCap)
         // Frankfurt to San Francisco follows the great circle: points in between, north of both ends.
@@ -186,7 +186,7 @@ class MapOverlaysTest {
     private companion object {
         val A = MapCoordinate(10.0, 20.0)
         val B = MapCoordinate(-30.0, 40.0)
-        val ROUTE_LINE_COLOR = DefaultSmartFlightColors.page.toArgb()
+        val ROUTE_LINE_COLOR = DarkSmartFlightColors.mapInk.toArgb()
         val ROUTE = RouteOverlay(NearbyCoordinate(1.0, 2.0), NearbyCoordinate(3.0, 4.0), "Alpha", "Beta")
         val ROUTE_FAR =
             RouteOverlay(NearbyCoordinate(50.03, 8.57), NearbyCoordinate(37.62, -122.38), "Frankfurt", "San Francisco")

@@ -63,11 +63,11 @@ class DashboardColorsPixelTest {
         val cardTitle = composeRule.onNodeWithText("Flight parameters").fetchSemanticsNode().boundsInRoot
 
         // Top bar: left of the centered title, clear of the actions on the right.
-        assertColor("top bar", DefaultSmartFlightColors.card, pixels, inset, header.center.y.roundToInt())
+        assertColor("top bar", DarkSmartFlightColors.topBar, pixels, inset, header.center.y.roundToInt())
         // Card: inside its left padding (card starts 12dp in), level with the centered title.
-        assertColor("card", DefaultSmartFlightColors.card, pixels, (18 * density).roundToInt(), cardTitle.center.y.roundToInt())
+        assertColor("card", DarkSmartFlightColors.card, pixels, (18 * density).roundToInt(), cardTitle.center.y.roundToInt())
         // Page: bottom of the screen, far from any card and its shadow.
-        assertColor("page", DefaultSmartFlightColors.page, pixels, pixels.width / 2, pixels.height - inset)
+        assertColor("page", DarkSmartFlightColors.page, pixels, pixels.width / 2, pixels.height - inset)
     }
 
     private fun assertColor(
