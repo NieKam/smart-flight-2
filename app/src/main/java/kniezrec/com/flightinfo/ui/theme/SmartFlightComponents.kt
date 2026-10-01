@@ -14,8 +14,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 
 /**
- * An [AlertDialog] in the original dialog colors (`md_*` attributes): [SmartFlightColors.page]
- * container, muted title, light content; buttons use the accent (the scheme's primary).
+ * An [AlertDialog] on the raised surface ([SmartFlightColors.raised], Material
+ * `surfaceContainerHigh`, one tone above the cards): muted title, value-colored content; buttons use
+ * the accent (the scheme's primary).
  */
 @Composable
 fun SmartFlightAlertDialog(
@@ -34,7 +35,7 @@ fun SmartFlightAlertDialog(
         dismissButton = dismissButton,
         title = title,
         text = text,
-        containerColor = colors.page,
+        containerColor = colors.raised,
         iconContentColor = colors.labelText,
         titleContentColor = colors.labelText,
         textContentColor = colors.valueText,

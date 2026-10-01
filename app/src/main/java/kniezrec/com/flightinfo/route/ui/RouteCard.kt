@@ -12,9 +12,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -48,6 +45,8 @@ import kniezrec.com.flightinfo.route.RouteEndpoint
 import kniezrec.com.flightinfo.route.RouteError
 import kniezrec.com.flightinfo.route.RouteState
 import kniezrec.com.flightinfo.ui.theme.LabelText
+import kniezrec.com.flightinfo.ui.theme.SmartFlightCard
+import kniezrec.com.flightinfo.ui.theme.SmartFlightCardDefaults
 import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
 import kniezrec.com.flightinfo.ui.theme.ValueText
 import java.time.format.DateTimeFormatter
@@ -69,13 +68,8 @@ fun RouteCard(
     distanceUnit: DistanceUnit = DistanceUnit.KILOMETRES,
     modifier: Modifier = Modifier,
 ) {
-    Card(
-        modifier.fillMaxWidth().heightIn(min = 160.dp),
-        shape = RoundedCornerShape(10.dp),
-        colors = CardDefaults.cardColors(containerColor = SmartFlightTheme.colors.card),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-    ) {
-        Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 20.dp)) {
+    SmartFlightCard(modifier, minHeight = SmartFlightCardDefaults.MinHeight) {
+        Column(Modifier.fillMaxWidth()) {
             // As in the original, the hint stays until the destination (and with it the details) is set.
             if (state.destination == null) {
                 LabelText(stringResource(R.string.route_hint), style = routeBody())

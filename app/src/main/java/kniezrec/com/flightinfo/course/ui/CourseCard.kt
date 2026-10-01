@@ -15,8 +15,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -56,6 +54,8 @@ import kniezrec.com.flightinfo.course.compassCardinal
 import kniezrec.com.flightinfo.course.shortestRotationTarget
 import kniezrec.com.flightinfo.ui.theme.LabelText
 import kniezrec.com.flightinfo.ui.theme.MissingSensorPlaceholder
+import kniezrec.com.flightinfo.ui.theme.SmartFlightCard
+import kniezrec.com.flightinfo.ui.theme.SmartFlightCardDefaults
 import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
 import kniezrec.com.flightinfo.ui.theme.ValueText
 import java.text.NumberFormat
@@ -67,13 +67,18 @@ internal fun CourseCard(
     onHide: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Card(
-        modifier.fillMaxWidth().heightIn(min = 160.dp),
-        shape =
-            androidx.compose.foundation.shape
-                .RoundedCornerShape(10.dp),
-        colors = CardDefaults.cardColors(containerColor = SmartFlightTheme.colors.card),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+    SmartFlightCard(
+        modifier,
+        minHeight = SmartFlightCardDefaults.MinHeight,
+        // The missing-sensor overlay covers the whole card.
+        contentPadding =
+            if (state ==
+                CourseState.Unavailable
+            ) {
+                SmartFlightCardDefaults.NoPadding
+            } else {
+                SmartFlightCardDefaults.ContentPadding
+            },
     ) {
         CourseStateAnnouncement(state)
         when (state) {
@@ -96,8 +101,6 @@ private fun StaticCourse(
     Column(
         Modifier
             .fillMaxWidth()
-            .heightIn(min = 160.dp)
-            .padding(24.dp)
             .semantics { liveRegion = LiveRegionMode.Polite },
         Arrangement.Center,
         Alignment.CenterHorizontally,
@@ -138,7 +141,7 @@ private fun CourseReading(state: CourseState.Available) {
     val bearing =
         state.gpsBearingDegrees?.let { stringResource(R.string.course_degree_value, NumberFormat.getIntegerInstance().format(it)) }
             ?: stringResource(R.string.course_unavailable)
-    Column(Modifier.fillMaxWidth().padding(24.dp)) {
+    Column(Modifier.fillMaxWidth()) {
         LabelText(
             stringResource(R.string.course_title),
             style = MaterialTheme.typography.titleLarge.copy(fontSize = 22.sp, fontWeight = FontWeight.Medium),

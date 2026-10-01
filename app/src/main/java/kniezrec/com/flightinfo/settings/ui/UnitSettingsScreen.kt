@@ -38,6 +38,7 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -68,8 +69,11 @@ import kniezrec.com.flightinfo.ui.theme.LabelText
 import kniezrec.com.flightinfo.ui.theme.SmartFlightAlertDialog
 import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
 import kniezrec.com.flightinfo.ui.theme.ValueText
+import kniezrec.com.flightinfo.ui.theme.rememberTopBarContainerColor
 import kniezrec.com.flightinfo.ui.theme.smartFlightRadioButtonColors
 import kniezrec.com.flightinfo.ui.theme.smartFlightSwitchColors
+import kniezrec.com.flightinfo.ui.theme.smartFlightTopAppBarColors
+import kniezrec.com.flightinfo.ui.theme.topBarBackground
 
 private sealed class Selector<T : UnitKey>(
     val title: Int,
@@ -120,21 +124,19 @@ fun UnitSettingsScreen(
 ) {
     var selector by remember { mutableStateOf<Selector<*>?>(null) }
     val colors = SmartFlightTheme.colors
+    // As the dashboard: the top bar takes its scrolled tone while the settings scroll under it.
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
+    val topBarColor = rememberTopBarContainerColor(scrollBehavior)
     Scaffold(
-        modifier = modifier,
+        modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         containerColor = colors.page,
         contentColor = colors.valueText,
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.settings_title)) },
-                colors =
-                    TopAppBarDefaults.topAppBarColors(
-                        containerColor = colors.topBar,
-                        scrolledContainerColor = colors.topBar,
-                        navigationIconContentColor = colors.toolbarTitle,
-                        titleContentColor = colors.toolbarTitle,
-                        actionIconContentColor = colors.toolbarTitle,
-                    ),
+                modifier = Modifier.topBarBackground(topBarColor),
+                colors = smartFlightTopAppBarColors(),
+                scrollBehavior = scrollBehavior,
                 navigationIcon = {
                     IconButton(
                         onClick = onBack,

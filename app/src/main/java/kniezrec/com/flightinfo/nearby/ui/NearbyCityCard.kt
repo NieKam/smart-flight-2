@@ -11,8 +11,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -38,6 +36,8 @@ import kniezrec.com.flightinfo.displayunits.formatUnitNumber
 import kniezrec.com.flightinfo.displayunits.ui.labels
 import kniezrec.com.flightinfo.nearby.NearbyCityState
 import kniezrec.com.flightinfo.ui.theme.LabelText
+import kniezrec.com.flightinfo.ui.theme.SmartFlightCard
+import kniezrec.com.flightinfo.ui.theme.SmartFlightCardDefaults
 import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
 import kniezrec.com.flightinfo.ui.theme.ValueText
 import java.time.Instant
@@ -51,14 +51,7 @@ internal fun NearbyCityCard(
     onRetry: () -> Unit,
     distanceUnit: DistanceUnit = DistanceUnit.KILOMETRES,
     modifier: Modifier = Modifier,
-) = Card(
-    modifier.fillMaxWidth().heightIn(min = 160.dp),
-    shape =
-        androidx.compose.foundation.shape
-            .RoundedCornerShape(10.dp),
-    colors = CardDefaults.cardColors(containerColor = SmartFlightTheme.colors.card),
-    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-) {
+) = SmartFlightCard(modifier, minHeight = SmartFlightCardDefaults.MinHeight) {
     when (state) {
         NearbyCityState.WaitingForPosition -> Static(R.string.nearby_city_title, R.string.nearby_city_waiting)
         NearbyCityState.LookingUp -> Static(R.string.nearby_city_title, R.string.nearby_city_looking_up)
@@ -72,7 +65,7 @@ internal fun NearbyCityCard(
     body: Int,
     retry: (() -> Unit)? = null,
 ) = Column(
-    Modifier.fillMaxWidth().heightIn(min = 160.dp).padding(24.dp, 20.dp),
+    Modifier.fillMaxWidth(),
     Arrangement.Center,
     Alignment.CenterHorizontally,
 ) {
@@ -89,7 +82,7 @@ internal fun NearbyCityCard(
 @Composable private fun Available(
     state: NearbyCityState.Available,
     distanceUnit: DistanceUnit,
-) = Column(Modifier.fillMaxWidth().padding(24.dp, 20.dp)) {
+) = Column(Modifier.fillMaxWidth()) {
     Title(R.string.nearby_city_title)
     Spacer(Modifier.height(16.dp))
     val number = formatUnitNumber(convertDistance(state.distanceKilometres, distanceUnit)) ?: "—"

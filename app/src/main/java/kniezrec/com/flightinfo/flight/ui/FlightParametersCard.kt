@@ -9,8 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -39,7 +37,8 @@ import kniezrec.com.flightinfo.displayunits.formatUnitNumber
 import kniezrec.com.flightinfo.displayunits.ui.labels
 import kniezrec.com.flightinfo.flight.FlightParametersState
 import kniezrec.com.flightinfo.ui.theme.LabelText
-import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
+import kniezrec.com.flightinfo.ui.theme.SmartFlightCard
+import kniezrec.com.flightinfo.ui.theme.SmartFlightCardDefaults
 import kniezrec.com.flightinfo.ui.theme.ValueText
 
 @Composable
@@ -65,17 +64,7 @@ internal fun FlightParametersCard(
         }
     }
 
-    Card(
-        modifier =
-            modifier
-                .fillMaxWidth()
-                .heightIn(min = 160.dp),
-        shape =
-            androidx.compose.foundation.shape
-                .RoundedCornerShape(10.dp),
-        colors = CardDefaults.cardColors(containerColor = SmartFlightTheme.colors.card),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-    ) {
+    SmartFlightCard(modifier, minHeight = SmartFlightCardDefaults.MinHeight) {
         Box {
             when (state) {
                 FlightParametersState.Waiting -> FlightParametersWaiting()
@@ -106,10 +95,7 @@ private fun FlightParametersAvailabilityAnnouncement() {
 @Composable
 private fun FlightParametersWaiting() {
     Column(
-        Modifier
-            .fillMaxWidth()
-            .heightIn(min = 160.dp)
-            .padding(horizontal = 24.dp, vertical = 20.dp),
+        Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -135,11 +121,7 @@ private fun FlightParametersReadings(
     state: FlightParametersState.Readings,
     preferences: UnitPreferences,
 ) {
-    Column(
-        Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 24.dp, vertical = 20.dp),
-    ) {
+    Column(Modifier.fillMaxWidth()) {
         FlightParametersTitle()
 
         Spacer(modifier = Modifier.height(16.dp))

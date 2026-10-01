@@ -20,6 +20,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -28,6 +29,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -55,6 +57,9 @@ import kniezrec.com.flightinfo.route.ui.RoutePickerOverlay
 import kniezrec.com.flightinfo.route.ui.RoutePickerViewModel
 import kniezrec.com.flightinfo.settings.ui.SettingsOverlay
 import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
+import kniezrec.com.flightinfo.ui.theme.rememberTopBarContainerColor
+import kniezrec.com.flightinfo.ui.theme.smartFlightTopAppBarColors
+import kniezrec.com.flightinfo.ui.theme.topBarBackground
 
 /**
  * The dashboard: top app bar and the scrolling list of cards, with the city picker, Settings and About
@@ -76,6 +81,7 @@ import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
  *   the "Enable GPS" prompt shown when the dashboard starts with GPS off.
  * @param modifier insets of the dashboard and the Settings overlay (not of the About dialog).
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
     permissionCard: (@Composable (Modifier) -> Unit)?,
@@ -99,6 +105,8 @@ fun DashboardScreen(
     BackHandler(enabled = showAbout) { showAbout = false }
     val locationGranted = permissionCard == null
     val hiddenCards by viewModel.hiddenCards.collectAsStateWithLifecycle()
+    // The top bar takes its scrolled tone while either card list scrolls under it.
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     // Settings is an overlay so the dashboard's AndroidView-backed map remains composed. This
     // preserves its viewport, overlays, and in-place zoom policy.
     Box(Modifier.fillMaxSize()) {
@@ -111,8 +119,12 @@ fun DashboardScreen(
             )
         }
         Box(Modifier.fillMaxSize().then(modifier)) {
-            Column(Modifier.fillMaxSize()) {
-                DashboardHeader(onOpenSettings = { showSettings = true }, onOpenAbout = { showAbout = true })
+            Column(Modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection)) {
+                DashboardHeader(
+                    onOpenSettings = { showSettings = true },
+                    onOpenAbout = { showAbout = true },
+                    scrollBehavior = scrollBehavior,
+                )
                 val cardModifier = Modifier.padding(bottom = 12.dp).widthIn(max = 600.dp)
                 if (permissionCard != null) {
                     Column(
@@ -254,10 +266,11 @@ private fun DashboardSlot(
 }
 
 /**
- * The top app bar as in the original app (`activity_main.xml`, `menu/app_menu.xml`): card color
- * (#5B5999; [AppScaffold][kniezrec.com.flightinfo.AppScaffold] paints the status-bar area above it in
- * the same color), the centered white title "Smart Flight" and a white "⋮" overflow button whose
- * menu holds Settings and About, on every screen width.
+ * The top app bar as in the original app (`activity_main.xml`, `menu/app_menu.xml`): the centered
+ * title "Smart Flight" and a "⋮" overflow button whose menu holds Settings and About, on every screen
+ * width. Its container ([SmartFlightColors.topBar][kniezrec.com.flightinfo.ui.theme.SmartFlightColors.topBar])
+ * changes to the scrolled tone while the card list scrolls under it ([scrollBehavior]); the status
+ * bar above it is painted in the same color.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -265,8 +278,9 @@ fun DashboardHeader(
     onOpenSettings: () -> Unit,
     onOpenAbout: () -> Unit,
     modifier: Modifier = Modifier,
+    scrollBehavior: TopAppBarScrollBehavior? = null,
 ) {
-    val colors = SmartFlightTheme.colors
+    val containerColor = rememberTopBarContainerColor(scrollBehavior)
     CenterAlignedTopAppBar(
         title = {
             Text(
@@ -277,22 +291,16 @@ fun DashboardHeader(
                 overflow = TextOverflow.Ellipsis,
             )
         },
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth().topBarBackground(containerColor),
         actions = { DashboardOverflowMenu(onOpenSettings, onOpenAbout) },
-        // The dashboard is already inside the safe drawing area; the status bar is painted by the scaffold.
+        // The dashboard is already inside the safe drawing area; topBarBackground paints the status bar.
         windowInsets = WindowInsets(0, 0, 0, 0),
-        colors =
-            TopAppBarDefaults.topAppBarColors(
-                containerColor = colors.topBar,
-                scrolledContainerColor = colors.topBar,
-                navigationIconContentColor = colors.toolbarTitle,
-                titleContentColor = colors.toolbarTitle,
-                actionIconContentColor = colors.toolbarTitle,
-            ),
+        colors = smartFlightTopAppBarColors(),
+        scrollBehavior = scrollBehavior,
     )
 }
 
-/** The "⋮" button and its menu (Settings, About) in the page color with light text. */
+/** The "⋮" button and its menu (Settings, About) in the raised (menu) tone with value text. */
 @Composable
 private fun DashboardOverflowMenu(
     onOpenSettings: () -> Unit,
@@ -307,7 +315,7 @@ private fun DashboardOverflowMenu(
         DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
-            containerColor = colors.page,
+            containerColor = colors.raised,
         ) {
             val itemColors = MenuDefaults.itemColors(textColor = colors.valueText)
             DropdownMenuItem(

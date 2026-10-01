@@ -12,8 +12,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -46,6 +44,8 @@ import kniezrec.com.flightinfo.R
 import kniezrec.com.flightinfo.horizon.HorizonState
 import kniezrec.com.flightinfo.ui.theme.LabelText
 import kniezrec.com.flightinfo.ui.theme.MissingSensorPlaceholder
+import kniezrec.com.flightinfo.ui.theme.SmartFlightCard
+import kniezrec.com.flightinfo.ui.theme.SmartFlightCardDefaults
 import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
 import kniezrec.com.flightinfo.ui.theme.ValueText
 import java.text.NumberFormat
@@ -59,13 +59,18 @@ internal fun HorizonCard(
     onHide: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Card(
-        modifier.fillMaxWidth().heightIn(min = 160.dp),
-        shape =
-            androidx.compose.foundation.shape
-                .RoundedCornerShape(10.dp),
-        colors = CardDefaults.cardColors(containerColor = SmartFlightTheme.colors.card),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+    SmartFlightCard(
+        modifier,
+        minHeight = SmartFlightCardDefaults.MinHeight,
+        // The missing-sensor overlay covers the whole card.
+        contentPadding =
+            if (state ==
+                HorizonState.Unavailable
+            ) {
+                SmartFlightCardDefaults.NoPadding
+            } else {
+                SmartFlightCardDefaults.ContentPadding
+            },
     ) {
         HorizonStateAnnouncement(state)
         when (state) {
@@ -119,7 +124,7 @@ private fun HorizonStatic(
     retry: (() -> Unit)? = null,
 ) {
     Column(
-        Modifier.fillMaxWidth().heightIn(min = 160.dp).padding(horizontal = 24.dp, vertical = 20.dp),
+        Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -143,7 +148,7 @@ private fun HorizonAvailable(
     val roll = attitudeValue(state.rollDegrees, R.string.horizon_right, R.string.horizon_left)
     val summary = stringResource(R.string.horizon_summary, pitch, roll)
     val spoken = stringResource(R.string.horizon_summary_spoken, pitch, roll)
-    Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 20.dp)) {
+    Column(Modifier.fillMaxWidth()) {
         LabelText(stringResource(R.string.horizon_title), style = horizonTitle())
         ValueText(
             summary,

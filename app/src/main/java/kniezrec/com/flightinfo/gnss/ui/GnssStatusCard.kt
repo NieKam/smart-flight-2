@@ -8,13 +8,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -43,6 +40,8 @@ import kniezrec.com.flightinfo.gnss.GnssSatellite
 import kniezrec.com.flightinfo.gnss.GnssStatusState
 import kniezrec.com.flightinfo.gnss.satelliteChartModel
 import kniezrec.com.flightinfo.ui.theme.LabelText
+import kniezrec.com.flightinfo.ui.theme.SmartFlightCard
+import kniezrec.com.flightinfo.ui.theme.SmartFlightCardDefaults
 import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
 import kniezrec.com.flightinfo.ui.theme.ValueText
 
@@ -73,17 +72,11 @@ private fun GnssStatusCardContent(
     onOpenSettings: () -> Unit,
     onRetry: () -> Unit,
 ) {
-    Card(
+    SmartFlightCard(
         Modifier
             .padding(vertical = 12.dp)
-            .widthIn(max = 600.dp)
-            .fillMaxWidth()
-            .heightIn(min = 160.dp),
-        shape =
-            androidx.compose.foundation.shape
-                .RoundedCornerShape(10.dp),
-        colors = CardDefaults.cardColors(containerColor = SmartFlightTheme.colors.card),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+            .widthIn(max = 600.dp),
+        minHeight = SmartFlightCardDefaults.MinHeight,
     ) {
         when (state) {
             is GnssStatusState.Available -> AvailableContent(state.satellites)
@@ -121,7 +114,7 @@ private fun StaticContent(
                 )
         }
     Column(
-        Modifier.fillMaxWidth().heightIn(min = 160.dp).padding(horizontal = 24.dp, vertical = 20.dp),
+        Modifier.fillMaxWidth(),
         Arrangement.Center,
         Alignment.CenterHorizontally,
     ) {
@@ -164,7 +157,7 @@ private data class StaticState(
 
 @Composable private fun AvailableContent(satellites: List<GnssSatellite>) {
     val chart = remember(satellites) { satelliteChartModel(satellites) }
-    Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 20.dp)) {
+    Column(Modifier.fillMaxWidth()) {
         LabelText(
             stringResource(R.string.gnss_status_title),
             Modifier.semantics {

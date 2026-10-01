@@ -58,7 +58,7 @@ internal fun SearchingContent() {
     val animate = remember { ValueAnimator.areAnimatorsEnabled() }
     val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.loading))
     Column(
-        Modifier.fillMaxWidth().heightIn(min = 160.dp).padding(horizontal = 24.dp, vertical = 20.dp),
+        Modifier.fillMaxWidth(),
         Arrangement.Center,
         Alignment.CenterHorizontally,
     ) {

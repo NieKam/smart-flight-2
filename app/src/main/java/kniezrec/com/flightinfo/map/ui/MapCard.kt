@@ -19,9 +19,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -57,6 +54,8 @@ import kniezrec.com.flightinfo.map.applyMapZoomPolicy
 import kniezrec.com.flightinfo.route.RouteOverlay
 import kniezrec.com.flightinfo.ui.theme.LabelText
 import kniezrec.com.flightinfo.ui.theme.MAP_BUTTON_CONTAINER_ALPHA
+import kniezrec.com.flightinfo.ui.theme.SmartFlightCard
+import kniezrec.com.flightinfo.ui.theme.SmartFlightCardDefaults
 import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
 import kniezrec.com.flightinfo.ui.theme.ValueText
 import kotlinx.coroutines.launch
@@ -98,12 +97,8 @@ fun MapCard(
     val context = LocalContext.current
     // Saved: the expanded map stays expanded across a configuration change.
     var expanded by rememberSaveable { mutableStateOf(false) }
-    Card(
-        modifier = modifier.fillMaxWidth().heightIn(min = 240.dp),
-        shape = RoundedCornerShape(10.dp),
-        colors = CardDefaults.cardColors(containerColor = SmartFlightTheme.colors.card),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-    ) {
+    // Edge to edge: the map fills the card; the messages pad themselves.
+    SmartFlightCard(modifier, minHeight = MAP_CARD_MIN_HEIGHT, contentPadding = SmartFlightCardDefaults.NoPadding) {
         when (state) {
             MapUiState.Loading -> MapMessage(R.string.map_loading, R.string.map_loading_body)
             MapUiState.Unavailable -> MapMessage(R.string.map_unavailable, R.string.map_unavailable_body, onRetry)
@@ -169,6 +164,7 @@ internal const val MAP_AREA_TAG = "map-area"
 internal fun mapButtonIconTag(kind: MapButtonKind) = "map-button-icon-${kind.name}"
 
 private const val RESIZE_ANIMATION_MILLIS = 300
+private val MAP_CARD_MIN_HEIGHT = 240.dp
 private val MAP_BUTTON_MARGIN = 4.dp
 
 /**
@@ -199,7 +195,7 @@ private fun MapMessage(
     retry: (() -> Unit)? = null,
 ) {
     Column(
-        Modifier.fillMaxWidth().heightIn(min = 240.dp).padding(24.dp),
+        Modifier.fillMaxWidth().padding(SmartFlightCardDefaults.ContentPadding),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
