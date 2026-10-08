@@ -7,14 +7,14 @@ Run exactly one task through the full loop. Follow the Git workflow in CLAUDE.md
 Wait for each subagent to finish before starting the next step.
 
 ## 1. Pick the task
-- `git fetch origin`.gi
+- `git fetch origin`.
 - `gh pr list --state open`. If any open PR (including drafts) belongs to a task/
   branch, stop and report it: tasks run sequentially and it must be resolved first.
-- Read docs/tasks/README.md from origin/ai-modernization
-  (`git show origin/ai-modernization:docs/tasks/README.md`).
+- Read docs/tasks/README.md from origin/main
+  (`git show origin/main:docs/tasks/README.md`).
 - If a task number was given ($ARGUMENTS), use it. Otherwise take the first task with
   status TODO whose dependencies are all DONE. If none qualifies, stop and report why.
-- Create the branch: `git switch -c task/<NNN>-<slug> origin/ai-modernization`.
+- Create the branch: `git switch -c task/<NNN>-<slug> origin/main`.
 
 ## 2. Implement
 Run the developer subagent with the task path. If it reports BLOCKED, go to step 6
@@ -40,7 +40,7 @@ URL, and from iteration 2 on, the previous review.
 - In docs/tasks/README.md set this task's status to DONE.
 - Commit: `docs(task-NNN): review and status`.
 - Run ci-verifier once more so CI is green on the last commit.
-- Open the PR: `gh pr create --base ai-modernization --title "TASK-NNN: <title>"`
+- Open the PR: `gh pr create --base main --title "TASK-NNN: <title>"`
   with a body containing:
   - summary of the change
   - acceptance criteria table from the review
