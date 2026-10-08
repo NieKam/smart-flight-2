@@ -43,10 +43,11 @@ class FlightParametersCardContainerTest {
         // Re-sent until the ViewModel's registration (made when the card starts collecting) receives it.
         composeRule.waitUntil {
             location.emitFix(flightFix(speedMetresPerSecond = 10.0))
-            composeRule.onAllNodesWithText("36.0 km/h").fetchSemanticsNodes().isNotEmpty()
+            composeRule.onAllNodesWithText("36.0").fetchSemanticsNodes().isNotEmpty()
         }
 
         composeRule.runOnIdle { units = UnitPreferences(speed = SpeedUnit.MILES_PER_HOUR) }
-        composeRule.onNodeWithText("22.4 mph").assertIsDisplayed()
+        composeRule.onNodeWithText("22.4").assertIsDisplayed()
+        composeRule.onNodeWithText("mph").assertIsDisplayed()
     }
 }
