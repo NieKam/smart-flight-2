@@ -1,17 +1,23 @@
 package kniezrec.com.flightinfo.horizon.ui
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,7 +31,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -134,7 +142,7 @@ private fun HorizonStatic(
             Modifier.padding(top = 12.dp),
             style = horizonBody().copy(textAlign = TextAlign.Center),
         )
-        if (retry != null) HorizonAction(R.string.horizon_try_again, R.string.horizon_try_again_hint, retry)
+        if (retry != null) HorizonAction(R.string.horizon_try_again, R.string.horizon_try_again_hint, retry, Modifier.padding(top = 12.dp))
     }
 }
 
@@ -156,16 +164,16 @@ private fun HorizonAvailable(
             style = horizonBody(),
         )
         HorizonInstrument(state, Modifier.padding(top = 12.dp).fillMaxWidth())
-        Box(Modifier.fillMaxWidth().padding(top = 12.dp), contentAlignment = Alignment.Center) {
-            // Long-press (or the "Reset to level" accessibility action) shows the absolute pitch.
-            HorizonAction(
-                R.string.horizon_calibrate,
-                R.string.horizon_calibrate_hint,
-                onCalibrate,
-                longClickLabel = R.string.horizon_reset_to_level,
-                onLongClick = onResetToAbsolute,
-            )
-        }
+        // Long-press (or the "Reset to level" accessibility action) shows the absolute pitch.
+        HorizonAction(
+            R.string.horizon_calibrate,
+            R.string.horizon_calibrate_hint,
+            onCalibrate,
+            Modifier.padding(top = 12.dp).fillMaxWidth(),
+            icon = R.drawable.ic_calibrate,
+            longClickLabel = R.string.horizon_reset_to_level,
+            onLongClick = onResetToAbsolute,
+        )
     }
 }
 
@@ -205,13 +213,12 @@ private fun HorizonInstrument(
     state: HorizonState.Available,
     modifier: Modifier,
 ) {
-    val horizonText = SmartFlightTheme.colors.horizonLine
-    val sky = SmartFlightTheme.colors.horizonSky
-    val ground = SmartFlightTheme.colors.horizonGround
+    val colors = SmartFlightTheme.colors
+    val horizonText = colors.horizonLine
     Box(
         modifier.heightIn(min = 160.dp, max = 200.dp).clip(
             androidx.compose.foundation.shape
-                .RoundedCornerShape(6.dp),
+                .RoundedCornerShape(INSTRUMENT_CORNER),
         ),
         contentAlignment = Alignment.Center,
     ) {
@@ -221,8 +228,9 @@ private fun HorizonInstrument(
                 rotationZ = state.visualRollDegrees
             },
         ) {
+            // Sky and ground get lighter towards the horizon line (the redesign's gradients).
             drawRect(
-                sky,
+                Brush.verticalGradient(listOf(colors.horizonSkyTop, colors.horizonSky), startY = 0f, endY = size.height / 2),
                 topLeft = Offset(-size.width, -size.height),
                 size =
                     androidx.compose.ui.geometry.Size(
@@ -231,7 +239,11 @@ private fun HorizonInstrument(
                     ),
             )
             drawRect(
-                ground,
+                Brush.verticalGradient(
+                    listOf(colors.horizonGround, colors.horizonGroundBottom),
+                    startY = size.height / 2,
+                    endY = size.height,
+                ),
                 topLeft = Offset(-size.width, size.height / 2),
                 size =
                     androidx.compose.ui.geometry.Size(
@@ -260,35 +272,38 @@ private fun HorizonInstrument(
     }
 }
 
+/**
+ * A tonal pill button of the redesign (TASK-042): [SmartFlightColors.accent] label and optional
+ * [icon] on [SmartFlightColors.accentContainer]. It also takes a long press, which a Material
+ * button cannot, so it is a clickable box.
+ */
 @Composable
 private fun HorizonAction(
     label: Int,
     hint: Int,
     callback: () -> Unit,
+    modifier: Modifier = Modifier,
+    icon: Int? = null,
     longClickLabel: Int? = null,
     onLongClick: (() -> Unit)? = null,
 ) {
     var focused by remember { mutableStateOf(false) }
     val actionHint = stringResource(hint)
     val longClickText = longClickLabel?.let { stringResource(it) }
-    // A text button that also takes a long press (TextButton has no long click).
+    val colors = SmartFlightTheme.colors
     Box(
         modifier =
-            Modifier
+            modifier
                 .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
                 .then(
                     if (focused) {
-                        Modifier.border(
-                            2.dp,
-                            SmartFlightTheme.colors.accent,
-                            androidx.compose.foundation.shape
-                                .RoundedCornerShape(4.dp),
-                        )
+                        Modifier.border(2.dp, colors.accent, CircleShape)
                     } else {
                         Modifier
                     },
                 ).onFocusChanged { focused = it.isFocused }
-                .clip(ButtonDefaults.textShape)
+                .clip(CircleShape)
+                .background(colors.accentContainer)
                 .combinedClickable(
                     role = Role.Button,
                     onLongClickLabel = longClickText,
@@ -305,13 +320,23 @@ private fun HorizonAction(
                                 },
                             )
                     }
-                }.padding(ButtonDefaults.TextButtonContentPadding),
+                }.padding(horizontal = 24.dp, vertical = 10.dp),
         contentAlignment = Alignment.Center,
-    ) { Text(stringResource(label), color = SmartFlightTheme.colors.accent, style = horizonBody().copy(fontWeight = FontWeight.Medium)) }
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (icon != null) {
+                Icon(painterResource(icon), contentDescription = null, modifier = Modifier.size(20.dp), tint = colors.accent)
+                Spacer(Modifier.width(8.dp))
+            }
+            Text(stringResource(label), color = colors.accent, style = horizonBody().copy(fontWeight = FontWeight.Medium))
+        }
+    }
 }
 
 @Composable
 private fun horizonBody() = MaterialTheme.typography.bodyLarge.copy(fontSize = 18.sp, lineHeight = 25.sp)
+
+private val INSTRUMENT_CORNER = 12.dp
 
 @Preview(widthDp = 411)
 @Composable

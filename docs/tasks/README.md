@@ -72,7 +72,7 @@ The order follows four phases. Every task leaves the app building, tests green a
 | 039 | [Redesign: blue/navy palette, card surface and design tokens](039-redesign-tokens/task.md) | 038 | DONE |
 | 040 | [Redesign: card headers with icon badge and status pill](040-card-headers/task.md) | 039 | DONE |
 | 041 | [Redesign: compass dial on the Course card](041-compass-dial/task.md) | 039, 040 | DONE |
-| 042 | [Redesign: horizon sky/ground and tonal Calibrate button](042-horizon-instrument/task.md) | 039, 040 | TODO |
+| 042 | [Redesign: horizon sky/ground and tonal Calibrate button](042-horizon-instrument/task.md) | 039, 040 | DONE |
 | 043 | [Redesign: flight parameters as value tiles](043-flight-parameter-tiles/task.md) | 039, 040 | TODO |
 
 ## Coverage
