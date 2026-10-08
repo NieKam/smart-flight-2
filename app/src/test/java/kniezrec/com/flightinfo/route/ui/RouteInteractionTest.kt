@@ -80,7 +80,7 @@ class RouteInteractionTest {
                 onRetry = {},
             )
         }
-        composeRule.onNodeWithText("Selected: Existing (US)").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Selected: Existing (US)").assertIsDisplayed()
         composeRule.runOnIdle { composeRule.activity.onBackPressedDispatcher.onBackPressed() }
         composeRule.runOnIdle {
             assertTrue(cancelled)
@@ -166,7 +166,7 @@ class RouteInteractionTest {
                 onRetry = {},
             )
         }
-        composeRule.onNodeWithText("Selected: Paris (France)").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Selected: Paris (France)").assertIsDisplayed()
         composeRule.onNodeWithText("Confirm").assertIsEnabled().performClick()
         composeRule.runOnIdle { assertTrue(confirmed) }
     }
@@ -192,9 +192,9 @@ class RouteInteractionTest {
                 onRetry = { retried = true },
             )
         }
-        composeRule.onNodeWithText("Selected: Springfield (US)").assertDoesNotExist()
+        composeRule.onNodeWithContentDescription("Selected: Springfield (US)").assertDoesNotExist()
         composeRule.onNodeWithText("Springfield (US)").performClick()
-        composeRule.onNodeWithText("Selected: Springfield (US)").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Selected: Springfield (US)").assertIsDisplayed()
         composeRule.onNodeWithText("Retry").performClick()
         composeRule.runOnIdle { assertTrue(retried) }
         composeRule.onNodeWithText("Confirm").performClick()

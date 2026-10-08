@@ -8,6 +8,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -53,6 +54,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.fromHtml
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
@@ -60,11 +62,16 @@ import kniezrec.com.flightinfo.R
 import kniezrec.com.flightinfo.map.ui.MapButton
 import kniezrec.com.flightinfo.map.ui.MapButtonKind
 import kniezrec.com.flightinfo.map.ui.MapOverlays
+import kniezrec.com.flightinfo.map.ui.MapZoomButtons
+import kniezrec.com.flightinfo.map.ui.hideBuiltInZoomControls
 import kniezrec.com.flightinfo.nearby.NearbyCityRecord
 import kniezrec.com.flightinfo.nearby.NearbyCoordinate
 import kniezrec.com.flightinfo.route.RouteEndpoint
 import kniezrec.com.flightinfo.route.RoutePickerError
 import kniezrec.com.flightinfo.route.RoutePickerState
+import kniezrec.com.flightinfo.ui.theme.CardIconBadge
+import kniezrec.com.flightinfo.ui.theme.LabelText
+import kniezrec.com.flightinfo.ui.theme.SmartFlightCard
 import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
 import kniezrec.com.flightinfo.ui.theme.ValueText
 import kniezrec.com.flightinfo.ui.theme.smartFlightFilledButtonColors
@@ -183,17 +190,17 @@ fun RoutePicker(
             }
             // The selected city in place of the instruction, as the original info label.
             val selected = state.selected
-            Text(
-                if (selected != null) {
-                    AnnotatedString(stringResource(R.string.route_selected_city, selected.name, selected.country))
-                } else {
+            if (selected != null) {
+                SelectedCity(selected)
+            } else {
+                Text(
                     // "Long-press" in bold (the design); the resource marks it with <b>.
-                    AnnotatedString.fromHtml(stringResource(R.string.route_map_instruction))
-                },
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center,
-                style = MaterialTheme.typography.bodyLarge,
-            )
+                    AnnotatedString.fromHtml(stringResource(R.string.route_map_instruction)),
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+            }
             if (state.selectionInvalid) Text(stringResource(R.string.route_invalid_city))
             if (state.results.size > 1) {
                 LazyColumn(Modifier.fillMaxWidth().heightIn(max = RESULTS_MAX_HEIGHT)) {
@@ -242,6 +249,33 @@ fun RoutePicker(
 }
 
 /**
+ * The selected city in place of the instruction (PR #51 feedback): a card with the pin badge, the
+ * city in the card title style and its country below, read as "Selected: city (country)".
+ */
+@Composable
+private fun SelectedCity(city: NearbyCityRecord) {
+    val description = stringResource(R.string.route_selected_city, city.name, city.country)
+    SmartFlightCard(
+        Modifier.semantics(mergeDescendants = true) { contentDescription = description },
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            CardIconBadge(R.drawable.ic_card_place)
+            Column(Modifier.padding(start = 12.dp).weight(1f)) {
+                Text(
+                    city.name,
+                    color = SmartFlightTheme.colors.valueText,
+                    style = MaterialTheme.typography.titleLarge,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                LabelText(city.country, style = MaterialTheme.typography.bodyMedium)
+            }
+        }
+    }
+}
+
+/**
  * Haptic feedback when a new city is selected, as the original map did on every shown city. The last
  * city felt survives a configuration change, so turning the device does not repeat it.
  */
@@ -268,6 +302,11 @@ private fun PickerMap(
     Box(Modifier.fillMaxSize()) {
         PickerMapView(archive, draft, selectedCoordinate, tileTint, onNearest)
         MapButton(MapButtonKind.Recenter, Modifier.align(Alignment.TopEnd).padding(4.dp)) { recenter(draft) }
+        MapZoomButtons(
+            onZoomIn = { draft.map?.controller?.zoomIn() },
+            onZoomOut = { draft.map?.controller?.zoomOut() },
+            modifier = Modifier.align(Alignment.CenterEnd).padding(4.dp),
+        )
     }
 }
 
@@ -285,6 +324,7 @@ private fun PickerMapView(
         factory = {
             MapView(context, OfflineTileProvider(SimpleRegisterReceiver(context), arrayOf(archive))).apply {
                 draft.map = this
+                hideBuiltInZoomControls()
                 setTileSource(pickerMapSource)
                 setUseDataConnection(false)
                 setMultiTouchControls(true)

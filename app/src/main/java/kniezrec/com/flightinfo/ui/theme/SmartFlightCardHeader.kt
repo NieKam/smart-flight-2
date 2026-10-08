@@ -68,7 +68,7 @@ fun CardHeader(
 
 /** The card's icon, [SmartFlightColors.accent] on a round [SmartFlightColors.accentContainer] badge. */
 @Composable
-private fun CardIconBadge(
+fun CardIconBadge(
     @DrawableRes icon: Int,
 ) {
     val colors = SmartFlightTheme.colors

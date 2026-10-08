@@ -21,6 +21,8 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
@@ -388,21 +390,22 @@ class MainActivityCharacterizationTest {
         waitUntil { composeRule.onAllNodesWithText("Warsaw (", substring = true).fetchSemanticsNodes().isNotEmpty() }
         composeRule.onAllNodesWithText("Warsaw (", substring = true)[0].performClick()
         val selected = "Selected: Warsaw ("
-        waitUntil { composeRule.onAllNodesWithText(selected, substring = true).fetchSemanticsNodes().isNotEmpty() }
-        val selectedText =
+        // The selected city card is read as "Selected: city (country)".
+        waitUntil { composeRule.onAllNodesWithContentDescription(selected, substring = true).fetchSemanticsNodes().isNotEmpty() }
+        val selectedDescription =
             composeRule
-                .onAllNodesWithText(selected, substring = true)
+                .onAllNodesWithContentDescription(selected, substring = true)
                 .fetchSemanticsNodes()
                 .single()
-                .config[SemanticsProperties.Text]
+                .config[SemanticsProperties.ContentDescription]
                 .single()
-                .text
 
         activity.recreate()
 
         composeRule.onNodeWithText(string(R.string.route_picker_departure)).assertIsDisplayed()
-        composeRule.onNodeWithText("Warsaw").assertIsDisplayed()
-        composeRule.onNodeWithText(selectedText).assertIsDisplayed()
+        // The typed query survives (the selected city card shows "Warsaw" too).
+        composeRule.onNode(hasSetTextAction() and hasText("Warsaw")).assertIsDisplayed()
+        composeRule.onNodeWithContentDescription(selectedDescription).assertIsDisplayed()
         composeRule.onNodeWithText(string(R.string.route_confirm)).assertIsEnabled()
     }
 

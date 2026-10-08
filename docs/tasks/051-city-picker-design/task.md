@@ -19,6 +19,10 @@ The city picker matches `docs/design/2026-10-redesign/choose_dest.png`: back arr
 - New recenter button on the picker map (design).
 - Back arrow in the top row (same action as Cancel and system back).
 
+## Review feedback (PR #51)
+1. The "− +" buttons on both maps (osmdroid's built-in zoom controller, never turned off) look bad: they are hidden and replaced by zoom in/out icon buttons in the map buttons' style, stacked at the middle of the end edge, on the dashboard map and the picker map (new strings "Zoom in"/"Zoom out", PL "Przybliż"/"Oddal").
+2. "Selected: City (Country)" is too small: the selected city is a card with the pin badge, the city in the title style and the country below; it is still read as "Selected: City (Country)".
+
 ## Acceptance criteria
 - [ ] Search, select, long-press nearest, confirm, cancel, errors unchanged — verified by: CI unit test (`RoutePickerTest`, `RoutePickerOverlayTest`, `RouteInteractionTest`)
 - [ ] Matches the design in both themes — verified by: HUMAN on device

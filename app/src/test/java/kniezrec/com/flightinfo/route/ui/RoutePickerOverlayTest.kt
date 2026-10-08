@@ -6,6 +6,7 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -80,7 +81,13 @@ class RoutePickerOverlayTest {
         composeRule.onNodeWithText("City name").performTextInput("Berl")
         composeRule.onNodeWithText("City name").performImeAction()
         // The single result is selected at once (TASK-032).
-        composeRule.waitUntil { composeRule.onAllNodesWithText("Selected: Berlin (Germany)").fetchSemanticsNodes().isNotEmpty() }
+        composeRule.waitUntil {
+            composeRule
+                .onAllNodesWithContentDescription(
+                    "Selected: Berlin (Germany)",
+                ).fetchSemanticsNodes()
+                .isNotEmpty()
+        }
         composeRule.onNodeWithText("Confirm").assertIsEnabled().performClick()
 
         composeRule.waitUntil { composeRule.onAllNodesWithText("Choose destination").fetchSemanticsNodes().isEmpty() }
