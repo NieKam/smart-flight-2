@@ -77,7 +77,7 @@ The order follows four phases. Every task leaves the app building, tests green a
 | 044 | [Redesign: icons on the flight parameter tiles](044-flight-tile-icons/task.md) | 043 | DONE |
 | 045 | [Redesign: Nearby city waiting illustration](045-nearby-city-illustration/task.md) | 040 | DONE |
 | 046 | [Redesign: Route card flight arc](046-route-card-arc/task.md) | 039 | DONE |
-| 047 | [Redesign: themed map tiles, route line and map buttons](047-map-card-theme/task.md) | 039 | TODO |
+| 047 | [Redesign: themed map tiles, route line and map buttons](047-map-card-theme/task.md) | 039 | DONE |
 | 048 | [Redesign: Settings as grouped cards](048-settings-cards/task.md) | 040 | TODO |
 
 ## Coverage

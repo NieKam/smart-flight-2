@@ -22,8 +22,8 @@ import org.osmdroid.views.overlay.infowindow.MarkerInfoWindow
  */
 class MapOverlays(
     private val context: Context,
-    /** ARGB color of the route line, the theme-independent `mapInk` token (the original `purple_dark`). */
-    private val routeLineColor: Int,
+    /** ARGB color of the route line, the `mapRoute` token of the current scheme. */
+    var routeLineColor: Int,
 ) {
     /** The plane marker, once a position has been shown. */
     var planeMarker: Marker? = null
@@ -108,6 +108,7 @@ class MapOverlays(
             departureMarker = endpointMarker(map, R.drawable.ic_map_pin_departure)
             destinationMarker = endpointMarker(map, R.drawable.ic_map_pin_destination)
         }
+        routeLine?.outlinePaint?.color = routeLineColor
         val departure = GeoPoint(route.departure.latitude, route.departure.longitude)
         val destination = GeoPoint(route.destination.latitude, route.destination.longitude)
         routeLine?.setPoints(listOf(departure, destination))

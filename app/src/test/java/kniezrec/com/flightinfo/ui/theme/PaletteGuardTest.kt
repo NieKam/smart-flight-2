@@ -135,7 +135,7 @@ class PaletteGuardTest {
     private companion object {
         val SCHEMES = listOf("dark" to DarkSmartFlightColors, "light" to LightSmartFlightColors)
 
-        /** The plane marker, the route pins, the city picker marker and the button icons drawn on the maps. */
+        /** The plane marker, the route pins, the city picker marker and the expand/collapse icons drawn on the maps. */
         val MAP_DRAWABLES =
             listOf(
                 "ic_plane_marker",
@@ -144,7 +144,6 @@ class PaletteGuardTest {
                 "ic_city_found_marker",
                 "ic_expand",
                 "ic_shrink",
-                "drawing_pin_icon",
             )
 
         /** The original take-off, landing and trash icons of the route card. */
@@ -171,7 +170,7 @@ class PaletteGuardTest {
         val PALETTE =
             setOf(
                 // Original colors.xml, still used on the map and the launcher icon
-                0xFF484685, // purple_dark: map ink, launcher background
+                0xFF484685, // purple_dark: map ink, light route line, launcher background
                 0xFFD9D9ED, // text_color_light: map halo, route card icon sources (tinted in code)
                 0x80000000, // dark_overlay_alpha_50: scrim
                 0x33000000, // dark_overlay_alpha_20: switch track, launcher shadow
@@ -188,7 +187,7 @@ class PaletteGuardTest {
                 0xFF1C304A, // accentContainer
                 0xFF23436B, // accentLight
                 0xFF9DAED0, // labelText
-                0xFFE8ECF5, // valueText, toolbarTitle, inverseSurface
+                0xFFE8ECF5, // valueText, toolbarTitle, inverseSurface, mapRoute
                 0xFFFF7A6E, // satelliteUnused
                 0xFFFFB4AB, // error
                 0xFF1558C0, // inversePrimary (snackbar action)
@@ -196,6 +195,7 @@ class PaletteGuardTest {
                 0xFF1C5EA0, // horizonSky
                 0xFF295744, // horizonGround
                 0xFF143839, // horizonGroundBottom
+                0xFF4A5878, // mapTileTint: dims the tiles (TASK-047)
                 // Light scheme (TASK-039 redesign)
                 0xFFF4F6FB, // page and topBar (and window_light)
                 0xFFF9FAFD, // raised: dialogs and menus

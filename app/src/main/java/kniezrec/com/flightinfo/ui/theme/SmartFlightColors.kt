@@ -14,7 +14,8 @@ import androidx.compose.ui.graphics.Color
  *
  * Both schemes follow the 2026 redesign (TASK-039, `docs/design/2026-10-redesign/`): a cool
  * near-white page with white outlined cards in the light theme, a navy page with slate cards in the
- * dark theme, and a blue accent. The map overlays keep the original purple ink and halo.
+ * dark theme, and a blue accent. The map pins, plane marker and buttons keep the original purple ink
+ * and halo; the dark scheme dims the tiles and draws a light route line (TASK-047).
  */
 @Immutable
 data class SmartFlightColors(
@@ -79,9 +80,13 @@ data class SmartFlightColors(
     val mapInk: Color,
     /** Light halo on the map tiles: map button container (at [MAP_BUTTON_CONTAINER_ALPHA]), pin and marker outline. */
     val mapHalo: Color,
+    /** The great-circle route line on the (tinted) tiles. */
+    val mapRoute: Color,
+    /** Multiplied over the offline tiles: white leaves them as they are, the dark scheme dims them to navy. */
+    val mapTileTint: Color,
 )
 
-/** Opacity of the map buttons' [SmartFlightColors.mapHalo] circle, so the icon reads on any tile. */
+/** Opacity of the map buttons' [SmartFlightColors.mapHalo] container, so the icon reads on any tile. */
 const val MAP_BUTTON_CONTAINER_ALPHA = 0.8f
 
 // Shared by both schemes: the map overlays do not change with the theme.
@@ -131,6 +136,8 @@ val DarkSmartFlightColors =
         horizonLine = White,
         mapInk = PurpleDark,
         mapHalo = MapHalo,
+        mapRoute = Mist,
+        mapTileTint = Color(0xFF4A5878),
     )
 
 /**
@@ -170,6 +177,8 @@ val LightSmartFlightColors =
         horizonLine = White,
         mapInk = PurpleDark,
         mapHalo = MapHalo,
+        mapRoute = PurpleDark,
+        mapTileTint = White,
     )
 
 /**

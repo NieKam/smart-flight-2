@@ -35,6 +35,8 @@ class SmartFlightColorsTest {
         assertArgb(0xFF1C5EA0, colors.horizonSky)
         assertArgb(0xFF295744, colors.horizonGround)
         assertArgb(0xFF143839, colors.horizonGroundBottom)
+        assertArgb(0xFFE8ECF5, colors.mapRoute)
+        assertArgb(0xFF4A5878, colors.mapTileTint)
         assertSharedTokens(colors)
     }
 
@@ -66,6 +68,8 @@ class SmartFlightColorsTest {
         assertArgb(0xFF3B87DB, colors.horizonSky)
         assertArgb(0xFF3E7F5B, colors.horizonGround)
         assertArgb(0xFF2B6249, colors.horizonGroundBottom)
+        assertArgb(0xFF484685, colors.mapRoute)
+        assertArgb(0xFFFFFFFF, colors.mapTileTint)
         assertSharedTokens(colors)
     }
 
@@ -93,7 +97,7 @@ class SmartFlightColorsTest {
         assertEquals(1f, contrastRatio(Color.Red, Color.Red), 0.0001f)
     }
 
-    /** The map overlays look the same in every theme. */
+    /** The map pins, plane marker and buttons look the same in every theme. */
     private fun assertSharedTokens(colors: SmartFlightColors) {
         assertArgb(0x80000000, colors.overlay50)
         assertArgb(0x33000000, colors.overlay20)
