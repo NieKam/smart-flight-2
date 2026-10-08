@@ -182,7 +182,7 @@ private fun HeadingValue(
             this.contentDescription = contentDescription
         },
     ) {
-        // As the original: the cyan abbreviation above the large heading.
+        // As the original: the accent-colored abbreviation above the large heading.
         Text(cardinalValue, color = SmartFlightTheme.colors.accent, style = MaterialTheme.typography.titleMedium)
         // The key value: display style with tabular figures, so the digits do not jump while turning.
         ValueText(headingValue, style = MaterialTheme.typography.displayMedium, fontWeight = FontWeight.SemiBold)
