@@ -52,6 +52,7 @@ import kniezrec.com.flightinfo.course.CompassCardinal
 import kniezrec.com.flightinfo.course.CourseState
 import kniezrec.com.flightinfo.course.compassCardinal
 import kniezrec.com.flightinfo.course.shortestRotationTarget
+import kniezrec.com.flightinfo.ui.theme.CardHeader
 import kniezrec.com.flightinfo.ui.theme.LabelText
 import kniezrec.com.flightinfo.ui.theme.LabelValueRow
 import kniezrec.com.flightinfo.ui.theme.MissingSensorPlaceholder
@@ -106,10 +107,7 @@ private fun StaticCourse(
         Arrangement.Center,
         Alignment.CenterHorizontally,
     ) {
-        LabelText(
-            stringResource(title),
-            style = MaterialTheme.typography.titleLarge,
-        )
+        CardHeader(R.drawable.ic_card_course, stringResource(title))
         ValueText(
             stringResource(body),
             Modifier.padding(top = 12.dp),
@@ -123,11 +121,7 @@ private fun StaticCourse(
 @Composable
 private fun CoursePreview() {
     Box(Modifier.fillMaxSize().padding(24.dp)) {
-        LabelText(
-            stringResource(R.string.course_title),
-            Modifier.align(Alignment.TopStart),
-            style = MaterialTheme.typography.titleLarge,
-        )
+        CardHeader(R.drawable.ic_card_course, stringResource(R.string.course_title), Modifier.align(Alignment.TopStart))
         Box(Modifier.align(Alignment.Center)) { CompassRose(0) }
     }
 }
@@ -143,10 +137,7 @@ private fun CourseReading(state: CourseState.Available) {
         state.gpsBearingDegrees?.let { stringResource(R.string.course_degree_value, NumberFormat.getIntegerInstance().format(it)) }
             ?: stringResource(R.string.course_unavailable)
     Column(Modifier.fillMaxWidth()) {
-        LabelText(
-            stringResource(R.string.course_title),
-            style = MaterialTheme.typography.titleLarge,
-        )
+        CardHeader(R.drawable.ic_card_course, stringResource(R.string.course_title))
         BoxWithConstraints(Modifier.fillMaxWidth().padding(top = 16.dp)) {
             if (maxWidth >= 360.dp && LocalDensity.current.fontScale <= 1.3f) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {

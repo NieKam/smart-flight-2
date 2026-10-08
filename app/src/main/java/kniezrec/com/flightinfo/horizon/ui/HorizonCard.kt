@@ -42,7 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kniezrec.com.flightinfo.R
 import kniezrec.com.flightinfo.horizon.HorizonState
-import kniezrec.com.flightinfo.ui.theme.LabelText
+import kniezrec.com.flightinfo.ui.theme.CardHeader
 import kniezrec.com.flightinfo.ui.theme.MissingSensorPlaceholder
 import kniezrec.com.flightinfo.ui.theme.SmartFlightCard
 import kniezrec.com.flightinfo.ui.theme.SmartFlightCardDefaults
@@ -128,7 +128,7 @@ private fun HorizonStatic(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        LabelText(stringResource(title), style = horizonTitle().copy(textAlign = TextAlign.Center))
+        CardHeader(R.drawable.ic_card_horizon, stringResource(title))
         ValueText(
             stringResource(body),
             Modifier.padding(top = 12.dp),
@@ -149,7 +149,7 @@ private fun HorizonAvailable(
     val summary = stringResource(R.string.horizon_summary, pitch, roll)
     val spoken = stringResource(R.string.horizon_summary_spoken, pitch, roll)
     Column(Modifier.fillMaxWidth()) {
-        LabelText(stringResource(R.string.horizon_title), style = horizonTitle())
+        CardHeader(R.drawable.ic_card_horizon, stringResource(R.string.horizon_title))
         ValueText(
             summary,
             Modifier.padding(top = 12.dp).semantics(mergeDescendants = true) { contentDescription = spoken },
@@ -173,7 +173,7 @@ private fun HorizonAvailable(
 @Composable
 private fun HorizonPreview() {
     Column(Modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 20.dp)) {
-        LabelText(stringResource(R.string.horizon_title), style = horizonTitle())
+        CardHeader(R.drawable.ic_card_horizon, stringResource(R.string.horizon_title))
         HorizonInstrument(HorizonState.Available(0, 0, 0f, 0f), Modifier.padding(top = 12.dp).fillMaxWidth())
     }
 }
@@ -309,9 +309,6 @@ private fun HorizonAction(
         contentAlignment = Alignment.Center,
     ) { Text(stringResource(label), color = SmartFlightTheme.colors.accent, style = horizonBody().copy(fontWeight = FontWeight.Medium)) }
 }
-
-@Composable
-private fun horizonTitle() = MaterialTheme.typography.titleLarge
 
 @Composable
 private fun horizonBody() = MaterialTheme.typography.bodyLarge.copy(fontSize = 18.sp, lineHeight = 25.sp)

@@ -18,6 +18,7 @@
     <string name="settings_unavailable">Nie można otworzyć ustawień aplikacji.</string>
     <string name="gnss_status_title">Stan GNSS</string>
     <string name="gnss_waiting">Oczekiwanie na sygnał GPS…</string>
+    <string name="gnss_searching">Wyszukiwanie…</string>
     <string name="gps_tip">Przesuń urządzenie bliżej okna</string>
     <plurals name="gnss_satellites_used">
         <item quantity="one">Używany %d satelita</item>

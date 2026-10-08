@@ -60,7 +60,7 @@ class PaletteGuardTest {
     @Test
     fun mapRouteCardAndLauncherDrawablesUseOnlyPaletteColors() {
         val drawables = File("src/main/res/drawable")
-        for (name in MAP_DRAWABLES + ROUTE_CARD_DRAWABLES + LAUNCHER_DRAWABLES) {
+        for (name in MAP_DRAWABLES + ROUTE_CARD_DRAWABLES + LAUNCHER_DRAWABLES + CARD_HEADER_DRAWABLES) {
             val file = File(drawables, "$name.xml")
             assertTrue("Drawable not found: ${file.absolutePath}", file.isFile)
             val colors =
@@ -149,6 +149,10 @@ class PaletteGuardTest {
 
         /** The original take-off, landing and trash icons of the route card. */
         val ROUTE_CARD_DRAWABLES = listOf("ic_route_take_off", "ic_route_landing", "ic_route_delete")
+
+        /** The card header icons and the Calibrate icon of the redesign (TASK-040, TASK-042), tinted in code. */
+        val CARD_HEADER_DRAWABLES =
+            listOf("ic_card_satellite", "ic_card_course", "ic_card_horizon", "ic_card_flight", "ic_card_place", "ic_calibrate")
 
         /** The launcher icon's plane layers (TASK-034) and the top bar's overflow icon. */
         val LAUNCHER_DRAWABLES = listOf("ic_launcher_foreground", "ic_launcher_monochrome", "ic_more_vert")

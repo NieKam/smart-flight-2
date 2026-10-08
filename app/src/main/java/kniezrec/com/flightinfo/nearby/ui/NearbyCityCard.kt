@@ -35,7 +35,7 @@ import kniezrec.com.flightinfo.displayunits.convertDistance
 import kniezrec.com.flightinfo.displayunits.formatUnitNumber
 import kniezrec.com.flightinfo.displayunits.ui.labels
 import kniezrec.com.flightinfo.nearby.NearbyCityState
-import kniezrec.com.flightinfo.ui.theme.LabelText
+import kniezrec.com.flightinfo.ui.theme.CardHeader
 import kniezrec.com.flightinfo.ui.theme.LabelValueRow
 import kniezrec.com.flightinfo.ui.theme.SmartFlightCard
 import kniezrec.com.flightinfo.ui.theme.SmartFlightCardDefaults
@@ -71,7 +71,7 @@ internal fun NearbyCityCard(
     Arrangement.Center,
     Alignment.CenterHorizontally,
 ) {
-    Title(title, TextAlign.Center)
+    Title(title)
     ValueText(
         stringResource(body),
         Modifier.padding(top = 12.dp),
@@ -174,14 +174,7 @@ private data class UtcOffsetText(
     return UtcOffsetText(visible, spoken)
 }
 
-@Composable private fun Title(
-    text: Int,
-    align: TextAlign = TextAlign.Start,
-) = LabelText(
-    stringResource(text),
-    textAlign = align,
-    style = MaterialTheme.typography.titleLarge,
-)
+@Composable private fun Title(text: Int) = CardHeader(R.drawable.ic_card_place, stringResource(text))
 
 /** A label and its secondary value (Material `titleMedium`, tabular figures), read as one description. */
 @Composable private fun Row(

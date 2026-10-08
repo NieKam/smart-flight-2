@@ -1,13 +1,11 @@
 package kniezrec.com.flightinfo.flight.ui
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -15,16 +13,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import kniezrec.com.flightinfo.R
 import kniezrec.com.flightinfo.displayunits.UnitPreferences
 import kniezrec.com.flightinfo.displayunits.convertAltitude
@@ -34,11 +29,11 @@ import kniezrec.com.flightinfo.displayunits.convertVerticalSpeed
 import kniezrec.com.flightinfo.displayunits.formatUnitNumber
 import kniezrec.com.flightinfo.displayunits.ui.labels
 import kniezrec.com.flightinfo.flight.FlightParametersState
-import kniezrec.com.flightinfo.ui.theme.LabelText
+import kniezrec.com.flightinfo.ui.theme.CardHeader
 import kniezrec.com.flightinfo.ui.theme.LabelValueRow
 import kniezrec.com.flightinfo.ui.theme.SmartFlightCard
 import kniezrec.com.flightinfo.ui.theme.SmartFlightCardDefaults
-import kniezrec.com.flightinfo.ui.theme.ValueText
+import kniezrec.com.flightinfo.ui.theme.StatusPill
 import kniezrec.com.flightinfo.ui.theme.withSmallerUnit
 
 @Composable
@@ -94,25 +89,8 @@ private fun FlightParametersAvailabilityAnnouncement() {
 
 @Composable
 private fun FlightParametersWaiting() {
-    Column(
-        Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        FlightParametersTitle(textAlign = TextAlign.Center)
-
-        ValueText(
-            text =
-                androidx.compose.ui.res
-                    .stringResource(R.string.flight_parameters_waiting),
-            modifier = Modifier.padding(top = 12.dp),
-            style =
-                MaterialTheme.typography.bodyLarge.copy(
-                    fontSize = 18.sp,
-                    lineHeight = 25.sp,
-                    textAlign = TextAlign.Center,
-                ),
-        )
+    Column(Modifier.fillMaxWidth()) {
+        FlightParametersTitle(waiting = true)
     }
 }
 
@@ -202,11 +180,13 @@ private fun FlightParametersReadings(
     }
 }
 
+/** The card header; while [waiting], the "Waiting for GPS position…" pill at its end. */
 @Composable
-private fun FlightParametersTitle(textAlign: TextAlign = TextAlign.Start) {
-    LabelText(
-        text = stringResource(R.string.flight_parameters_title),
-        style = MaterialTheme.typography.titleLarge.copy(textAlign = textAlign),
+private fun FlightParametersTitle(waiting: Boolean = false) {
+    CardHeader(
+        R.drawable.ic_card_flight,
+        stringResource(R.string.flight_parameters_title),
+        trailing = if (waiting) ({ StatusPill(stringResource(R.string.flight_parameters_waiting)) }) else null,
     )
 }
 

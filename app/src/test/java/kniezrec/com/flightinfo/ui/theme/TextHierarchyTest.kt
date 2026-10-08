@@ -49,10 +49,11 @@ class TextHierarchyTest {
     private val type = appTypography
 
     @Test
-    fun flightParametersLabelsAreMutedAndValuesLight() {
+    fun flightParametersLabelsAreMutedAndTitleAndValuesLight() {
         show { FlightParametersCard(FlightParametersState.Readings(36.0, null, 100.0)) }
 
-        assertEquals(colors.labelText, layout("Flight parameters").color())
+        // Card titles are values since the redesign (TASK-040).
+        assertEquals(colors.valueText, layout("Flight parameters").color())
         assertEquals(colors.labelText, layout("Speed").color())
         assertEquals(colors.labelText, layout("Altitude").color())
         assertEquals(colors.valueText, layout("36.0 km/h").color())
