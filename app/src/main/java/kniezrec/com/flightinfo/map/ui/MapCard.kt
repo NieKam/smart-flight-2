@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -238,7 +237,7 @@ private fun MapButton(
             Box(
                 Modifier.size(40.dp).background(
                     colors.mapHalo.copy(alpha = MAP_BUTTON_CONTAINER_ALPHA),
-                    if (shown == MapButtonKind.Recenter) CircleShape else RoundedCornerShape(10.dp),
+                    if (shown == MapButtonKind.Recenter) CircleShape else MaterialTheme.shapes.small,
                 ),
                 contentAlignment = Alignment.Center,
             ) {

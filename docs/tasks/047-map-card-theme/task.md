@@ -12,7 +12,7 @@ The map card follows the design: in the dark theme the offline tiles are dimmed 
 
 ## Scope
 - New tokens `mapRoute` (route line: light #484685 = original purple_dark, dark #E8ECF5) and `mapTileTint` (multiplied over the tiles: light #FFFFFF = unchanged, dark #4A5878).
-- `MapCard`: applies `mapTileTint` as a multiply color filter on the tiles overlay; passes `mapRoute` to `MapOverlays`. Recenter uses `ic_calibrate`; the expand/collapse button container is a 10dp rounded square. Button colors stay `mapInk` on `mapHalo`.
+- `MapCard`: applies `mapTileTint` as a multiply color filter on the tiles overlay; passes `mapRoute` to `MapOverlays`. Recenter uses `ic_calibrate`; the expand/collapse button container is a rounded square (the theme's small shape). Button colors stay `mapInk` on `mapHalo`.
 - Remove the now unused `drawing_pin_icon`.
 - Tests: tokens, palette, contrast of the route line on a tinted white and black tile.
 
