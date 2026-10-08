@@ -320,7 +320,7 @@ private fun OfflineMap(
                     provider.detach()
                     throw IllegalStateException("Offline map archive could not be opened")
                 }
-                MapView(context, provider).apply {
+                GestureOwningMapView(context, provider).apply {
                     setTileSource(mapSource)
                     setUseDataConnection(false)
                     setMultiTouchControls(true)
@@ -347,7 +347,7 @@ private fun OfflineMap(
                 }
             } catch (_: Exception) {
                 onOpenFailure()
-                MapView(context).apply {
+                GestureOwningMapView(context).apply {
                     setUseDataConnection(false)
                     instance.map = this
                 }
