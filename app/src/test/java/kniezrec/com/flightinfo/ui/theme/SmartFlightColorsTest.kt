@@ -34,8 +34,8 @@ class SmartFlightColorsTest {
         assertArgb(0xFF1C5EA0, colors.horizonSky)
         assertArgb(0xFF295744, colors.horizonGround)
         assertArgb(0xFF143839, colors.horizonGroundBottom)
-        assertArgb(0xFFE8ECF5, colors.mapRoute)
-        assertArgb(0xFF7080A2, colors.mapTileTint)
+        assertArgb(0xFF172340, colors.mapRoute)
+        assertArgb(0xFF8F9BBE, colors.mapTileTint)
         assertSharedTokens(colors)
     }
 

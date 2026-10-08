@@ -136,8 +136,8 @@ val DarkSmartFlightColors =
         horizonLine = White,
         mapInk = PurpleDark,
         mapHalo = MapHalo,
-        mapRoute = Mist,
-        mapTileTint = Color(0xFF7080A2),
+        mapRoute = Navy,
+        mapTileTint = Color(0xFF8F9BBE),
     )
 
 /**
