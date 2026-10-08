@@ -27,21 +27,35 @@ class PaletteGuardTest {
 
     @Test
     fun everyColorResourceIsInThePalette() {
-        // Gradle runs unit tests with the module directory as the working directory.
-        val file = File("src/main/res/values/colors.xml")
-        assertTrue("Color resources not found: ${file.absolutePath}", file.isFile)
-        val xml = file.readText()
-        val entries =
-            COLOR_RESOURCE.findAll(xml).associate { match ->
-                val digits = match.groupValues[2]
-                val argb = (if (digits.length == 6) "FF$digits" else digits).toLong(16).toInt()
-                match.groupValues[1] to argb
-            }
+        val xml = colorResourcesXml()
+        val entries = colorResources(xml)
         assertEquals("Every <color> must be a literal #RRGGBB or #AARRGGBB", Regex("<color\\b").findAll(xml).count(), entries.size)
 
         val outside = entries.filterValues { it !in PALETTE }
         assertTrue("Color resources outside the palette: ${outside.mapValues { hex(it.value) }}", outside.isEmpty())
     }
+
+    /** The launch window matches the page of each scheme, so there is no flash before Compose draws. */
+    @Test
+    fun windowBackgroundsMatchThePageTokens() {
+        val entries = colorResources(colorResourcesXml())
+        assertEquals(hex(LightSmartFlightColors.page.toArgb()), entries["window_light"]?.let(::hex))
+        assertEquals(hex(DarkSmartFlightColors.page.toArgb()), entries["window_dark"]?.let(::hex))
+    }
+
+    private fun colorResourcesXml(): String {
+        // Gradle runs unit tests with the module directory as the working directory.
+        val file = File("src/main/res/values/colors.xml")
+        assertTrue("Color resources not found: ${file.absolutePath}", file.isFile)
+        return file.readText()
+    }
+
+    private fun colorResources(xml: String): Map<String, Int> =
+        COLOR_RESOURCE.findAll(xml).associate { match ->
+            val digits = match.groupValues[2]
+            val argb = (if (digits.length == 6) "FF$digits" else digits).toLong(16).toInt()
+            match.groupValues[1] to argb
+        }
 
     @Test
     fun mapRouteCardAndLauncherDrawablesUseOnlyPaletteColors() {
@@ -163,7 +177,7 @@ class PaletteGuardTest {
                 0x80000000, // dark_overlay_alpha_50: scrim
                 0x33000000, // dark_overlay_alpha_20: dividers, switch track
                 0xFF2C2163, // toast_background: dark snackbar text, light toolbar title and snackbar
-                0xFFFFFFFF, // white: dark toolbar title, light dialogs, horizon line
+                0xFFFFFFFF, // white: dark toolbar title, horizon line
                 // Dark scheme, derived (TASK-037)
                 0xFF38366E, // page: purple_dark one step darker (and window_dark)
                 0xFF4F4D8E, // raised: dialogs and menus
@@ -175,10 +189,10 @@ class PaletteGuardTest {
                 0xFFE8E7F5, // inverseSurface (snackbar)
                 0xFF00687A, // inversePrimary (snackbar action)
                 // Light scheme, derived (TASK-037)
-                0xFFEFEEF8, // page (and window_light)
-                0xFFFBFAFE, // card
-                0xFFE4E3F3, // topBar
-                0xFFD8D6EC, // topBarScrolled
+                0xFFE6E4F4, // page and topBar (and window_light), lavender mist (TASK-038)
+                0xFFF7F6FC, // card
+                0xFFFDFCFF, // raised: dialogs and menus
+                0xFFDAD7EF, // topBarScrolled
                 0xFF00687A, // accent: dark teal (also the dark scheme's inversePrimary)
                 0x8000687A, // accentPressed
                 0xFF55537D, // labelText

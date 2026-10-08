@@ -16,6 +16,9 @@ import androidx.compose.ui.graphics.Color
  * values and the cyan accent pass WCAG AA as text (the original card #5B5999 left no room for a
  * muted label at 4.5:1). The original `purple_main` stays the top bar and `purple_dark` becomes the
  * card, so the dashboard keeps the original look.
+ *
+ * Light scheme (TASK-038): brand-tinted "lavender mist" surfaces instead of near-white; the page
+ * and the top bar at rest share one tone, cards and dialogs are lighter tones of the same hue.
  */
 @Immutable
 data class SmartFlightColors(
@@ -118,18 +121,21 @@ val DarkSmartFlightColors =
     )
 
 /**
- * The light scheme, derived from the same hues: near-white lavender page and cards, a lavender top
- * bar, dark purple text and a dark teal accent that passes AA on the light surfaces. Snackbars use
- * the original toast purple with the original cyan action. The map overlays and the horizon
- * instrument keep their colors.
+ * The light scheme, derived from the same hues (TASK-038, "lavender mist"): surfaces are tones of
+ * the brand purple hue instead of near-white, as in Material 3 light schemes. The page sits in a
+ * mid-light tone, cards one step lighter (luminance ratio >= 1.15 against the page, so the flat
+ * cards stand out without shadows) and dialogs the lightest. The top bar uses the page tone at rest
+ * (seamless) and turns one step darker while content scrolls under it. Text is dark purple and the
+ * accent a dark teal that passes AA on every light surface. Snackbars use the original toast purple
+ * with the original cyan action. The map overlays and the horizon instrument keep their colors.
  */
 val LightSmartFlightColors =
     SmartFlightColors(
-        page = Color(0xFFEFEEF8),
-        card = Color(0xFFFBFAFE),
-        raised = White,
-        topBar = Color(0xFFE4E3F3),
-        topBarScrolled = Color(0xFFD8D6EC),
+        page = Color(0xFFE6E4F4),
+        card = Color(0xFFF7F6FC),
+        raised = Color(0xFFFDFCFF),
+        topBar = Color(0xFFE6E4F4),
+        topBarScrolled = Color(0xFFDAD7EF),
         accent = Color(0xFF00687A),
         accentPressed = Color(0x8000687A),
         accentLight = CyanLight,
