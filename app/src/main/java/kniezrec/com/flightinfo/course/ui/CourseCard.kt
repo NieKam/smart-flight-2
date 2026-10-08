@@ -3,6 +3,7 @@ package kniezrec.com.flightinfo.course.ui
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -29,6 +30,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
@@ -44,6 +49,7 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -61,6 +67,8 @@ import kniezrec.com.flightinfo.ui.theme.SmartFlightCardDefaults
 import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
 import kniezrec.com.flightinfo.ui.theme.ValueText
 import java.text.NumberFormat
+import kotlin.math.cos
+import kotlin.math.sin
 
 @Composable
 internal fun CourseCard(
@@ -177,7 +185,7 @@ private fun HeadingValue(
         // As the original: the cyan abbreviation above the large heading.
         Text(cardinalValue, color = SmartFlightTheme.colors.accent, style = MaterialTheme.typography.titleMedium)
         // The key value: display style with tabular figures, so the digits do not jump while turning.
-        ValueText(headingValue, style = MaterialTheme.typography.displayMedium)
+        ValueText(headingValue, style = MaterialTheme.typography.displayMedium, fontWeight = FontWeight.SemiBold)
     }
 }
 
@@ -246,42 +254,83 @@ private fun CompassCardinal.spokenResource(): Int =
     }
 
 /**
- * The original compass rose: N, E, S and W fixed around the airplane, which turns to the heading
- * with a short linear animation the short way round ([shortestRotationTarget]). Decorative: the
- * heading text carries the description. The rotation is applied in the draw phase only.
+ * The compass dial of the redesign (TASK-041): a round face with an outline ring, ticks every 10°
+ * (long ones at N, E, S and W), the four letters inside the ring and the airplane in the center,
+ * which turns to the heading with a short linear animation the short way round
+ * ([shortestRotationTarget]). Decorative: the heading text carries the description. The rotation
+ * is applied in the draw phase only.
  */
 @Composable
 private fun CompassRose(headingDegrees: Int) {
     var target by remember { mutableFloatStateOf(headingDegrees.toFloat()) }
     LaunchedEffect(headingDegrees) { target = shortestRotationTarget(target, headingDegrees.toFloat()) }
     val rotation = animateFloatAsState(target, tween(PLANE_ROTATION_MILLIS, easing = LinearEasing), label = "plane rotation")
+    val colors = SmartFlightTheme.colors
     Box(
         Modifier.size(COMPASS_ROSE_SIZE).testTag("course-direction-visual").semantics { hideFromAccessibility() },
         contentAlignment = Alignment.Center,
     ) {
-        CompassLetter(R.string.course_cardinal_north, Modifier.align(Alignment.TopCenter))
-        CompassLetter(R.string.course_cardinal_east, Modifier.align(Alignment.CenterEnd))
-        CompassLetter(R.string.course_cardinal_south, Modifier.align(Alignment.BottomCenter))
-        CompassLetter(R.string.course_cardinal_west, Modifier.align(Alignment.CenterStart))
+        CompassDial(colors.card, colors.cardOutline, colors.labelText, Modifier.matchParentSize())
+        val letterInset = Modifier.padding(DIAL_LETTER_INSET)
+        CompassLetter(R.string.course_cardinal_north, letterInset.align(Alignment.TopCenter))
+        CompassLetter(R.string.course_cardinal_east, letterInset.align(Alignment.CenterEnd))
+        CompassLetter(R.string.course_cardinal_south, letterInset.align(Alignment.BottomCenter))
+        CompassLetter(R.string.course_cardinal_west, letterInset.align(Alignment.CenterStart))
         Icon(
             painterResource(R.drawable.ic_plane),
             contentDescription = null,
-            modifier = Modifier.size(72.dp).testTag("course-plane").graphicsLayer { rotationZ = rotation.value },
-            tint = SmartFlightTheme.colors.valueText,
+            modifier = Modifier.size(PLANE_SIZE).testTag("course-plane").graphicsLayer { rotationZ = rotation.value },
+            tint = colors.compassPlane,
         )
     }
 }
 
-/** A letter of the rose, as the original `CompassLetter` style (28sp, muted). */
+/** The dial's face in [face], its [ring] and the ticks in [tick]: every 10°, long at the cardinals. */
+@Composable
+private fun CompassDial(
+    face: Color,
+    ring: Color,
+    tick: Color,
+    modifier: Modifier,
+) {
+    Canvas(modifier) {
+        val radius = size.minDimension / 2
+        val ringWidth = DIAL_RING_WIDTH.toPx()
+        drawCircle(face, radius)
+        drawCircle(ring, radius - ringWidth / 2, style = Stroke(ringWidth))
+        for (degrees in 0 until 360 step 10) {
+            val cardinal = degrees % 90 == 0
+            val length = (if (cardinal) DIAL_CARDINAL_TICK else DIAL_MINOR_TICK).toPx()
+            val outer = radius - if (cardinal) 0f else (ringWidth - length) / 2
+            val angle = Math.toRadians(degrees.toDouble())
+            val direction = Offset(sin(angle).toFloat(), -cos(angle).toFloat())
+            drawLine(
+                if (cardinal) tick else tick.copy(alpha = MINOR_TICK_ALPHA),
+                center + direction * outer,
+                center + direction * (outer - length),
+                strokeWidth = (if (cardinal) 2.dp else 1.dp).toPx(),
+                cap = StrokeCap.Round,
+            )
+        }
+    }
+}
+
+/** A letter of the dial (20sp, muted). */
 @Composable
 private fun CompassLetter(
     letter: Int,
     modifier: Modifier,
 ) {
-    LabelText(stringResource(letter), modifier, fontSize = 28.sp)
+    LabelText(stringResource(letter), modifier, fontSize = 20.sp, fontWeight = FontWeight.Medium)
 }
 
 private val COMPASS_ROSE_SIZE = 156.dp
+private val PLANE_SIZE = 64.dp
+private val DIAL_RING_WIDTH = 10.dp
+private val DIAL_CARDINAL_TICK = 16.dp
+private val DIAL_MINOR_TICK = 5.dp
+private val DIAL_LETTER_INSET = 22.dp
+private const val MINOR_TICK_ALPHA = 0.6f
 private const val PLANE_ROTATION_MILLIS = 200
 
 @Composable
