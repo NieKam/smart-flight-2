@@ -35,11 +35,11 @@ class SmartFlightColorsTest {
     fun lightTokensHoldTheTokenTable() {
         val colors = LightSmartFlightColors
 
-        assertArgb(0xFFEFEEF8, colors.page)
-        assertArgb(0xFFFBFAFE, colors.card)
-        assertArgb(0xFFFFFFFF, colors.raised)
-        assertArgb(0xFFE4E3F3, colors.topBar)
-        assertArgb(0xFFD8D6EC, colors.topBarScrolled)
+        assertArgb(0xFFE6E4F4, colors.page)
+        assertArgb(0xFFF7F6FC, colors.card)
+        assertArgb(0xFFFDFCFF, colors.raised)
+        assertArgb(0xFFE6E4F4, colors.topBar)
+        assertArgb(0xFFDAD7EF, colors.topBarScrolled)
         assertArgb(0xFF00687A, colors.accent)
         assertArgb(0x8000687A, colors.accentPressed)
         assertArgb(0xFF99E5FC, colors.accentLight)
@@ -57,11 +57,22 @@ class SmartFlightColorsTest {
 
     @Test
     fun surfaceRolesAreDistinctTones() {
-        for (colors in listOf(DarkSmartFlightColors, LightSmartFlightColors)) {
-            val surfaces = listOf(colors.page, colors.card, colors.raised, colors.topBar, colors.topBarScrolled)
+        // The light top bar at rest shares the page tone (seamless Material 3 top bar, TASK-038).
+        val schemes =
+            listOf(
+                DarkSmartFlightColors to listOf(DarkSmartFlightColors.topBar),
+                LightSmartFlightColors to emptyList(),
+            )
+        for ((colors, extraSurfaces) in schemes) {
+            val surfaces = listOf(colors.page, colors.card, colors.raised, colors.topBarScrolled) + extraSurfaces
             assertEquals(surfaces.size, surfaces.toSet().size)
             assertNotEquals(colors.page, colors.inverseSurface)
         }
+    }
+
+    @Test
+    fun lightTopBarAtRestMatchesThePage() {
+        assertEquals(LightSmartFlightColors.page, LightSmartFlightColors.topBar)
     }
 
     @Test

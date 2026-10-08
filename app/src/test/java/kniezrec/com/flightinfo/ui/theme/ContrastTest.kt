@@ -29,6 +29,16 @@ class ContrastTest {
         assertTrue(failures.joinToString("\n"), failures.isEmpty())
     }
 
+    /** Flat tonal cards must stand out from the light page without shadows (TASK-038). */
+    @Test
+    fun lightCardIsDistinguishableFromThePage() {
+        val ratio = contrastRatio(LightSmartFlightColors.card, LightSmartFlightColors.page)
+        assertTrue(
+            "light card vs page luminance ratio is %.2f, needs %.2f".format(ratio, CARD_VS_PAGE_MINIMUM),
+            ratio >= CARD_VS_PAGE_MINIMUM,
+        )
+    }
+
     @Test
     fun printsTheContrastTable() {
         println("| Scheme | Foreground | Background | Ratio | Minimum |")
@@ -129,6 +139,7 @@ class ContrastTest {
     private companion object {
         const val TEXT_MINIMUM = 4.5f
         const val COMPONENT_MINIMUM = 3f
+        const val CARD_VS_PAGE_MINIMUM = 1.15f
         val WHITE_TILE = Color(0xFFFFFFFF)
         val BLACK_TILE = Color(0xFF000000)
         val SCHEMES = listOf("dark" to DarkSmartFlightColors, "light" to LightSmartFlightColors)
