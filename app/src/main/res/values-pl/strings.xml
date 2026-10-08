@@ -140,7 +140,7 @@
     <string name="map_unavailable">Mapa niedostępna</string>
     <string name="map_unavailable_body">Nie można otworzyć archiwum mapy offline. Mapa z sieci nie jest używana.</string>
     <string name="map_try_again">Spróbuj ponownie</string>
-    <string name="map_recenter">Moja lokalizacja</string>
+    <string name="map_recenter">Moja lokalizacja</string><string name="map_zoom_in">Przybliż</string><string name="map_zoom_out">Oddal</string>
     <string name="map_expand">Rozwiń mapę</string>
     <string name="map_collapse">Zwiń mapę</string>
     <string name="map_ready_summary">Mapa offline z pozycją samolotu</string>

@@ -118,7 +118,7 @@
     <string name="map_unavailable">Map unavailable</string>
     <string name="map_unavailable_body">The offline map archive could not be opened. No network map is used.</string>
     <string name="map_try_again">Try again</string>
-    <string name="map_recenter">My location</string>
+    <string name="map_recenter">My location</string><string name="map_zoom_in">Zoom in</string><string name="map_zoom_out">Zoom out</string>
     <string name="map_expand">Expand map</string>
     <string name="map_collapse">Collapse map</string>
     <string name="map_ready_summary">Offline map showing the aircraft position</string>

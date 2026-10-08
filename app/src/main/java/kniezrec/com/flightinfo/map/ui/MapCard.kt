@@ -68,6 +68,7 @@ import org.osmdroid.tileprovider.modules.OfflineTileProvider
 import org.osmdroid.tileprovider.tilesource.XYTileSource
 import org.osmdroid.tileprovider.util.SimpleRegisterReceiver
 import org.osmdroid.util.GeoPoint
+import org.osmdroid.views.CustomZoomButtonsController
 import org.osmdroid.views.MapView
 
 private val mapSource = XYTileSource("MapquestOSM", 1, 9, 256, ".jpg", arrayOf())
@@ -142,6 +143,11 @@ fun MapCard(
                             kind = MapButtonKind.Recenter,
                             modifier = Modifier.align(Alignment.TopEnd).padding(MAP_BUTTON_MARGIN),
                         ) { instance.recenter(state.position) }
+                        MapZoomButtons(
+                            onZoomIn = instance::zoomIn,
+                            onZoomOut = instance::zoomOut,
+                            modifier = Modifier.align(Alignment.CenterEnd).padding(MAP_BUTTON_MARGIN),
+                        )
                         MapButton(
                             kind = if (expanded) MapButtonKind.Collapse else MapButtonKind.Expand,
                             modifier = Modifier.align(Alignment.BottomEnd).padding(MAP_BUTTON_MARGIN),
@@ -161,7 +167,18 @@ internal enum class MapButtonKind(
     Recenter(R.string.map_recenter, R.drawable.ic_calibrate),
     Expand(R.string.map_expand, R.drawable.ic_expand),
     Collapse(R.string.map_collapse, R.drawable.ic_shrink),
+    ZoomIn(R.string.map_zoom_in, R.drawable.ic_zoom_in),
+    ZoomOut(R.string.map_zoom_out, R.drawable.ic_zoom_out),
 }
+
+/** Icon size of a map button: the original expand/collapse icons fill more of the container. */
+private val MapButtonKind.iconSize: Dp
+    get() =
+        when (this) {
+            MapButtonKind.Recenter -> 26.dp
+            MapButtonKind.ZoomIn, MapButtonKind.ZoomOut -> 24.dp
+            MapButtonKind.Expand, MapButtonKind.Collapse -> 32.dp
+        }
 
 /** Test tag of the map area (the map view and its buttons), the part whose height changes. */
 internal const val MAP_AREA_TAG = "map-area"
@@ -244,12 +261,33 @@ internal fun MapButton(
                 Icon(
                     painter = painterResource(shown.icon),
                     contentDescription = stringResource(shown.description),
-                    modifier = Modifier.size(if (shown == MapButtonKind.Recenter) 26.dp else 32.dp).testTag(mapButtonIconTag(shown)),
+                    modifier = Modifier.size(shown.iconSize).testTag(mapButtonIconTag(shown)),
                     tint = colors.mapInk,
                 )
             }
         }
     }
+}
+
+/**
+ * Zoom in and out as icon buttons in the map buttons' style, stacked (the redesign; replaces
+ * osmdroid's built-in "− +" controls, which [hideBuiltInZoomControls] turns off).
+ */
+@Composable
+internal fun MapZoomButtons(
+    onZoomIn: () -> Unit,
+    onZoomOut: () -> Unit,
+    modifier: Modifier,
+) {
+    Column(modifier) {
+        MapButton(MapButtonKind.ZoomIn, Modifier, onZoomIn)
+        MapButton(MapButtonKind.ZoomOut, Modifier, onZoomOut)
+    }
+}
+
+/** Turns off osmdroid's own zoom buttons: [MapZoomButtons] replace them. */
+internal fun MapView.hideBuiltInZoomControls() {
+    zoomController.setVisibility(CustomZoomButtonsController.Visibility.NEVER)
 }
 
 /** The map view of one Ready archive and its overlays; not Compose state (see [OfflineMap]). */
@@ -264,6 +302,14 @@ private class MapInstance(
         val viewport = MapRules.recenter(position)
         map.controller.setCenter(GeoPoint(viewport.center.latitude, viewport.center.longitude))
         map.controller.setZoom(viewport.zoom)
+    }
+
+    fun zoomIn() {
+        map?.controller?.zoomIn()
+    }
+
+    fun zoomOut() {
+        map?.controller?.zoomOut()
     }
 
     fun dispose() {
@@ -321,6 +367,7 @@ private fun OfflineMap(
                     throw IllegalStateException("Offline map archive could not be opened")
                 }
                 GestureOwningMapView(context, provider).apply {
+                    hideBuiltInZoomControls()
                     setTileSource(mapSource)
                     setUseDataConnection(false)
                     setMultiTouchControls(true)
@@ -348,6 +395,7 @@ private fun OfflineMap(
             } catch (_: Exception) {
                 onOpenFailure()
                 GestureOwningMapView(context).apply {
+                    hideBuiltInZoomControls()
                     setUseDataConnection(false)
                     instance.map = this
                 }
