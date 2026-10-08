@@ -165,6 +165,7 @@ class PaletteGuardTest {
                 "ic_settings_monitoring",
                 "ic_settings_units",
                 "ic_chevron_right",
+                "ic_search",
             )
 
         /** The launcher icon's plane layers (TASK-034) and the top bar's overflow icon. */

@@ -226,7 +226,7 @@ private fun MapMessage(
  * kind crossfades from the old one (expand and collapse).
  */
 @Composable
-private fun MapButton(
+internal fun MapButton(
     kind: MapButtonKind,
     modifier: Modifier,
     onClick: () -> Unit,

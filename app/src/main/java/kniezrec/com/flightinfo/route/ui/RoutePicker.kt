@@ -1,7 +1,10 @@
 package kniezrec.com.flightinfo.route.ui
 
+import android.graphics.PorterDuff
+import android.graphics.PorterDuffColorFilter
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,12 +15,15 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -34,29 +40,36 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.fromHtml
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import kniezrec.com.flightinfo.R
+import kniezrec.com.flightinfo.map.ui.MapButton
+import kniezrec.com.flightinfo.map.ui.MapButtonKind
 import kniezrec.com.flightinfo.map.ui.MapOverlays
 import kniezrec.com.flightinfo.nearby.NearbyCityRecord
 import kniezrec.com.flightinfo.nearby.NearbyCoordinate
 import kniezrec.com.flightinfo.route.RouteEndpoint
 import kniezrec.com.flightinfo.route.RoutePickerError
 import kniezrec.com.flightinfo.route.RoutePickerState
-import kniezrec.com.flightinfo.ui.theme.LabelText
 import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
-import kniezrec.com.flightinfo.ui.theme.smartFlightButtonColors
-import kniezrec.com.flightinfo.ui.theme.smartFlightTextFieldColors
+import kniezrec.com.flightinfo.ui.theme.ValueText
+import kniezrec.com.flightinfo.ui.theme.smartFlightFilledButtonColors
+import kniezrec.com.flightinfo.ui.theme.smartFlightSearchFieldColors
+import kniezrec.com.flightinfo.ui.theme.smartFlightTonalButtonColors
 import org.osmdroid.events.MapEventsReceiver
 import org.osmdroid.tileprovider.modules.OfflineTileProvider
 import org.osmdroid.tileprovider.tilesource.XYTileSource
@@ -109,9 +122,13 @@ fun RoutePicker(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                LabelText(
+                IconButton(onClick = onCancel) {
+                    Icon(painterResource(R.drawable.ic_arrow_back), stringResource(R.string.navigate_up))
+                }
+                ValueText(
                     stringResource(title),
                     modifier = Modifier.weight(1f).semantics { contentDescription = titleDescription },
+                    style = MaterialTheme.typography.titleLarge,
                 )
                 TextButton(
                     onClick = onCancel,
@@ -124,21 +141,24 @@ fun RoutePicker(
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                // A pill as in the design; the label stays (it names the field after typing too).
                 TextField(
                     value = state.query,
                     onValueChange = onQueryChange,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f).border(1.dp, SmartFlightTheme.colors.cardOutline, CircleShape),
                     label = { Text(stringResource(R.string.route_city_name)) },
+                    leadingIcon = { Icon(painterResource(R.drawable.ic_search), contentDescription = null) },
                     singleLine = true,
+                    shape = CircleShape,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                     keyboardActions = KeyboardActions(onSearch = { onSearch(state.query) }),
-                    colors = smartFlightTextFieldColors(),
+                    colors = smartFlightSearchFieldColors(),
                 )
                 Button(
                     onClick = { onSearch(state.query) },
                     enabled = !state.loading,
                     modifier = Modifier.heightIn(min = 48.dp),
-                    colors = smartFlightButtonColors(),
+                    colors = smartFlightTonalButtonColors(),
                 ) {
                     Text(stringResource(R.string.route_search))
                 }
@@ -165,13 +185,14 @@ fun RoutePicker(
             val selected = state.selected
             Text(
                 if (selected != null) {
-                    stringResource(R.string.route_selected_city, selected.name, selected.country)
+                    AnnotatedString(stringResource(R.string.route_selected_city, selected.name, selected.country))
                 } else {
-                    stringResource(R.string.route_map_instruction)
+                    // "Long-press" in bold (the design); the resource marks it with <b>.
+                    AnnotatedString.fromHtml(stringResource(R.string.route_map_instruction))
                 },
                 modifier = Modifier.fillMaxWidth(),
                 textAlign = TextAlign.Center,
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.bodyLarge,
             )
             if (state.selectionInvalid) Text(stringResource(R.string.route_invalid_city))
             if (state.results.size > 1) {
@@ -212,7 +233,7 @@ fun RoutePicker(
                 onClick = onConfirm,
                 enabled = state.canConfirm,
                 modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
-                colors = smartFlightButtonColors(),
+                colors = smartFlightFilledButtonColors(),
             ) {
                 Text(stringResource(R.string.route_confirm))
             }
@@ -240,14 +261,30 @@ private fun PickerMap(
     selectedCoordinate: NearbyCoordinate?,
     onNearest: (NearbyCoordinate?) -> Unit,
 ) {
-    val context = LocalContext.current
     // Not Compose state: `update` reads and replaces it, and a state read there would re-run
     // `update` after every write without end.
     val draft = remember { DraftMarkerHolder() }
+    val tileTint = SmartFlightTheme.colors.mapTileTint.toArgb()
+    Box(Modifier.fillMaxSize()) {
+        PickerMapView(archive, draft, selectedCoordinate, tileTint, onNearest)
+        MapButton(MapButtonKind.Recenter, Modifier.align(Alignment.TopEnd).padding(4.dp)) { recenter(draft) }
+    }
+}
+
+@Composable
+private fun PickerMapView(
+    archive: File,
+    draft: DraftMarkerHolder,
+    selectedCoordinate: NearbyCoordinate?,
+    tileTint: Int,
+    onNearest: (NearbyCoordinate?) -> Unit,
+) {
+    val context = LocalContext.current
     AndroidView(
         modifier = Modifier.fillMaxSize().semantics { contentDescription = context.getString(R.string.route_picker_map_description) },
         factory = {
             MapView(context, OfflineTileProvider(SimpleRegisterReceiver(context), arrayOf(archive))).apply {
+                draft.map = this
                 setTileSource(pickerMapSource)
                 setUseDataConnection(false)
                 setMultiTouchControls(true)
@@ -270,6 +307,8 @@ private fun PickerMap(
             }
         },
         update = { map ->
+            // Dims the tiles in the dark scheme, as the dashboard map (TASK-047).
+            map.overlayManager.tilesOverlay.setColorFilter(PorterDuffColorFilter(tileTint, PorterDuff.Mode.MULTIPLY))
             if (selectedCoordinate != draft.coordinate) {
                 showCity(map, draft, selectedCoordinate)
                 map.invalidate()
@@ -318,10 +357,24 @@ private fun cityMarker(map: MapView): Marker =
 
 private val RESULTS_MAX_HEIGHT = 168.dp
 
-private val MAP_SHAPE = RoundedCornerShape(10.dp)
+private val MAP_SHAPE = RoundedCornerShape(12.dp)
 
-/** The selected city currently shown on the picker map, and its marker. */
+/** The picker map, the selected city currently shown on it, and its marker. */
 private class DraftMarkerHolder {
+    var map: MapView? = null
     var coordinate: NearbyCoordinate? = null
     var marker: Marker? = null
+}
+
+/** The recenter button (TASK-051): back to the selected city, or to the world view without one. */
+private fun recenter(draft: DraftMarkerHolder) {
+    val map = draft.map ?: return
+    val coordinate = draft.coordinate
+    if (coordinate == null) {
+        map.controller.setZoom(PICKER_WORLD_ZOOM)
+        map.controller.setCenter(GeoPoint(0.0, 0.0))
+    } else {
+        val camera = pickerCamera(coordinate, map.zoomLevelDouble)
+        map.controller.animateTo(GeoPoint(camera.latitude, camera.longitude), camera.zoom, null)
+    }
 }
