@@ -4,6 +4,6 @@
     <!-- Original purple_dark: launcher icon background. -->
     <color name="purple_dark">#FF484685</color>
     <!-- Window background before Compose draws: the page token of the light and the dark scheme. -->
-    <color name="window_light">#FFE6E4F4</color>
-    <color name="window_dark">#FF38366E</color>
+    <color name="window_light">#FFF4F6FB</color>
+    <color name="window_dark">#FF111722</color>
 </resources>

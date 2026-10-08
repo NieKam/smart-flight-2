@@ -5,20 +5,16 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 
 /**
- * The app's own color tokens, derived from the original Smart Flight palette (`colors.xml` of the
- * original app). Every screen, card, dialog and overlay takes its colors from here (directly or
- * through [SmartFlightTheme]'s Material color scheme); read them through [SmartFlightTheme.colors].
+ * The app's own color tokens. Every screen, card, dialog and overlay takes its colors from here
+ * (directly or through [SmartFlightTheme]'s Material color scheme); read them through
+ * [SmartFlightTheme.colors].
  *
  * The token table (with the contrast of every pair the app draws) is pinned by `PaletteGuardTest`
  * and `ContrastTest`: a new color needs a line in that table first.
  *
- * Dark scheme (TASK-037): every surface moved one step darker than the original so muted labels,
- * values and the cyan accent pass WCAG AA as text (the original card #5B5999 left no room for a
- * muted label at 4.5:1). The original `purple_main` stays the top bar and `purple_dark` becomes the
- * card, so the dashboard keeps the original look.
- *
- * Light scheme (TASK-038): brand-tinted "lavender mist" surfaces instead of near-white; the page
- * and the top bar at rest share one tone, cards and dialogs are lighter tones of the same hue.
+ * Both schemes follow the 2026 redesign (TASK-039, `docs/design/2026-10-redesign/`): a cool
+ * near-white page with white outlined cards in the light theme, a navy page with slate cards in the
+ * dark theme, and a blue accent. The map overlays keep the original purple ink and halo.
  */
 @Immutable
 data class SmartFlightColors(
@@ -26,24 +22,30 @@ data class SmartFlightColors(
     val page: Color,
     /** Cards and picker buttons (Material `surfaceContainer`). */
     val card: Color,
-    /** Dialogs and menus, one tone above the card (Material `surfaceContainerHigh`). */
+    /** Dialogs and menus (Material `surfaceContainerHigh`). */
     val raised: Color,
     /** Top bar at rest, and the status bar behind it. */
     val topBar: Color,
     /** Top bar while content scrolls under it. */
     val topBarScrolled: Color,
+    /** Card outline, dividers inside cards and the compass ring (Material `outlineVariant`). */
+    val cardOutline: Color,
     /** Actions, switches, radio buttons, text-field indicator, compass cardinal (Material `primary`). */
     val accent: Color,
     /** Pressed/highlight accent, checked switch track (accent at 50%). */
     val accentPressed: Color,
+    /** Tinted container of accent content: card icon badges, status pills, tonal buttons (Material `primaryContainer`). */
+    val accentContainer: Color,
     /** Secondary accent: the Settings row highlight. */
     val accentLight: Color,
-    /** Muted labels, card titles, dialog titles, secondary text. */
+    /** Muted labels, secondary text. */
     val labelText: Color,
-    /** Values, body text, dialog content, primary text. */
+    /** Values, card titles, body text, dialog content, primary text. */
     val valueText: Color,
     /** Top bar title and icons. */
     val toolbarTitle: Color,
+    /** The plane in the compass dial. */
+    val compassPlane: Color,
     /** Satellite used in the fix (chart bar). */
     val satelliteUsed: Color,
     /** Satellite not used in the fix (chart bar). */
@@ -58,12 +60,16 @@ data class SmartFlightColors(
     val inversePrimary: Color,
     /** `dark_overlay_alpha_50`: scrim. */
     val overlay50: Color,
-    /** `dark_overlay_alpha_20`: dividers, unchecked switch track. */
+    /** `dark_overlay_alpha_20`: unchecked switch track. */
     val overlay20: Color,
-    /** Artificial horizon sky half (the instrument looks the same in every theme). */
+    /** Artificial horizon sky at the top of the instrument. */
+    val horizonSkyTop: Color,
+    /** Artificial horizon sky at the horizon line (the lightest sky tone). */
     val horizonSky: Color,
-    /** Artificial horizon ground half. */
+    /** Artificial horizon ground at the horizon line (the lightest ground tone). */
     val horizonGround: Color,
+    /** Artificial horizon ground at the bottom of the instrument. */
+    val horizonGroundBottom: Color,
     /** Artificial horizon line, ticks and aircraft symbol. */
     val horizonLine: Color,
     /**
@@ -78,80 +84,89 @@ data class SmartFlightColors(
 /** Opacity of the map buttons' [SmartFlightColors.mapHalo] circle, so the icon reads on any tile. */
 const val MAP_BUTTON_CONTAINER_ALPHA = 0.8f
 
-// Shared by both schemes: the map overlays and the horizon instrument do not change with the theme.
-private val PurpleMain = Color(0xFF5B5999)
+// Shared by both schemes: the map overlays do not change with the theme.
 private val PurpleDark = Color(0xFF484685)
-private val CyanMain = Color(0xFF25E5FE)
-private val CyanLight = Color(0xFF99E5FC)
 private val White = Color(0xFFFFFFFF)
 private val Overlay50 = Color(0x80000000)
 private val Overlay20 = Color(0x33000000)
-private val HorizonSky = Color(0xFF7775B5)
-private val HorizonGround = Color(0xFF3F3D70)
 private val MapHalo = Color(0xFFD9D9ED)
-private val ToastPurple = Color(0xFF2C2163)
+private val Navy = Color(0xFF172340)
+private val LightBlue = Color(0xFF1A66D9)
+private val DarkBlue = Color(0xFF4A9BFD)
+private val Mist = Color(0xFFE8ECF5)
 
-/** The dark scheme: the original purple palette, refined for contrast. */
+/**
+ * The dark scheme (TASK-039): navy page, slate cards one tone lighter with an outline, dialogs one
+ * more tone up; a bright blue accent and blue-grey labels. The horizon is a deep blue sky over a
+ * dark green ground.
+ */
 val DarkSmartFlightColors =
     SmartFlightColors(
-        page = Color(0xFF38366E),
-        card = PurpleDark,
-        raised = Color(0xFF4F4D8E),
-        topBar = PurpleMain,
-        topBarScrolled = Color(0xFF67659F),
-        accent = CyanMain,
-        accentPressed = Color(0x8025E5FE),
-        accentLight = CyanLight,
-        labelText = Color(0xFFCAC9E3),
-        valueText = Color(0xFFF1F0FA),
-        toolbarTitle = White,
+        page = Color(0xFF111722),
+        card = Color(0xFF1A2330),
+        raised = Color(0xFF232D3C),
+        topBar = Color(0xFF111722),
+        topBarScrolled = Color(0xFF1E2735),
+        cardOutline = Color(0xFF283245),
+        accent = DarkBlue,
+        accentPressed = Color(0x804A9BFD),
+        accentContainer = Color(0xFF1C304A),
+        accentLight = Color(0xFF23436B),
+        labelText = Color(0xFF9DAED0),
+        valueText = Mist,
+        toolbarTitle = Mist,
+        compassPlane = DarkBlue,
         satelliteUsed = Color(0xFF4CAF50),
         satelliteUnused = Color(0xFFFF7A6E),
-        error = Color(0xFFFFC0B8),
-        inverseSurface = Color(0xFFE8E7F5),
-        inverseOnSurface = ToastPurple,
-        inversePrimary = Color(0xFF00687A),
+        error = Color(0xFFFFB4AB),
+        inverseSurface = Mist,
+        inverseOnSurface = Navy,
+        inversePrimary = Color(0xFF1558C0),
         overlay50 = Overlay50,
         overlay20 = Overlay20,
-        horizonSky = HorizonSky,
-        horizonGround = HorizonGround,
+        horizonSkyTop = Color(0xFF0F3D74),
+        horizonSky = Color(0xFF1C5EA0),
+        horizonGround = Color(0xFF295744),
+        horizonGroundBottom = Color(0xFF143839),
         horizonLine = White,
         mapInk = PurpleDark,
         mapHalo = MapHalo,
     )
 
 /**
- * The light scheme, derived from the same hues (TASK-038, "lavender mist"): surfaces are tones of
- * the brand purple hue instead of near-white, as in Material 3 light schemes. The page sits in a
- * mid-light tone, cards one step lighter (luminance ratio >= 1.15 against the page, so the flat
- * cards stand out without shadows) and dialogs the lightest. The top bar uses the page tone at rest
- * (seamless) and turns one step darker while content scrolls under it. Text is dark purple and the
- * accent a dark teal that passes AA on every light surface. Snackbars use the original toast purple
- * with the original cyan action. The map overlays and the horizon instrument keep their colors.
+ * The light scheme (TASK-039): a cool near-white page, white cards separated by a hairline outline
+ * (the page/card tone difference alone is too small), navy text and a blue accent that passes AA on
+ * every light surface. The horizon is a blue sky over a green ground, darkened from the design so the
+ * white marks keep 3:1.
  */
 val LightSmartFlightColors =
     SmartFlightColors(
-        page = Color(0xFFE6E4F4),
-        card = Color(0xFFF7F6FC),
-        raised = Color(0xFFFDFCFF),
-        topBar = Color(0xFFE6E4F4),
-        topBarScrolled = Color(0xFFDAD7EF),
-        accent = Color(0xFF00687A),
-        accentPressed = Color(0x8000687A),
-        accentLight = CyanLight,
-        labelText = Color(0xFF55537D),
-        valueText = Color(0xFF1E1C3A),
-        toolbarTitle = ToastPurple,
+        page = Color(0xFFF4F6FB),
+        card = White,
+        raised = Color(0xFFF9FAFD),
+        topBar = Color(0xFFF4F6FB),
+        topBarScrolled = Color(0xFFE9EDF5),
+        cardOutline = Color(0xFFE2E7F0),
+        accent = LightBlue,
+        accentPressed = Color(0x801A66D9),
+        accentContainer = Color(0xFFE7F0FD),
+        accentLight = Color(0xFFCFE0FA),
+        labelText = Color(0xFF5B6785),
+        valueText = Navy,
+        toolbarTitle = Navy,
+        compassPlane = Navy,
         satelliteUsed = Color(0xFF2E7D32),
         satelliteUnused = Color(0xFFC62828),
         error = Color(0xFFB3261E),
-        inverseSurface = ToastPurple,
-        inverseOnSurface = Color(0xFFF1F0FA),
-        inversePrimary = CyanMain,
+        inverseSurface = Navy,
+        inverseOnSurface = Color(0xFFF1F4FA),
+        inversePrimary = Color(0xFF8DBBFF),
         overlay50 = Overlay50,
         overlay20 = Overlay20,
-        horizonSky = HorizonSky,
-        horizonGround = HorizonGround,
+        horizonSkyTop = Color(0xFF2A73C9),
+        horizonSky = Color(0xFF3B87DB),
+        horizonGround = Color(0xFF3E7F5B),
+        horizonGroundBottom = Color(0xFF2B6249),
         horizonLine = White,
         mapInk = PurpleDark,
         mapHalo = MapHalo,

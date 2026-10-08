@@ -69,8 +69,8 @@ The order follows four phases. Every task leaves the app building, tests green a
 | 036 | [Polish localization and translation-completeness check](036-polish-localization/task.md) | 019, 020, 021, 022, 023, 024, 025, 027, 028, 029, 030, 031, 032, 033, 034 | DONE |
 | 037 | [UI visual refresh: accessible contrast, Material 3 surfaces, prominent values, light and dark themes](037-ui-visual-refresh/task.md) | 018–036 | DONE |
 | 038 | [Light theme: tinted "lavender mist" surfaces instead of near-white](038-light-theme-palette/task.md) | 037 | DONE |
-| 039 | [Redesign: blue/navy palette, card surface and design tokens](039-redesign-tokens/task.md) | 038 | IN PROGRESS |
-| 040 | [Redesign: card headers with icon badge and status pill](040-card-headers/task.md) | 039 | TODO |
+| 039 | [Redesign: blue/navy palette, card surface and design tokens](039-redesign-tokens/task.md) | 038 | DONE |
+| 040 | [Redesign: card headers with icon badge and status pill](040-card-headers/task.md) | 039 | IN PROGRESS |
 | 041 | [Redesign: compass dial on the Course card](041-compass-dial/task.md) | 039, 040 | TODO |
 | 042 | [Redesign: horizon sky/ground and tonal Calibrate button](042-horizon-instrument/task.md) | 039, 040 | TODO |
 | 043 | [Redesign: flight parameters as value tiles](043-flight-parameter-tiles/task.md) | 039, 040 | TODO |

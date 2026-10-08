@@ -23,13 +23,13 @@ internal fun smartFlightColorScheme(
     (if (dark) darkColorScheme() else lightColorScheme()).copy(
         primary = colors.accent,
         onPrimary = colors.page,
-        primaryContainer = colors.raised,
-        onPrimaryContainer = colors.valueText,
+        primaryContainer = colors.accentContainer,
+        onPrimaryContainer = colors.accent,
         inversePrimary = colors.inversePrimary,
         secondary = colors.accent,
         onSecondary = colors.page,
-        secondaryContainer = colors.raised,
-        onSecondaryContainer = colors.valueText,
+        secondaryContainer = colors.accentContainer,
+        onSecondaryContainer = colors.accent,
         tertiary = colors.accentLight,
         onTertiary = colors.page,
         tertiaryContainer = colors.raised,
@@ -48,7 +48,7 @@ internal fun smartFlightColorScheme(
         errorContainer = colors.card,
         onErrorContainer = colors.error,
         outline = colors.labelText,
-        outlineVariant = colors.overlay20,
+        outlineVariant = colors.cardOutline,
         scrim = colors.overlay50,
         surfaceBright = colors.raised,
         surfaceContainer = colors.card,
@@ -63,7 +63,7 @@ private val darkScheme = smartFlightColorScheme(DarkSmartFlightColors, dark = tr
 private val lightScheme = smartFlightColorScheme(LightSmartFlightColors, dark = false)
 
 /**
- * The app theme: [DarkSmartFlightColors] (the purple palette) when [darkTheme], otherwise
+ * The app theme: [DarkSmartFlightColors] (navy) when [darkTheme], otherwise
  * [LightSmartFlightColors]. The brand stays fixed: no dynamic (wallpaper) color.
  *
  * @param darkTheme the system night mode by default; the app's Theme setting overrides it.

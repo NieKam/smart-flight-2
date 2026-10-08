@@ -1,5 +1,6 @@
 package kniezrec.com.flightinfo.ui.theme
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -17,9 +18,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
- * The one dashboard card (TASK-037): a filled Material 3 [Card] in [SmartFlightColors.card]
- * (`surfaceContainer`) with the medium shape of the shape scale (12dp) and no shadow: the card
- * stands out from the page by its tone (tonal elevation).
+ * The one dashboard card (TASK-039): a filled Material 3 [Card] in [SmartFlightColors.card]
+ * (`surfaceContainer`) with the large shape of the shape scale (16dp), a hairline
+ * [SmartFlightColors.cardOutline] and a soft shadow, as in the redesign: the light card is barely
+ * lighter than the page, so the outline separates it.
  *
  * The content is a column with [contentPadding] (16dp by default; 0 for edge-to-edge content such
  * as the map or the missing-sensor overlay). With a [minHeight], content shorter than it is
@@ -35,8 +37,10 @@ fun SmartFlightCard(
     val colors = SmartFlightTheme.colors
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.medium,
+        shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = colors.card, contentColor = colors.valueText),
+        elevation = CardDefaults.cardElevation(defaultElevation = SmartFlightCardDefaults.Elevation),
+        border = BorderStroke(1.dp, colors.cardOutline),
     ) {
         Column(
             Modifier
@@ -59,6 +63,9 @@ object SmartFlightCardDefaults {
 
     /** Minimum height of the instrument and data cards, so their waiting states do not jump. */
     val MinHeight = 160.dp
+
+    /** Shadow of every card: just enough to lift the white light card off the page. */
+    val Elevation = 1.dp
 }
 
 @Preview(name = "Card, dark", widthDp = 360)

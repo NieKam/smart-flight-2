@@ -29,14 +29,23 @@ class ContrastTest {
         assertTrue(failures.joinToString("\n"), failures.isEmpty())
     }
 
-    /** Flat tonal cards must stand out from the light page without shadows (TASK-038). */
+    /** The card outline separates the card from the page and from its own fill (TASK-039). */
     @Test
-    fun lightCardIsDistinguishableFromThePage() {
-        val ratio = contrastRatio(LightSmartFlightColors.card, LightSmartFlightColors.page)
-        assertTrue(
-            "light card vs page luminance ratio is %.2f, needs %.2f".format(ratio, CARD_VS_PAGE_MINIMUM),
-            ratio >= CARD_VS_PAGE_MINIMUM,
-        )
+    fun cardOutlineIsDistinguishableFromPageAndCard() {
+        val failures =
+            SCHEMES.flatMap { (scheme, colors) ->
+                listOf("page" to colors.page, "card" to colors.card).mapNotNull { (name, background) ->
+                    val ratio = contrastRatio(colors.cardOutline, background)
+                    if (ratio >=
+                        OUTLINE_MINIMUM
+                    ) {
+                        null
+                    } else {
+                        "$scheme: cardOutline on $name is %.2f, needs %.2f".format(ratio, OUTLINE_MINIMUM)
+                    }
+                }
+            }
+        assertTrue(failures.joinToString("\n"), failures.isEmpty())
     }
 
     @Test
@@ -79,6 +88,7 @@ class ContrastTest {
                 ColorPair("inversePrimary (snackbar action)", colors.inversePrimary, "inverseSurface", colors.inverseSurface),
                 ColorPair("valueText (placeholder message)", colors.valueText, "veil over a value stroke", veilOverValue),
                 ColorPair("accent (placeholder Hide)", colors.accent, "veil over card", veilOverCard),
+                ColorPair("accent (status pill, tonal button)", colors.accent, "accentContainer", colors.accentContainer),
             )
     }
 
@@ -94,8 +104,13 @@ class ContrastTest {
             ColorPair("labelText (unselected radio)", colors.labelText, "raised", colors.raised),
             ColorPair("satelliteUsed (chart bar)", colors.satelliteUsed, "card", colors.card),
             ColorPair("satelliteUnused (chart bar)", colors.satelliteUnused, "card", colors.card),
+            ColorPair("accent (card icon badge)", colors.accent, "accentContainer", colors.accentContainer),
+            ColorPair("compassPlane", colors.compassPlane, "card", colors.card),
+            ColorPair("labelText (compass ticks)", colors.labelText, "card", colors.card),
+            ColorPair("horizonLine", colors.horizonLine, "horizonSkyTop", colors.horizonSkyTop),
             ColorPair("horizonLine", colors.horizonLine, "horizonSky", colors.horizonSky),
             ColorPair("horizonLine", colors.horizonLine, "horizonGround", colors.horizonGround),
+            ColorPair("horizonLine", colors.horizonLine, "horizonGroundBottom", colors.horizonGroundBottom),
             ColorPair("mapInk (map button icon)", colors.mapInk, "map button over a white tile", mapButtonOver(colors, WHITE_TILE)),
             ColorPair("mapInk (map button icon)", colors.mapInk, "map button over a black tile", mapButtonOver(colors, BLACK_TILE)),
         )
@@ -139,7 +154,7 @@ class ContrastTest {
     private companion object {
         const val TEXT_MINIMUM = 4.5f
         const val COMPONENT_MINIMUM = 3f
-        const val CARD_VS_PAGE_MINIMUM = 1.15f
+        const val OUTLINE_MINIMUM = 1.1f
         val WHITE_TILE = Color(0xFFFFFFFF)
         val BLACK_TILE = Color(0xFF000000)
         val SCHEMES = listOf("dark" to DarkSmartFlightColors, "light" to LightSmartFlightColors)

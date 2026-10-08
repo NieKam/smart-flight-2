@@ -9,8 +9,8 @@ import java.io.File
 import java.lang.reflect.Modifier
 
 /**
- * Every color token (of every scheme) and every color resource is in the token table of TASK-037:
- * colors of the original Smart Flight palette and tones derived from it. A new color needs a line in
+ * Every color token (of every scheme) and every color resource is in the token table of TASK-039
+ * (the redesign), plus the original colors still used on the map and the launcher icon. A new color needs a line in
  * that table first.
  */
 class PaletteGuardTest {
@@ -161,49 +161,57 @@ class PaletteGuardTest {
         val COLOR_RESOURCE = Regex("""<color\s+name="([^"]+)"\s*>\s*#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})\s*</color>""")
 
         /**
-         * The token table of TASK-037 (derived from the original palette; see `SmartFlightColors`).
+         * The token table of TASK-039 (see `SmartFlightColors` and docs/tasks/039-redesign-tokens).
          * A new color needs a line here first.
          */
         val PALETTE =
             setOf(
-                // Original colors.xml, still in use
-                0xFF484685, // purple_dark: dark card, map ink, launcher background
-                0xFF5B5999, // purple_main: dark top bar
-                0xFF25E5FE, // cyan_main: dark accent, light snackbar action
-                0x8025E5FE, // cyan_main_50: dark accentPressed
-                0xFF99E5FC, // cyan_light: accentLight
-                0xFFD9D9ED, // text_color_light: map halo (button container, pin and marker outline)
-                0xFF4CAF50, // satellite_green: dark satelliteUsed
+                // Original colors.xml, still used on the map and the launcher icon
+                0xFF484685, // purple_dark: map ink, launcher background
+                0xFFD9D9ED, // text_color_light: map halo, route card icon sources (tinted in code)
                 0x80000000, // dark_overlay_alpha_50: scrim
-                0x33000000, // dark_overlay_alpha_20: dividers, switch track
-                0xFF2C2163, // toast_background: dark snackbar text, light toolbar title and snackbar
-                0xFFFFFFFF, // white: dark toolbar title, horizon line
-                // Dark scheme, derived (TASK-037)
-                0xFF38366E, // page: purple_dark one step darker (and window_dark)
-                0xFF4F4D8E, // raised: dialogs and menus
-                0xFF67659F, // topBarScrolled
-                0xFFCAC9E3, // labelText (AA on page, card, raised)
-                0xFFF1F0FA, // valueText
-                0xFFFF7A6E, // satelliteUnused: satellite_red lightened to 3:1 on the card
-                0xFFFFC0B8, // error
-                0xFFE8E7F5, // inverseSurface (snackbar)
-                0xFF00687A, // inversePrimary (snackbar action)
-                // Light scheme, derived (TASK-037)
-                0xFFE6E4F4, // page and topBar (and window_light), lavender mist (TASK-038)
-                0xFFF7F6FC, // card
-                0xFFFDFCFF, // raised: dialogs and menus
-                0xFFDAD7EF, // topBarScrolled
-                0xFF00687A, // accent: dark teal (also the dark scheme's inversePrimary)
-                0x8000687A, // accentPressed
-                0xFF55537D, // labelText
-                0xFF1E1C3A, // valueText
-                0xFF2E7D32, // satelliteUsed: satellite_green darkened to 3:1 on the light card
-                0xFFC62828, // satelliteUnused: satellite_red darkened
+                0x33000000, // dark_overlay_alpha_20: switch track, launcher shadow
+                0xFFFFFFFF, // white: light card, horizon line, icon sources (tinted in code)
+                0xFF4CAF50, // satellite_green: dark satelliteUsed
+                // Dark scheme (TASK-039 redesign)
+                0xFF111722, // page and topBar (and window_dark)
+                0xFF1A2330, // card
+                0xFF232D3C, // raised: dialogs and menus
+                0xFF1E2735, // topBarScrolled
+                0xFF283245, // cardOutline
+                0xFF4A9BFD, // accent, compassPlane
+                0x804A9BFD, // accentPressed
+                0xFF1C304A, // accentContainer
+                0xFF23436B, // accentLight
+                0xFF9DAED0, // labelText
+                0xFFE8ECF5, // valueText, toolbarTitle, inverseSurface
+                0xFFFF7A6E, // satelliteUnused
+                0xFFFFB4AB, // error
+                0xFF1558C0, // inversePrimary (snackbar action)
+                0xFF0F3D74, // horizonSkyTop
+                0xFF1C5EA0, // horizonSky
+                0xFF295744, // horizonGround
+                0xFF143839, // horizonGroundBottom
+                // Light scheme (TASK-039 redesign)
+                0xFFF4F6FB, // page and topBar (and window_light)
+                0xFFF9FAFD, // raised: dialogs and menus
+                0xFFE9EDF5, // topBarScrolled
+                0xFFE2E7F0, // cardOutline
+                0xFF1A66D9, // accent
+                0x801A66D9, // accentPressed
+                0xFFE7F0FD, // accentContainer
+                0xFFCFE0FA, // accentLight
+                0xFF5B6785, // labelText
+                0xFF172340, // valueText, toolbarTitle, compassPlane, inverseSurface
+                0xFF2E7D32, // satelliteUsed
+                0xFFC62828, // satelliteUnused
                 0xFFB3261E, // error
-                0xFFF1F0FA, // inverseOnSurface (the dark valueText)
-                // Horizon instrument (theme-independent)
-                0xFF7775B5, // horizon sky
-                0xFF3F3D70, // horizon ground
+                0xFFF1F4FA, // inverseOnSurface
+                0xFF8DBBFF, // inversePrimary (snackbar action)
+                0xFF2A73C9, // horizonSkyTop
+                0xFF3B87DB, // horizonSky
+                0xFF3E7F5B, // horizonGround
+                0xFF2B6249, // horizonGroundBottom
             ).map { it.toInt() }.toSet()
     }
 }
