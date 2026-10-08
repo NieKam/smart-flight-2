@@ -1,7 +1,9 @@
 package kniezrec.com.flightinfo.route.ui
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -21,6 +23,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -28,6 +35,7 @@ import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.hideFromAccessibility
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
@@ -81,6 +89,10 @@ fun RouteCard(
             val iconSize = if (state.destination == null) LARGE_ICON else SMALL_ICON
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 EndpointSlot(RouteEndpoint.DEPARTURE, state.departure, iconSize, onChoose, onClear, Modifier.weight(1f))
+                // Both cities chosen: the design's flight arc between them (TASK-046).
+                if (state.departure != null && state.destination != null) {
+                    RouteArc(Modifier.align(Alignment.CenterVertically).size(ARC_WIDTH, ARC_HEIGHT))
+                }
                 EndpointSlot(RouteEndpoint.DESTINATION, state.destination, iconSize, onChoose, onClear, Modifier.weight(1f))
             }
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
@@ -183,6 +195,42 @@ fun RouteCard(
         }
     }
 }
+
+/** A dotted arc with the plane heading east at its top, in the accent. Decorative. */
+@Composable private fun RouteArc(modifier: Modifier) {
+    val accent = SmartFlightTheme.colors.accent
+    Box(modifier.semantics { hideFromAccessibility() }, contentAlignment = Alignment.TopCenter) {
+        Canvas(Modifier.matchParentSize()) {
+            // A quadratic arc whose apex (a quarter of the height) is under the plane's center.
+            val arc =
+                Path().apply {
+                    moveTo(0f, size.height * 0.85f)
+                    quadraticTo(size.width / 2, -size.height * 0.35f, size.width, size.height * 0.85f)
+                }
+            drawPath(
+                arc,
+                accent.copy(alpha = ARC_ALPHA),
+                style =
+                    Stroke(
+                        width = 2.dp.toPx(),
+                        cap = StrokeCap.Round,
+                        pathEffect = PathEffect.dashPathEffect(floatArrayOf(0.1f, 6.dp.toPx())),
+                    ),
+            )
+        }
+        Icon(
+            painterResource(R.drawable.ic_plane),
+            contentDescription = null,
+            modifier = Modifier.size(ARC_PLANE_SIZE).graphicsLayer { rotationZ = 90f },
+            tint = accent,
+        )
+    }
+}
+
+private val ARC_WIDTH = 80.dp
+private val ARC_HEIGHT = 44.dp
+private val ARC_PLANE_SIZE = 22.dp
+private const val ARC_ALPHA = 0.7f
 
 @Composable private fun Details(
     details: RouteDetails,
