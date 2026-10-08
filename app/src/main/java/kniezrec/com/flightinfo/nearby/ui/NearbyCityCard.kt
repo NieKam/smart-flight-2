@@ -25,8 +25,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -54,6 +52,7 @@ import kniezrec.com.flightinfo.ui.theme.SmartFlightCard
 import kniezrec.com.flightinfo.ui.theme.SmartFlightCardDefaults
 import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
 import kniezrec.com.flightinfo.ui.theme.ValueText
+import kniezrec.com.flightinfo.ui.theme.drawSkyline
 import kniezrec.com.flightinfo.ui.theme.withSmallerUnit
 import java.time.Instant
 import java.time.ZoneId
@@ -111,13 +110,8 @@ internal fun NearbyCityCard(
             val height = size.height
             drawRect(Brush.verticalGradient(listOf(Color.Transparent, colors.accentContainer)))
             val base = height * SKYLINE_BASE
-            for ((x, buildingWidth, buildingHeight) in SKYLINE) {
-                drawRect(
-                    colors.accentLight,
-                    topLeft = Offset(width * x, base - height * buildingHeight),
-                    size = Size(width * buildingWidth, height * buildingHeight),
-                )
-            }
+            drawSkyline(colors.accentLight, width * 0.02f, width * 0.36f, base, height * 0.62f)
+            drawSkyline(colors.accentLight, width * 0.62f, width * 0.98f, base, height * 0.62f)
             val hills =
                 Path().apply {
                     moveTo(0f, height * 0.8f)
@@ -143,23 +137,6 @@ private val SKYLINE_HEIGHT = 120.dp
 /** Bottom of the buildings, as a fraction of the illustration's height. */
 private const val SKYLINE_BASE = 0.86f
 private const val HILLS_ALPHA = 0.3f
-
-/** Buildings as (left, width, height) fractions of the illustration; the middle stays free for the pin. */
-private val SKYLINE =
-    listOf(
-        Triple(0.02f, 0.05f, 0.35f),
-        Triple(0.08f, 0.04f, 0.5f),
-        Triple(0.13f, 0.06f, 0.42f),
-        Triple(0.2f, 0.03f, 0.6f),
-        Triple(0.24f, 0.05f, 0.38f),
-        Triple(0.31f, 0.04f, 0.55f),
-        Triple(0.62f, 0.05f, 0.45f),
-        Triple(0.68f, 0.03f, 0.62f),
-        Triple(0.72f, 0.06f, 0.4f),
-        Triple(0.8f, 0.04f, 0.52f),
-        Triple(0.86f, 0.05f, 0.36f),
-        Triple(0.92f, 0.04f, 0.48f),
-    )
 
 @Composable private fun Available(
     state: NearbyCityState.Available,
