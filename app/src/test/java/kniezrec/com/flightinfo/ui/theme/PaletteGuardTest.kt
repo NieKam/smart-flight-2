@@ -203,7 +203,7 @@ class PaletteGuardTest {
                 0xFF1C304A, // accentContainer
                 0xFF23436B, // accentLight
                 0xFF9DAED0, // labelText
-                0xFFE8ECF5, // valueText, toolbarTitle, inverseSurface, mapRoute
+                0xFFE8ECF5, // valueText, toolbarTitle, inverseSurface
                 0xFFFF7A6E, // satelliteUnused
                 0xFFFFB4AB, // error
                 0xFF1558C0, // inversePrimary (snackbar action)
@@ -211,7 +211,7 @@ class PaletteGuardTest {
                 0xFF1C5EA0, // horizonSky
                 0xFF295744, // horizonGround
                 0xFF143839, // horizonGroundBottom
-                0xFF7080A2, // mapTileTint: dims the tiles (TASK-047)
+                0xFF8F9BBE, // mapTileTint: dims the tiles (TASK-047)
                 // Light scheme (TASK-039 redesign)
                 0xFFF4F6FB, // page and topBar (and window_light)
                 0xFFF9FAFD, // raised: dialogs and menus
@@ -221,7 +221,7 @@ class PaletteGuardTest {
                 0xFFE7F0FD, // accentContainer
                 0xFFCFE0FA, // accentLight
                 0xFF5B6785, // labelText
-                0xFF172340, // valueText, toolbarTitle, compassPlane, inverseSurface
+                0xFF172340, // valueText, toolbarTitle, compassPlane, inverseSurface; dark mapRoute
                 0xFF2E7D32, // satelliteUsed
                 0xFFC62828, // satelliteUnused
                 0xFFB3261E, // error
