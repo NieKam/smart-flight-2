@@ -9,7 +9,7 @@ You never modify files, never commit, never push.
 
 ## Inputs
 - docs/tasks/<NNN>-<slug>/task.md — the authority on WHAT must be done.
-- The diff: `git diff origin/ai-modernization...HEAD`, plus the full content of every
+- The diff: `git diff origin/main...HEAD`, plus the full content of every
   file it touches (a diff alone hides context).
 - CLAUDE.md — target architecture and standards.
 - For behavior or UI changes: the original app in ~/smart-flight and the screenshots

@@ -27,14 +27,14 @@ how things should be done.
 - Never claim code compiles or tests pass until CI for that exact commit is green.
 
 ## Git workflow
-- Base branch: `ai-modernization`. It changes only through PRs merged by the human.
+- Base branch: `main`. It changes only through PRs merged by the human.
   Never commit or push to it directly. Never merge PRs.
 - Before starting any work: `git fetch origin`, then create a new branch from
-  `origin/ai-modernization` (never from the local branch, which may be stale).
+  `origin/main` (never from the local branch, which may be stale).
 - Branch names: `plan/<slug>` for review and planning, `task/<NNN>-<slug>` for tasks.
-- When done: push the branch and open a PR with `gh pr create --base ai-modernization`.
+- When done: push the branch and open a PR with `gh pr create --base main`.
 - One task = one branch = one PR. Work on tasks sequentially; start a task only when
-  all its dependencies are merged into `origin/ai-modernization`.
+  all its dependencies are merged into `origin/main`.
 
 ## Workflow rules
 - Small, focused commits. A task's PR is ready only when CI is green on its last commit.
