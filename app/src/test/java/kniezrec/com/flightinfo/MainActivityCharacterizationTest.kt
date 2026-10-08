@@ -168,10 +168,10 @@ class MainActivityCharacterizationTest {
         launch()
         assertFlightCardWaiting()
 
-        forward(flightFix(speedMetresPerSecond = 10.0, altitudeMetres = 100.0)) { hasText(speedKmh("36.0")) }
+        forward(flightFix(speedMetresPerSecond = 10.0, altitudeMetres = 100.0)) { hasTileDescription(speedKmh("36.0")) }
 
-        composeRule.onNodeWithText(speedKmh("36.0")).performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText(altitudeMetres("100.0")).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithContentDescription(speedKmh("36.0")).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithContentDescription(altitudeMetres("100.0")).performScrollTo().assertIsDisplayed()
         // First fix: no vertical speed yet, and no pressure sensor in this test.
         composeRule
             .onNodeWithContentDescription(
@@ -236,24 +236,24 @@ class MainActivityCharacterizationTest {
             )
         }
 
-        waitUntil { hasText(pressureMbar(PRESSURE_TEXT)) }
-        composeRule.onNodeWithText(pressureMbar(PRESSURE_TEXT)).performScrollTo().assertIsDisplayed()
+        waitUntil { hasTileDescription(pressureMbar(PRESSURE_TEXT)) }
+        composeRule.onNodeWithContentDescription(pressureMbar(PRESSURE_TEXT)).performScrollTo().assertIsDisplayed()
         // Readings layout (the Nearby city card still shows the same "Waiting for GPS position…" text).
-        composeRule.onNodeWithText(string(R.string.flight_vertical_speed)).assertExists()
-        composeRule.onAllNodesWithText(speedKmh("36.0")).assertCountEquals(0)
+        assertFalse(isFlightCardWaiting())
+        composeRule.onAllNodesWithContentDescription(speedKmh("36.0")).assertCountEquals(0)
 
-        forward(flightFix()) { hasText(speedKmh("36.0")) }
+        forward(flightFix()) { hasTileDescription(speedKmh("36.0")) }
 
-        composeRule.onNodeWithText(speedKmh("36.0")).performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText(pressureMbar(PRESSURE_TEXT)).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithContentDescription(speedKmh("36.0")).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithContentDescription(pressureMbar(PRESSURE_TEXT)).performScrollTo().assertIsDisplayed()
     }
 
     // Scenario 6.
     @Test
     fun changingSpeedUnitInSettingsPersistsItAndRerendersFlightCard() {
         launch()
-        forward(flightFix(speedMetresPerSecond = 10.0)) { hasText(speedKmh("36.0")) }
-        composeRule.onNodeWithText(speedKmh("36.0")).performScrollTo().assertIsDisplayed()
+        forward(flightFix(speedMetresPerSecond = 10.0)) { hasTileDescription(speedKmh("36.0")) }
+        composeRule.onNodeWithContentDescription(speedKmh("36.0")).performScrollTo().assertIsDisplayed()
 
         composeRule.openFromOverflowMenu(string(R.string.settings_title))
         composeRule
@@ -271,10 +271,10 @@ class MainActivityCharacterizationTest {
         assertEquals("mph", stored)
         // 36 km/h * 0.621371 = 22.37 mph.
         composeRule
-            .onNodeWithText(string(R.string.flight_speed_value, "22.4", string(R.string.unit_mph)))
+            .onNodeWithContentDescription(speedMph("22.4"))
             .performScrollTo()
             .assertIsDisplayed()
-        composeRule.onAllNodesWithText(speedKmh("36.0")).assertCountEquals(0)
+        composeRule.onAllNodesWithContentDescription(speedKmh("36.0")).assertCountEquals(0)
     }
 
     // Scenario 6 (monitoring setting). Pinned in TASK-015, when the setting moved to SettingsViewModel:
@@ -327,7 +327,7 @@ class MainActivityCharacterizationTest {
     @Test
     fun pauseKeepsFlightCardAndOnlyALongStopResetsIt() {
         val activity = launch()
-        forward(flightFix(speedMetresPerSecond = 10.0, elapsedSeconds = 1L)) { hasText(speedKmh("36.0")) }
+        forward(flightFix(speedMetresPerSecond = 10.0, elapsedSeconds = 1L)) { hasTileDescription(speedKmh("36.0")) }
 
         activity.moveToState(Lifecycle.State.STARTED)
         val shownWhilePaused =
@@ -337,16 +337,16 @@ class MainActivityCharacterizationTest {
         assertTrue("A fix while paused should reach the flight card", shownWhilePaused)
 
         activity.moveToState(Lifecycle.State.RESUMED)
-        composeRule.onNodeWithText(speedKmh("72.0")).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithContentDescription(speedKmh("72.0")).performScrollTo().assertIsDisplayed()
 
         activity.moveToState(Lifecycle.State.CREATED)
         shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(LONGER_THAN_STOP_TIMEOUT_MILLIS))
         activity.moveToState(Lifecycle.State.RESUMED)
-        composeRule.onAllNodesWithText(speedKmh("72.0")).assertCountEquals(0)
+        composeRule.onAllNodesWithContentDescription(speedKmh("72.0")).assertCountEquals(0)
         assertFlightCardWaiting()
 
-        forward(flightFix(speedMetresPerSecond = 30.0, elapsedSeconds = 3L)) { hasText(speedKmh("108.0")) }
-        composeRule.onNodeWithText(speedKmh("108.0")).performScrollTo().assertIsDisplayed()
+        forward(flightFix(speedMetresPerSecond = 30.0, elapsedSeconds = 3L)) { hasTileDescription(speedKmh("108.0")) }
+        composeRule.onNodeWithContentDescription(speedKmh("108.0")).performScrollTo().assertIsDisplayed()
     }
 
     // TASK-009/TASK-011: rotation keeps the ViewModels, so the last readings and the nearby city
@@ -356,7 +356,7 @@ class MainActivityCharacterizationTest {
         val activity = launch()
         val closestCity = string(R.string.card_row_description, string(R.string.nearby_city_closest), "Warsaw")
         forward(flightFix(speedMetresPerSecond = 10.0, latitude = WARSAW_LATITUDE, longitude = WARSAW_LONGITUDE)) {
-            hasText(speedKmh("36.0")) &&
+            hasTileDescription(speedKmh("36.0")) &&
                 composeRule.onAllNodesWithContentDescription(closestCity).fetchSemanticsNodes().isNotEmpty()
         }
         val before = activity.flightParametersViewModel()
@@ -367,7 +367,7 @@ class MainActivityCharacterizationTest {
         assertSame(before, activity.flightParametersViewModel())
         assertSame(nearbyBefore, activity.nearbyCityViewModel())
         assertTrue(before.state.value is FlightParametersState.Readings)
-        composeRule.onNodeWithText(speedKmh("36.0")).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithContentDescription(speedKmh("36.0")).performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText(string(R.string.flight_vertical_speed)).assertExists()
         composeRule.onNodeWithContentDescription(closestCity).assertExists()
         // Neither the flight card nor the nearby-city card (same text) went back to waiting.
@@ -503,7 +503,7 @@ class MainActivityCharacterizationTest {
 
         assertFalse(shadowOf(controller.get()).isStoppedBySelf)
         assertEquals(1, gpsListeners().size)
-        forward(flightFix(speedMetresPerSecond = 10.0)) { hasText(speedKmh("36.0")) }
+        forward(flightFix(speedMetresPerSecond = 10.0)) { hasTileDescription(speedKmh("36.0")) }
         assertEquals(1, gpsListeners().size)
     }
 
@@ -513,10 +513,10 @@ class MainActivityCharacterizationTest {
     @Test
     fun locationBackOnAfterLongStopLetsFixesReachFlightCard() {
         val activity = launch()
-        forward(flightFix(speedMetresPerSecond = 10.0, elapsedSeconds = 1L)) { hasText(speedKmh("36.0")) }
+        forward(flightFix(speedMetresPerSecond = 10.0, elapsedSeconds = 1L)) { hasTileDescription(speedKmh("36.0")) }
 
         switchLocation(enabled = false)
-        waitUntil { !hasText(speedKmh("36.0")) }
+        waitUntil { !hasTileDescription(speedKmh("36.0")) }
         assertFlightCardWaiting()
 
         activity.moveToState(Lifecycle.State.CREATED)
@@ -524,8 +524,8 @@ class MainActivityCharacterizationTest {
         locationManager.setLocationEnabled(true)
         activity.moveToState(Lifecycle.State.RESUMED)
 
-        forward(flightFix(speedMetresPerSecond = 30.0, elapsedSeconds = 3L)) { hasText(speedKmh("108.0")) }
-        composeRule.onNodeWithText(speedKmh("108.0")).performScrollTo().assertIsDisplayed()
+        forward(flightFix(speedMetresPerSecond = 30.0, elapsedSeconds = 3L)) { hasTileDescription(speedKmh("108.0")) }
+        composeRule.onNodeWithContentDescription(speedKmh("108.0")).performScrollTo().assertIsDisplayed()
     }
 
     // TASK-009: location switched back on while the dashboard is visible lets fixes reach the flight
@@ -533,14 +533,14 @@ class MainActivityCharacterizationTest {
     @Test
     fun locationBackOnWhileVisibleLetsFixesReachFlightCard() {
         launch()
-        forward(flightFix(speedMetresPerSecond = 10.0, elapsedSeconds = 1L)) { hasText(speedKmh("36.0")) }
+        forward(flightFix(speedMetresPerSecond = 10.0, elapsedSeconds = 1L)) { hasTileDescription(speedKmh("36.0")) }
 
         switchLocation(enabled = false)
-        waitUntil { !hasText(speedKmh("36.0")) }
+        waitUntil { !hasTileDescription(speedKmh("36.0")) }
         switchLocation(enabled = true)
 
-        forward(flightFix(speedMetresPerSecond = 30.0, elapsedSeconds = 3L)) { hasText(speedKmh("108.0")) }
-        composeRule.onNodeWithText(speedKmh("108.0")).performScrollTo().assertIsDisplayed()
+        forward(flightFix(speedMetresPerSecond = 30.0, elapsedSeconds = 3L)) { hasTileDescription(speedKmh("108.0")) }
+        composeRule.onNodeWithContentDescription(speedKmh("108.0")).performScrollTo().assertIsDisplayed()
     }
 
     /** Changes the location switch and sends the broadcast the system sends for it. */
@@ -676,7 +676,7 @@ class MainActivityCharacterizationTest {
         shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(FRAME_MILLIS))
     }
 
-    /** All texts in the activity's unmerged Compose semantics tree, readable in any lifecycle state. */
+    /** All texts and content descriptions in the activity's unmerged Compose semantics tree, readable in any lifecycle state. */
     private fun pausedScreenTexts(activity: ActivityScenario<MainActivity>): List<String> {
         val texts = mutableListOf<String>()
         activity.onActivity { current -> collectComposeTexts(current.window.decorView, texts) }
@@ -702,6 +702,9 @@ class MainActivityCharacterizationTest {
         if (SemanticsProperties.Text in node.config) {
             node.config[SemanticsProperties.Text].mapTo(into) { it.text }
         }
+        if (SemanticsProperties.ContentDescription in node.config) {
+            into += node.config[SemanticsProperties.ContentDescription]
+        }
         node.children.forEach { collectSemanticsTexts(it, into) }
     }
 
@@ -713,9 +716,12 @@ class MainActivityCharacterizationTest {
         }
     }
 
-    /** Waiting content has no readings rows; "Vertical speed" appears only on the readings layout. */
+    /**
+     * Waiting content: every flight parameter tile is unavailable (readings exist once any value
+     * does), and the waiting text is shown.
+     */
     private fun assertFlightCardWaiting() {
-        composeRule.onAllNodesWithText(string(R.string.flight_vertical_speed)).assertCountEquals(0)
+        assertTrue(isFlightCardWaiting())
         assertTrue(
             composeRule
                 .onAllNodesWithText(string(R.string.flight_parameters_waiting))
@@ -723,6 +729,13 @@ class MainActivityCharacterizationTest {
                 .isNotEmpty(),
         )
     }
+
+    private fun isFlightCardWaiting(): Boolean =
+        listOf(R.string.flight_speed, R.string.flight_altitude, R.string.flight_vertical_speed, R.string.flight_pressure).all { label ->
+            hasTileDescription(
+                string(R.string.flight_row_accessibility, string(label), string(R.string.flight_unavailable_accessibility)),
+            )
+        }
 
     private fun clickBackgroundNotificationRow(
         @StringRes currentValue: Int,
@@ -744,11 +757,24 @@ class MainActivityCharacterizationTest {
         vararg args: Any,
     ): String = application.getString(id, *args)
 
-    private fun speedKmh(number: String) = string(R.string.flight_speed_value, number, string(R.string.unit_kmh))
+    // A flight parameter tile is identified by its spoken "label, value unit" description (TASK-043):
+    // the number, label and unit are separate texts in the tile.
+    private fun speedKmh(number: String) = tile(R.string.flight_speed, number, R.string.unit_kmh_accessibility)
 
-    private fun altitudeMetres(number: String) = string(R.string.flight_altitude_value, number, string(R.string.unit_m))
+    private fun speedMph(number: String) = tile(R.string.flight_speed, number, R.string.unit_mph_accessibility)
 
-    private fun pressureMbar(number: String) = string(R.string.flight_pressure_value, number, string(R.string.unit_mbar))
+    private fun altitudeMetres(number: String) = tile(R.string.flight_altitude, number, R.string.unit_m_accessibility)
+
+    private fun pressureMbar(number: String) = tile(R.string.flight_pressure, number, R.string.unit_mbar_accessibility)
+
+    private fun tile(
+        @StringRes label: Int,
+        number: String,
+        @StringRes unit: Int,
+    ) = string(R.string.flight_row_accessibility, string(label), string(R.string.flight_value_accessibility, number, string(unit)))
+
+    private fun hasTileDescription(description: String): Boolean =
+        composeRule.onAllNodesWithContentDescription(description).fetchSemanticsNodes().isNotEmpty()
 
     private companion object {
         const val CREATE_ACTIVITY_CONTEXTS = "robolectric.createActivityContexts"

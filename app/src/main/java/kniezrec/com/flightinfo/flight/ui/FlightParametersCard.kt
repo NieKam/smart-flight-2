@@ -179,13 +179,25 @@ private fun ParameterTile(
             .padding(horizontal = 8.dp, vertical = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
+        // Full-width, centered texts: a wrapped line never extends past its text's bounds.
         ValueText(
             number ?: stringResource(R.string.flight_unavailable),
+            Modifier.fillMaxWidth(),
             style = MaterialTheme.typography.headlineMedium,
             textAlign = TextAlign.Center,
         )
-        LabelText(labelText, Modifier.padding(top = 4.dp), style = MaterialTheme.typography.labelLarge, textAlign = TextAlign.Center)
-        LabelText(stringResource(unit.labels.symbol), style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
+        LabelText(
+            labelText,
+            Modifier.fillMaxWidth().padding(top = 4.dp),
+            style = MaterialTheme.typography.labelLarge,
+            textAlign = TextAlign.Center,
+        )
+        LabelText(
+            stringResource(unit.labels.symbol),
+            Modifier.fillMaxWidth(),
+            style = MaterialTheme.typography.bodyMedium,
+            textAlign = TextAlign.Center,
+        )
     }
 }
 
