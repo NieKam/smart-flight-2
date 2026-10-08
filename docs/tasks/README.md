@@ -67,6 +67,7 @@ The order follows four phases. Every task leaves the app building, tests green a
 | 035 | [Displayed distances on the WGS84 ellipsoid](035-ellipsoidal-distances/task.md) | 011, 021 | DONE |
 | 036 | [Polish localization and translation-completeness check](036-polish-localization/task.md) | 019, 020, 021, 022, 023, 024, 025, 027, 028, 029, 030, 031, 032, 033, 034 | DONE |
 | 037 | [UI visual refresh: accessible contrast, Material 3 surfaces, prominent values, light and dark themes](037-ui-visual-refresh/task.md) | 018–036 | DONE |
+| 038 | [Light theme: tinted "lavender mist" surfaces instead of near-white](038-light-theme-palette/task.md) | 037 | IN PROGRESS |
 
 ## Coverage
 
