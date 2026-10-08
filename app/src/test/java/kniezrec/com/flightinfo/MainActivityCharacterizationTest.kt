@@ -22,7 +22,6 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.hasSetTextAction
-import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
@@ -404,7 +403,7 @@ class MainActivityCharacterizationTest {
 
         composeRule.onNodeWithText(string(R.string.route_picker_departure)).assertIsDisplayed()
         // The typed query survives (the selected city card shows "Warsaw" too).
-        composeRule.onNode(hasSetTextAction() and hasText("Warsaw")).assertIsDisplayed()
+        composeRule.onNode(hasSetTextAction() and androidx.compose.ui.test.hasText("Warsaw")).assertIsDisplayed()
         composeRule.onNodeWithContentDescription(selectedDescription).assertIsDisplayed()
         composeRule.onNodeWithText(string(R.string.route_confirm)).assertIsEnabled()
     }
