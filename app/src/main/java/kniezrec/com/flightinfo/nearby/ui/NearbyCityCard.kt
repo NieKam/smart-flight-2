@@ -1,16 +1,21 @@
 package kniezrec.com.flightinfo.nearby.ui
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -19,10 +24,18 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.hideFromAccessibility
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.AnnotatedString
@@ -55,8 +68,8 @@ internal fun NearbyCityCard(
     modifier: Modifier = Modifier,
 ) = SmartFlightCard(modifier, minHeight = SmartFlightCardDefaults.MinHeight) {
     when (state) {
-        NearbyCityState.WaitingForPosition -> Static(R.string.nearby_city_title, R.string.nearby_city_waiting)
-        NearbyCityState.LookingUp -> Static(R.string.nearby_city_title, R.string.nearby_city_looking_up)
+        NearbyCityState.WaitingForPosition -> Static(R.string.nearby_city_title, R.string.nearby_city_waiting, illustrated = true)
+        NearbyCityState.LookingUp -> Static(R.string.nearby_city_title, R.string.nearby_city_looking_up, illustrated = true)
         NearbyCityState.Unavailable -> Static(R.string.nearby_city_unavailable, R.string.nearby_city_unavailable_body, onRetry)
         is NearbyCityState.Available -> Available(state, distanceUnit)
     }
@@ -66,6 +79,7 @@ internal fun NearbyCityCard(
     title: Int,
     body: Int,
     retry: (() -> Unit)? = null,
+    illustrated: Boolean = false,
 ) = Column(
     Modifier.fillMaxWidth(),
     Arrangement.Center,
@@ -78,8 +92,74 @@ internal fun NearbyCityCard(
         textAlign = TextAlign.Center,
         style = MaterialTheme.typography.bodyLarge.copy(fontSize = 18.sp, lineHeight = 25.sp),
     )
+    if (illustrated) WaitingSkyline(Modifier.padding(top = 12.dp).fillMaxWidth().height(SKYLINE_HEIGHT))
     retry?.let { RetryButton(it) }
 }
+
+/**
+ * The waiting illustration of the redesign (TASK-045): a city skyline (`accentLight`) behind soft
+ * hills (`horizonGround`, faint) with the location pin in the accent. Decorative.
+ */
+@Composable private fun WaitingSkyline(modifier: Modifier) {
+    val colors = SmartFlightTheme.colors
+    Box(
+        modifier.clip(RoundedCornerShape(12.dp)).semantics { hideFromAccessibility() },
+        contentAlignment = Alignment.Center,
+    ) {
+        Canvas(Modifier.matchParentSize()) {
+            val width = size.width
+            val height = size.height
+            drawRect(Brush.verticalGradient(listOf(Color.Transparent, colors.accentContainer)))
+            val base = height * SKYLINE_BASE
+            for ((x, buildingWidth, buildingHeight) in SKYLINE) {
+                drawRect(
+                    colors.accentLight,
+                    topLeft = Offset(width * x, base - height * buildingHeight),
+                    size = Size(width * buildingWidth, height * buildingHeight),
+                )
+            }
+            val hills =
+                Path().apply {
+                    moveTo(0f, height * 0.8f)
+                    quadraticTo(width * 0.25f, height * 0.62f, width * 0.5f, height * 0.8f)
+                    quadraticTo(width * 0.75f, height * 0.96f, width, height * 0.74f)
+                    lineTo(width, height)
+                    lineTo(0f, height)
+                    close()
+                }
+            drawPath(hills, colors.horizonGround.copy(alpha = HILLS_ALPHA))
+        }
+        Icon(
+            painterResource(R.drawable.ic_card_place),
+            contentDescription = null,
+            modifier = Modifier.padding(bottom = 16.dp).size(40.dp),
+            tint = colors.accent,
+        )
+    }
+}
+
+private val SKYLINE_HEIGHT = 120.dp
+
+/** Bottom of the buildings, as a fraction of the illustration's height. */
+private const val SKYLINE_BASE = 0.86f
+private const val HILLS_ALPHA = 0.3f
+
+/** Buildings as (left, width, height) fractions of the illustration; the middle stays free for the pin. */
+private val SKYLINE =
+    listOf(
+        Triple(0.02f, 0.05f, 0.35f),
+        Triple(0.08f, 0.04f, 0.5f),
+        Triple(0.13f, 0.06f, 0.42f),
+        Triple(0.2f, 0.03f, 0.6f),
+        Triple(0.24f, 0.05f, 0.38f),
+        Triple(0.31f, 0.04f, 0.55f),
+        Triple(0.62f, 0.05f, 0.45f),
+        Triple(0.68f, 0.03f, 0.62f),
+        Triple(0.72f, 0.06f, 0.4f),
+        Triple(0.8f, 0.04f, 0.52f),
+        Triple(0.86f, 0.05f, 0.36f),
+        Triple(0.92f, 0.04f, 0.48f),
+    )
 
 @Composable private fun Available(
     state: NearbyCityState.Available,
@@ -124,7 +204,7 @@ internal fun NearbyCityCard(
                     if (focused) {
                         SmartFlightTheme.colors.accent
                     } else {
-                        androidx.compose.ui.graphics.Color.Transparent
+                        Color.Transparent
                     },
                     androidx.compose.foundation.shape
                         .RoundedCornerShape(4.dp),

@@ -75,7 +75,7 @@ The order follows four phases. Every task leaves the app building, tests green a
 | 042 | [Redesign: horizon sky/ground and tonal Calibrate button](042-horizon-instrument/task.md) | 039, 040 | DONE |
 | 043 | [Redesign: flight parameters as value tiles](043-flight-parameter-tiles/task.md) | 039, 040 | DONE |
 | 044 | [Redesign: icons on the flight parameter tiles](044-flight-tile-icons/task.md) | 043 | DONE |
-| 045 | [Redesign: Nearby city waiting illustration](045-nearby-city-illustration/task.md) | 040 | TODO |
+| 045 | [Redesign: Nearby city waiting illustration](045-nearby-city-illustration/task.md) | 040 | DONE |
 | 046 | [Redesign: Route card flight arc](046-route-card-arc/task.md) | 039 | TODO |
 | 047 | [Redesign: themed map tiles, route line and map buttons](047-map-card-theme/task.md) | 039 | TODO |
 | 048 | [Redesign: Settings as grouped cards](048-settings-cards/task.md) | 040 | TODO |
