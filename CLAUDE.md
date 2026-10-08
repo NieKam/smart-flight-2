@@ -88,3 +88,17 @@ Goal: scalable and easy to understand. Clean Architecture principles, applied pr
 - KSP instead of kapt; Gradle version catalog.
 - Reference: Android "Guide to app architecture" and Now in Android.
 - Check current library versions instead of assuming them.
+
+## Agent skills
+
+### Issue tracker
+
+Issues live in GitHub Issues for NieKam/smart-flight-2 (via the `gh` CLI). See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: `CONTEXT.md` and `docs/adr/` at the repo root, created on demand. See `docs/agents/domain.md`.
