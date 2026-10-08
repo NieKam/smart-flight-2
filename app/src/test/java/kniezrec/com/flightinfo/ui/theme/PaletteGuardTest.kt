@@ -211,7 +211,7 @@ class PaletteGuardTest {
                 0xFF1C5EA0, // horizonSky
                 0xFF295744, // horizonGround
                 0xFF143839, // horizonGroundBottom
-                0xFF4A5878, // mapTileTint: dims the tiles (TASK-047)
+                0xFF7080A2, // mapTileTint: dims the tiles (TASK-047)
                 // Light scheme (TASK-039 redesign)
                 0xFFF4F6FB, // page and topBar (and window_light)
                 0xFFF9FAFD, // raised: dialogs and menus
