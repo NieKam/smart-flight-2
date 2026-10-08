@@ -13,6 +13,7 @@ The order follows four phases. Every task leaves the app building, tests green a
 - **CI verification (human decision):** no emulator and no instrumented tests in GitHub Actions. Compose UI tests run on the JVM with Robolectric inside `testDebugUnitTest` where they pay off (TASK-002 moves the existing ones and retires `androidTest`). Pixel-level color checks use Robolectric native graphics (`captureToImage`). Everything else in the UI — real sensors, GPS, notifications, visual comparison with the screenshots — is marked "HUMAN on device".
 - **Release identity (human decision):** no Play Store release. `versionCode = 1`, `versionName = "1.0.0"` (set in TASK-001). No migration of the original app's settings or route.
 - **Kotlin/KSP/Hilt setup (human decision):** TASK-005 first verifies KSP + Hilt with AGP 9 built-in Kotlin in CI; if that fails, adding `org.jetbrains.kotlin.android` is allowed. kapt is never used.
+- **Redesign (human decision, 2026-10-08, TASK-039–043):** the dashboard follows the new designs in `docs/design/2026-10-redesign/` (blue/navy palette, card headers with icons, compass dial, value tiles). It supersedes the palette decision below for every screen except the map overlays and the launcher icon.
 - **Palette (human decision):** the app's colors match the original palette (`~/smart-flight/app/src/main/res/values/colors.xml`, `styles.xml`, `promo/*.png`) on every screen, card, dialog and on the map. TASK-018 defines the token table and a palette-guard test; every later visual task uses only those tokens.
 - **Settings storage:** keep SharedPreferences (same files and keys), wrapped in Flow repositories (TASK-006). DataStore is not adopted: it adds a dependency and a storage migration while synchronous window-flag application at startup favours SharedPreferences.
 - **ViewModel granularity:** one `@HiltViewModel` per card/overlay (GNSS, flight parameters, course, horizon, nearby, route, route picker, map, settings, permission); the dashboard composes card containers that call `hiltViewModel()`.
@@ -67,7 +68,12 @@ The order follows four phases. Every task leaves the app building, tests green a
 | 035 | [Displayed distances on the WGS84 ellipsoid](035-ellipsoidal-distances/task.md) | 011, 021 | DONE |
 | 036 | [Polish localization and translation-completeness check](036-polish-localization/task.md) | 019, 020, 021, 022, 023, 024, 025, 027, 028, 029, 030, 031, 032, 033, 034 | DONE |
 | 037 | [UI visual refresh: accessible contrast, Material 3 surfaces, prominent values, light and dark themes](037-ui-visual-refresh/task.md) | 018–036 | DONE |
-| 038 | [Light theme: tinted "lavender mist" surfaces instead of near-white](038-light-theme-palette/task.md) | 037 | IN PROGRESS |
+| 038 | [Light theme: tinted "lavender mist" surfaces instead of near-white](038-light-theme-palette/task.md) | 037 | DONE |
+| 039 | [Redesign: blue/navy palette, card surface and design tokens](039-redesign-tokens/task.md) | 038 | DONE |
+| 040 | [Redesign: card headers with icon badge and status pill](040-card-headers/task.md) | 039 | DONE |
+| 041 | [Redesign: compass dial on the Course card](041-compass-dial/task.md) | 039, 040 | DONE |
+| 042 | [Redesign: horizon sky/ground and tonal Calibrate button](042-horizon-instrument/task.md) | 039, 040 | DONE |
+| 043 | [Redesign: flight parameters as value tiles](043-flight-parameter-tiles/task.md) | 039, 040 | DONE |
 
 ## Coverage
 

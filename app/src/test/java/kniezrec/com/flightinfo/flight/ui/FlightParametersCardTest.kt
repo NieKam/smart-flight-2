@@ -32,20 +32,25 @@ class FlightParametersCardTest {
         var flightState by mutableStateOf<FlightParametersState>(FlightParametersState.Waiting)
         composeRule.setContent { DashboardFlightCard(flightState) }
         composeRule.onNodeWithText("Waiting for GPS position…").assertIsDisplayed()
+        // The tiles are shown while waiting, every value unknown (TASK-043).
+        composeRule.onAllNodesWithText("—").assertCountEquals(4)
+        composeRule.onNodeWithText("km/h").assertIsDisplayed()
 
         composeRule.runOnIdle { flightState = FlightParametersState.Readings(36.0, null, 100.0, 1013.25) }
-        composeRule.onNodeWithText("36.0 km/h").assertIsDisplayed()
+        composeRule.onAllNodesWithText("Waiting for GPS position…").assertCountEquals(0)
+        composeRule.onNodeWithText("36.0").assertIsDisplayed()
         composeRule.onNodeWithText("—").assertIsDisplayed()
-        composeRule.onNodeWithText("100.0 m").assertIsDisplayed()
+        composeRule.onNodeWithText("100.0").assertIsDisplayed()
         // As the original "%.1f": no grouping separator, 1013.25 rounded half up.
-        composeRule.onNodeWithText("1013.3 mbar").assertIsDisplayed()
+        composeRule.onNodeWithText("1013.3").assertIsDisplayed()
+        composeRule.onNodeWithText("mbar").assertIsDisplayed()
     }
 
     @Test fun pressureOnlyShowsThePressureRowAndDashesForGpsRows() {
         composeRule.setContent { DashboardFlightCard(FlightParametersState.Readings(null, null, null, 1013.25)) }
 
         composeRule.onAllNodesWithText("Waiting for GPS position…").assertCountEquals(0)
-        composeRule.onNodeWithText("1013.3 mbar").assertIsDisplayed()
+        composeRule.onNodeWithText("1013.3").assertIsDisplayed()
         composeRule.onAllNodesWithText("—").assertCountEquals(3)
         composeRule.onNodeWithContentDescription("Speed, unavailable").assertExists()
         composeRule.onNodeWithContentDescription("Vertical speed, unavailable").assertExists()
@@ -55,15 +60,22 @@ class FlightParametersCardTest {
     @Test fun flightParametersPressureRowHasOrderPlaceholderAndAccessibility() {
         composeRule.setContent { DashboardFlightCard(FlightParametersState.Readings(36.0, 1.2, 100.0)) }
 
-        val labels = listOf("Speed", "Vertical speed", "Altitude", "Pressure")
-        val tops =
+        // The design's order, read row by row (TASK-043).
+        val labels = listOf("Speed", "Altitude", "Vertical speed", "Pressure")
+        val positions =
             labels.map { label ->
-                composeRule
-                    .onNodeWithText(label)
-                    .fetchSemanticsNode()
-                    .boundsInRoot.top
+                val bounds =
+                    composeRule
+                        .onNodeWithText(label)
+                        .fetchSemanticsNode()
+                        .boundsInRoot
+                bounds.top to bounds.left
             }
-        assertTrue(tops.zipWithNext().all { (upper, lower) -> upper < lower })
+        val inReadingOrder =
+            positions.zipWithNext().all { (first, next) ->
+                first.first < next.first || (first.first == next.first && first.second < next.second)
+            }
+        assertTrue("tiles out of reading order: $positions", inReadingOrder)
         composeRule.onNodeWithContentDescription("Pressure, unavailable").assertExists()
     }
 

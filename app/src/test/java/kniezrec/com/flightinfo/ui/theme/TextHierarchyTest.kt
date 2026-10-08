@@ -49,26 +49,32 @@ class TextHierarchyTest {
     private val type = appTypography
 
     @Test
-    fun flightParametersLabelsAreMutedAndValuesLight() {
+    fun flightParametersLabelsAreMutedAndTitleAndValuesLight() {
         show { FlightParametersCard(FlightParametersState.Readings(36.0, null, 100.0)) }
 
-        assertEquals(colors.labelText, layout("Flight parameters").color())
+        // Card titles are values since the redesign (TASK-040).
+        assertEquals(colors.valueText, layout("Flight parameters").color())
         assertEquals(colors.labelText, layout("Speed").color())
         assertEquals(colors.labelText, layout("Altitude").color())
-        assertEquals(colors.valueText, layout("36.0 km/h").color())
-        assertEquals(colors.valueText, layout("100.0 m").color())
+        assertEquals(colors.valueText, layout("36.0").color())
+        assertEquals(colors.valueText, layout("100.0").color())
+        // Units sit below their label in the tiles (TASK-043), muted.
+        assertEquals(colors.labelText, layout("km/h").color())
     }
 
     @Test
-    fun keyFlightValuesAreTabularHeadlinesWithASmallerUnit() {
+    fun keyFlightValuesAreTabularHeadlinesAboveASmallerUnit() {
         show { FlightParametersCard(FlightParametersState.Readings(36.0, null, 12500.0)) }
 
-        val speed = layout("36.0 km/h")
-        val style = speed.layoutInput.style
+        val style = layout("36.0").layoutInput.style
         assertEquals(type.headlineMedium.fontSize, style.fontSize)
         assertEquals(TABULAR_FIGURES, style.fontFeatureSettings)
-        assertUnitSmaller(speed, unit = "km/h")
-        assertUnitSmaller(layout("12500.0 m"), unit = "m")
+        assertEquals(type.headlineMedium.fontSize, layout("12500.0").layoutInput.style.fontSize)
+        // The unit, on its own line below the label, is clearly smaller than the value.
+        assertTrue(
+            layout("km/h")
+                .layoutInput.style.fontSize.value < style.fontSize.value,
+        )
 
         // Labels: the smaller, medium-weight label style, clearly below the value size.
         val label = layout("Speed").layoutInput.style
@@ -122,7 +128,7 @@ class TextHierarchyTest {
         }
         composeRule.waitForIdle()
 
-        for (text in listOf("Vertical speed", "1234.5 km/h", "−12.3 m/s", "12500.0 m", "1013.3 mbar")) {
+        for (text in listOf("Vertical speed", "1234.5", "−12.3", "12500.0", "1013.3", "km/h")) {
             composeRule.onNodeWithText(text, useUnmergedTree = true).assertIsDisplayed()
             val layout = layout(text)
             assertFalse("$text is clipped", layout.hasVisualOverflow)

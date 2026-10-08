@@ -39,7 +39,7 @@ import kniezrec.com.flightinfo.R
 import kniezrec.com.flightinfo.gnss.GnssSatellite
 import kniezrec.com.flightinfo.gnss.GnssStatusState
 import kniezrec.com.flightinfo.gnss.satelliteChartModel
-import kniezrec.com.flightinfo.ui.theme.LabelText
+import kniezrec.com.flightinfo.ui.theme.CardHeader
 import kniezrec.com.flightinfo.ui.theme.SmartFlightCard
 import kniezrec.com.flightinfo.ui.theme.SmartFlightCardDefaults
 import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
@@ -135,13 +135,13 @@ private data class StaticState(
     title: Int,
     body: Int,
 ) {
-    LabelText(
+    CardHeader(
+        R.drawable.ic_card_satellite,
         stringResource(title),
-        Modifier.semantics {
-            liveRegion = LiveRegionMode.Polite
-        },
-        style =
-            MaterialTheme.typography.titleLarge.copy(textAlign = TextAlign.Center),
+        titleModifier =
+            Modifier.semantics {
+                liveRegion = LiveRegionMode.Polite
+            },
     )
     ValueText(
         stringResource(body),
@@ -153,13 +153,13 @@ private data class StaticState(
 @Composable private fun AvailableContent(satellites: List<GnssSatellite>) {
     val chart = remember(satellites) { satelliteChartModel(satellites) }
     Column(Modifier.fillMaxWidth()) {
-        LabelText(
+        CardHeader(
+            R.drawable.ic_card_satellite,
             stringResource(R.string.gnss_status_title),
-            Modifier.semantics {
-                liveRegion = LiveRegionMode.Polite
-            },
-            style =
-                MaterialTheme.typography.titleLarge,
+            titleModifier =
+                Modifier.semantics {
+                    liveRegion = LiveRegionMode.Polite
+                },
         )
         ValueText(
             pluralStringResource(R.plurals.gnss_satellites_used, chart.usedCount, chart.usedCount),

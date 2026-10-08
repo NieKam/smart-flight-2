@@ -9,6 +9,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -63,7 +64,9 @@ class DashboardCardsUnitsTest {
                 )
             }
         }
-        composeRule.onNodeWithText("36.0 km/h").assertIsDisplayed()
+        // Flight parameter tiles: number, label and unit symbol; the description joins them (TASK-043).
+        composeRule.onNodeWithContentDescription("Speed, 36.0 kilometres per hour").assertIsDisplayed()
+        composeRule.onNodeWithText("km/h").assertIsDisplayed()
         composeRule.onNodeWithText("10.0 km").assertIsDisplayed()
         composeRule.onNodeWithText("100.0 km").assertIsDisplayed()
         composeRule.onNodeWithText("50.0 km").assertIsDisplayed()
@@ -80,10 +83,11 @@ class DashboardCardsUnitsTest {
                 )
         }
 
-        composeRule.onNodeWithText("22.4 mph").assertIsDisplayed()
-        composeRule.onNodeWithText("+196.9 ft/min").assertIsDisplayed()
-        composeRule.onNodeWithText("328.1 ft").assertIsDisplayed()
-        composeRule.onNodeWithText("29.9 inHg").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Speed, 22.4 miles per hour").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Vertical speed, +196.9 feet per minute").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Altitude, 328.1 feet").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Pressure, 29.9 inches of mercury").assertIsDisplayed()
+        for (symbol in listOf("mph", "ft/min", "ft", "inHg")) composeRule.onNodeWithText(symbol).assertIsDisplayed()
         composeRule.onNodeWithText("6.2 mi").assertIsDisplayed()
         composeRule.onNodeWithText("62.1 mi").assertIsDisplayed()
         composeRule.onNodeWithText("31.1 mi").assertIsDisplayed()

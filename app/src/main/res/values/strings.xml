@@ -12,6 +12,7 @@
     <string name="settings_unavailable">Unable to open app settings.</string>
     <string name="gnss_status_title">GNSS status</string>
     <string name="gnss_waiting">Waiting for GPS signal…</string>
+    <string name="gnss_searching">Searching…</string>
     <string name="gps_tip">Move device closer to the window</string>
     <plurals name="gnss_satellites_used"><item quantity="one">Using %d satellite</item><item quantity="other">Using %d satellites</item></plurals>
     <plurals name="gnss_chart_description"><item quantity="one">%1$d satellite visible, %2$d used, strongest signal %3$d dB-Hz</item><item quantity="other">%1$d satellites visible, %2$d used, strongest signal %3$d dB-Hz</item></plurals>
