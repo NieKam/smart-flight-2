@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
@@ -21,6 +23,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
@@ -116,10 +119,28 @@ private fun FlightParametersContent(
         val pressure = readings?.pressureMillibars?.let { convertPressure(it, preferences.pressure) }
         val tiles: List<@Composable (Modifier) -> Unit> =
             listOf(
-                { ParameterTile(R.string.flight_speed, preferences.speed, speed, signed = false, it) },
-                { ParameterTile(R.string.flight_altitude, preferences.altitude, altitude, signed = false, it) },
-                { ParameterTile(R.string.flight_vertical_speed, preferences.verticalSpeed, verticalSpeed, signed = true, it) },
-                { ParameterTile(R.string.flight_pressure, preferences.pressure, pressure, signed = false, it) },
+                { ParameterTile(R.drawable.ic_tile_gauge, R.string.flight_speed, preferences.speed, speed, signed = false, it) },
+                {
+                    ParameterTile(
+                        R.drawable.ic_tile_altitude,
+                        R.string.flight_altitude,
+                        preferences.altitude,
+                        altitude,
+                        signed = false,
+                        it,
+                    )
+                },
+                {
+                    ParameterTile(
+                        R.drawable.ic_tile_vertical_speed,
+                        R.string.flight_vertical_speed,
+                        preferences.verticalSpeed,
+                        verticalSpeed,
+                        signed = true,
+                        it,
+                    )
+                },
+                { ParameterTile(R.drawable.ic_tile_gauge, R.string.flight_pressure, preferences.pressure, pressure, signed = false, it) },
             )
         ParameterTiles(tiles, Modifier.padding(top = 16.dp))
     }
@@ -155,11 +176,12 @@ private fun ParameterTiles(
 }
 
 /**
- * One value tile: the number (Material `headlineMedium`, tabular figures; "—" while unknown), the
+ * One value tile: its decorative [icon] (TASK-044), the number (Material `headlineMedium`, tabular figures; "—" while unknown), the
  * [label] and the [unit]'s symbol below it; read as one "label, value" description.
  */
 @Composable
 private fun ParameterTile(
+    icon: Int,
     label: Int,
     unit: UnitKey,
     value: Double?,
@@ -179,6 +201,12 @@ private fun ParameterTile(
             .padding(horizontal = 8.dp, vertical = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
+        Icon(
+            painterResource(icon),
+            contentDescription = null,
+            modifier = Modifier.padding(bottom = 4.dp).size(24.dp),
+            tint = SmartFlightTheme.colors.labelText,
+        )
         // Full-width, centered texts: a wrapped line never extends past its text's bounds.
         ValueText(
             number ?: stringResource(R.string.flight_unavailable),

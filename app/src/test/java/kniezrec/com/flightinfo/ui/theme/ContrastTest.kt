@@ -97,8 +97,9 @@ class ContrastTest {
         listOf(
             ColorPair("valueText (card icons)", colors.valueText, "card", colors.card),
             ColorPair("toolbarTitle (top bar icons)", colors.toolbarTitle, "topBar", colors.topBar),
-            ColorPair("accent (checked switch thumb, focus border)", colors.accent, "page", colors.page),
-            ColorPair("valueText (unchecked switch thumb)", colors.valueText, "page", colors.page),
+            ColorPair("accent (checked switch track, focus border)", colors.accent, "page", colors.page),
+            ColorPair("accent (checked switch track)", colors.accent, "card", colors.card),
+            ColorPair("labelText (unchecked switch thumb)", colors.labelText, "cardOutline (unchecked switch track)", colors.cardOutline),
             ColorPair("labelText (switch and field border)", colors.labelText, "page", colors.page),
             ColorPair("accent (selected radio)", colors.accent, "raised", colors.raised),
             ColorPair("labelText (unselected radio)", colors.labelText, "raised", colors.raised),
@@ -113,7 +114,19 @@ class ContrastTest {
             ColorPair("horizonLine", colors.horizonLine, "horizonGroundBottom", colors.horizonGroundBottom),
             ColorPair("mapInk (map button icon)", colors.mapInk, "map button over a white tile", mapButtonOver(colors, WHITE_TILE)),
             ColorPair("mapInk (map button icon)", colors.mapInk, "map button over a black tile", mapButtonOver(colors, BLACK_TILE)),
+            ColorPair("mapRoute (route line)", colors.mapRoute, "tinted white tile", tinted(colors, WHITE_TILE)),
+            ColorPair("mapRoute (route line)", colors.mapRoute, "tinted land tile", tinted(colors, LAND_TILE)),
+            ColorPair("mapRoute (route line)", colors.mapRoute, "tinted water tile", tinted(colors, WATER_TILE)),
         )
+
+    /** [tile] with the scheme's multiply filter, as the map draws it (TASK-047). */
+    private fun tinted(
+        colors: SmartFlightColors,
+        tile: Color,
+    ): Color {
+        val tint = colors.mapTileTint
+        return Color(red = tile.red * tint.red, green = tile.green * tint.green, blue = tile.blue * tint.blue)
+    }
 
     private fun mapButtonOver(
         colors: SmartFlightColors,
@@ -157,6 +170,10 @@ class ContrastTest {
         const val OUTLINE_MINIMUM = 1.1f
         val WHITE_TILE = Color(0xFFFFFFFF)
         val BLACK_TILE = Color(0xFF000000)
+
+        /** Typical offline tile colors: land and water of the OpenStreetMap style. */
+        val LAND_TILE = Color(0xFFF2EFE9)
+        val WATER_TILE = Color(0xFFAAD3DF)
         val SCHEMES = listOf("dark" to DarkSmartFlightColors, "light" to LightSmartFlightColors)
     }
 }

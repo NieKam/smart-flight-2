@@ -18,7 +18,6 @@ class SmartFlightColorsTest {
         assertArgb(0xFF1E2735, colors.topBarScrolled)
         assertArgb(0xFF283245, colors.cardOutline)
         assertArgb(0xFF4A9BFD, colors.accent)
-        assertArgb(0x804A9BFD, colors.accentPressed)
         assertArgb(0xFF1C304A, colors.accentContainer)
         assertArgb(0xFF23436B, colors.accentLight)
         assertArgb(0xFF9DAED0, colors.labelText)
@@ -35,6 +34,8 @@ class SmartFlightColorsTest {
         assertArgb(0xFF1C5EA0, colors.horizonSky)
         assertArgb(0xFF295744, colors.horizonGround)
         assertArgb(0xFF143839, colors.horizonGroundBottom)
+        assertArgb(0xFFE8ECF5, colors.mapRoute)
+        assertArgb(0xFF4A5878, colors.mapTileTint)
         assertSharedTokens(colors)
     }
 
@@ -49,7 +50,6 @@ class SmartFlightColorsTest {
         assertArgb(0xFFE9EDF5, colors.topBarScrolled)
         assertArgb(0xFFE2E7F0, colors.cardOutline)
         assertArgb(0xFF1A66D9, colors.accent)
-        assertArgb(0x801A66D9, colors.accentPressed)
         assertArgb(0xFFE7F0FD, colors.accentContainer)
         assertArgb(0xFFCFE0FA, colors.accentLight)
         assertArgb(0xFF5B6785, colors.labelText)
@@ -66,6 +66,8 @@ class SmartFlightColorsTest {
         assertArgb(0xFF3B87DB, colors.horizonSky)
         assertArgb(0xFF3E7F5B, colors.horizonGround)
         assertArgb(0xFF2B6249, colors.horizonGroundBottom)
+        assertArgb(0xFF484685, colors.mapRoute)
+        assertArgb(0xFFFFFFFF, colors.mapTileTint)
         assertSharedTokens(colors)
     }
 
@@ -93,7 +95,7 @@ class SmartFlightColorsTest {
         assertEquals(1f, contrastRatio(Color.Red, Color.Red), 0.0001f)
     }
 
-    /** The map overlays look the same in every theme. */
+    /** The map pins, plane marker and buttons look the same in every theme. */
     private fun assertSharedTokens(colors: SmartFlightColors) {
         assertArgb(0x80000000, colors.overlay50)
         assertArgb(0x33000000, colors.overlay20)

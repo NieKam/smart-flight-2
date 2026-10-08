@@ -1,5 +1,7 @@
 package kniezrec.com.flightinfo.map.ui
 
+import android.graphics.PorterDuff
+import android.graphics.PorterDuffColorFilter
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.compose.animation.Crossfade
@@ -121,8 +123,11 @@ fun MapCard(
                             .bringIntoViewRequester(bringIntoViewRequester)
                             .testTag(MAP_AREA_TAG),
                     ) {
-                        val routeLineColor = SmartFlightTheme.colors.mapInk.toArgb()
+                        val colors = SmartFlightTheme.colors
+                        val routeLineColor = colors.mapRoute.toArgb()
                         val instance = remember(state.archive) { MapInstance(MapOverlays(context, routeLineColor)) }
+                        // A theme change recolors the line of the same map (applied on the next sync).
+                        instance.overlays.routeLineColor = routeLineColor
                         OfflineMap(
                             state = state,
                             instance = instance,
@@ -130,6 +135,7 @@ fun MapCard(
                             onOpenFailure = onUnavailable,
                             onCentered = onCentered,
                             onZoomChanged = onZoomChanged,
+                            tileTint = colors.mapTileTint.toArgb(),
                             modifier = Modifier.fillMaxSize(),
                         )
                         MapButton(
@@ -152,7 +158,7 @@ internal enum class MapButtonKind(
     @param:StringRes val description: Int,
     @param:DrawableRes val icon: Int,
 ) {
-    Recenter(R.string.map_recenter, R.drawable.drawing_pin_icon),
+    Recenter(R.string.map_recenter, R.drawable.ic_calibrate),
     Expand(R.string.map_expand, R.drawable.ic_expand),
     Collapse(R.string.map_collapse, R.drawable.ic_shrink),
 }
@@ -214,10 +220,10 @@ private fun MapMessage(
 }
 
 /**
- * An icon button drawn on the map (48 dp touch target): the original purple icon (`mapInk`), as the
- * original app, on a light `mapHalo` circle at [MAP_BUTTON_CONTAINER_ALPHA] so it stays visible (3:1)
- * on dark or missing tiles. Theme-independent, as the tiles. A new kind crossfades from the old one
- * (expand and collapse).
+ * An icon button drawn on the map (48 dp touch target): the purple icon (`mapInk`) on a light
+ * `mapHalo` container at [MAP_BUTTON_CONTAINER_ALPHA] so it stays visible (3:1) on dark or missing
+ * tiles: a circle for recenter, a rounded square for expand/collapse (the redesign, TASK-047). A new
+ * kind crossfades from the old one (expand and collapse).
  */
 @Composable
 private fun MapButton(
@@ -229,13 +235,16 @@ private fun MapButton(
     IconButton(onClick = onClick, modifier = modifier.size(48.dp)) {
         Crossfade(targetState = kind, label = "map button icon") { shown ->
             Box(
-                Modifier.size(40.dp).background(colors.mapHalo.copy(alpha = MAP_BUTTON_CONTAINER_ALPHA), CircleShape),
+                Modifier.size(40.dp).background(
+                    colors.mapHalo.copy(alpha = MAP_BUTTON_CONTAINER_ALPHA),
+                    if (shown == MapButtonKind.Recenter) CircleShape else MaterialTheme.shapes.small,
+                ),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     painter = painterResource(shown.icon),
                     contentDescription = stringResource(shown.description),
-                    modifier = Modifier.size(32.dp).testTag(mapButtonIconTag(shown)),
+                    modifier = Modifier.size(if (shown == MapButtonKind.Recenter) 26.dp else 32.dp).testTag(mapButtonIconTag(shown)),
                     tint = colors.mapInk,
                 )
             }
@@ -278,6 +287,7 @@ private fun OfflineMap(
     onOpenFailure: () -> Unit,
     onCentered: () -> Unit,
     onZoomChanged: (Double) -> Unit,
+    tileTint: Int,
     modifier: Modifier,
 ) {
     val context = LocalContext.current
@@ -368,6 +378,8 @@ private fun OfflineMap(
                 map.controller.setCenter(GeoPoint(center.latitude, center.longitude))
                 onCentered()
             }
+            // Dims the tiles in the dark scheme (multiplying by white leaves them unchanged).
+            map.overlayManager.tilesOverlay.setColorFilter(PorterDuffColorFilter(tileTint, PorterDuff.Mode.MULTIPLY))
             instance.overlays.sync(map, state, routeOverlay)
         },
     )

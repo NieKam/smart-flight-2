@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -31,7 +32,8 @@ import kniezrec.com.flightinfo.R
  * The header of a dashboard card (TASK-040): the card's [icon] in a round
  * [SmartFlightColors.accentContainer] badge, the [title] in [SmartFlightColors.valueText]
  * (`titleLarge`) and an optional [trailing] element such as a [StatusPill] at the end. The badge is
- * decorative. [titleModifier] carries the title's semantics (for example a live region).
+ * decorative. [titleModifier] carries the title's semantics (for example a live region); [titleStyle]
+ * is smaller for the Settings sections.
  *
  * Above font scale 1.3 the trailing element goes below the title, so neither is clipped.
  */
@@ -41,6 +43,7 @@ fun CardHeader(
     title: String,
     modifier: Modifier = Modifier,
     titleModifier: Modifier = Modifier,
+    titleStyle: TextStyle = MaterialTheme.typography.titleLarge,
     trailing: (@Composable () -> Unit)? = null,
 ) {
     BoxWithConstraints(modifier.fillMaxWidth()) {
@@ -50,7 +53,7 @@ fun CardHeader(
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 CardIconBadge(icon)
                 Spacer(Modifier.width(12.dp))
-                ValueText(title, titleModifier.weight(1f), style = MaterialTheme.typography.titleLarge)
+                ValueText(title, titleModifier.weight(1f), style = titleStyle)
                 if (trailing != null && !stacked) {
                     Spacer(Modifier.width(8.dp))
                     Box(Modifier.widthIn(max = trailingMaxWidth)) { trailing() }

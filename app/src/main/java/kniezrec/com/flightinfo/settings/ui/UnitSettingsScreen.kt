@@ -1,16 +1,20 @@
 package kniezrec.com.flightinfo.settings.ui
 
+import androidx.annotation.DrawableRes
+import androidx.annotation.StringRes
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
@@ -38,6 +42,7 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
@@ -66,8 +71,10 @@ import kniezrec.com.flightinfo.displayunits.UnitKey
 import kniezrec.com.flightinfo.displayunits.UnitPreferences
 import kniezrec.com.flightinfo.displayunits.VerticalSpeedUnit
 import kniezrec.com.flightinfo.displayunits.ui.labels
+import kniezrec.com.flightinfo.ui.theme.CardHeader
 import kniezrec.com.flightinfo.ui.theme.LabelText
 import kniezrec.com.flightinfo.ui.theme.SmartFlightAlertDialog
+import kniezrec.com.flightinfo.ui.theme.SmartFlightCard
 import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
 import kniezrec.com.flightinfo.ui.theme.ValueText
 import kniezrec.com.flightinfo.ui.theme.rememberTopBarContainerColor
@@ -155,22 +162,26 @@ fun UnitSettingsScreen(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(padding)
-                .padding(horizontal = 12.dp, vertical = 24.dp),
+                .padding(horizontal = 12.dp, vertical = 12.dp),
             contentAlignment = androidx.compose.ui.Alignment.TopCenter,
         ) {
             Column(
                 Modifier.fillMaxWidth().widthIn(max = 600.dp),
-                verticalArrangement = Arrangement.spacedBy(0.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                ValueText(stringResource(R.string.display_section), style = MaterialTheme.typography.titleLarge)
-                Column(Modifier.padding(top = 8.dp)) {
-                    settingRow(stringResource(R.string.theme), stringResource(displayPreferences.themeMode.labelResource())) {
+                SettingsSection(R.drawable.ic_settings_display, R.string.display_section) {
+                    settingRow(
+                        stringResource(R.string.theme),
+                        stringResource(displayPreferences.themeMode.labelResource()),
+                        valueColor = colors.accent,
+                    ) {
                         choosingTheme = true
                     }
                     displaysettingRow(
                         R.string.keep_screen_always_on,
                         if (displayPreferences.keepScreenAlwaysOn) R.string.settings_on else R.string.settings_off,
                         displayPreferences.keepScreenAlwaysOn,
+                        explanation = R.string.keep_screen_always_on_summary,
                     ) {
                         onDisplayPreferenceChange(displayPreferences.copy(keepScreenAlwaysOn = !displayPreferences.keepScreenAlwaysOn))
                     }
@@ -178,6 +189,7 @@ fun UnitSettingsScreen(
                         R.string.portrait_orientation,
                         if (displayPreferences.portraitOrientation) R.string.orientation_portrait else R.string.orientation_sensor,
                         displayPreferences.portraitOrientation,
+                        explanation = R.string.portrait_orientation_summary,
                     ) {
                         onDisplayPreferenceChange(displayPreferences.copy(portraitOrientation = !displayPreferences.portraitOrientation))
                     }
@@ -186,6 +198,7 @@ fun UnitSettingsScreen(
                         if (displayPreferences.largerMapZoom) R.string.settings_on else R.string.settings_off,
                         displayPreferences.largerMapZoom,
                         if (displayPreferences.largerMapZoom) R.string.larger_map_zoom_warning else null,
+                        explanation = R.string.larger_map_zoom_summary,
                         highlight = highlightLargerMapZoom,
                         onHighlightFinished = onHighlightFinished,
                         modifier = Modifier.testTag(LARGER_MAP_ZOOM_ROW_TAG),
@@ -194,12 +207,7 @@ fun UnitSettingsScreen(
                     }
                     ShowHiddenCardsRow(hiddenCards, onShowHiddenCards)
                 }
-                ValueText(
-                    stringResource(R.string.monitoring_section),
-                    Modifier.padding(top = 24.dp),
-                    style = MaterialTheme.typography.titleLarge,
-                )
-                Column(Modifier.padding(top = 8.dp)) {
+                SettingsSection(R.drawable.ic_settings_monitoring, R.string.monitoring_section) {
                     // The effective state: switched on but not shown is "Notifications are blocked".
                     val notificationBlocked = showBackgroundNotification && notificationsBlocked
                     displaysettingRow(
@@ -211,24 +219,22 @@ fun UnitSettingsScreen(
                         },
                         showBackgroundNotification,
                         description = R.string.background_notification_settings_description,
+                        // While blocked the row says so (in the error color) instead of explaining itself.
+                        explanation = if (notificationBlocked) null else R.string.background_notification_settings_description,
+                        divider = false,
                     ) { onBackgroundNotificationChange(!showBackgroundNotification) }
                     if (notificationBlocked) {
                         val hint = stringResource(R.string.allow_notifications_hint)
                         TextButton(
                             onClick = onAllowNotifications,
                             modifier =
-                                Modifier.padding(top = 4.dp).heightIn(min = 48.dp).semantics {
+                                Modifier.padding(bottom = 8.dp).heightIn(min = 48.dp).semantics {
                                     stateDescription = hint
                                 },
                         ) { Text(stringResource(R.string.allow_notifications), color = colors.accent) }
                     }
                 }
-                ValueText(
-                    stringResource(R.string.units_section),
-                    Modifier.padding(top = 24.dp),
-                    style = MaterialTheme.typography.titleLarge,
-                )
-                Column(Modifier.padding(top = 8.dp)) {
+                SettingsSection(R.drawable.ic_settings_units, R.string.units_section) {
                     settingRow(stringResource(R.string.unit_speed), unitText(preferences.speed)) { selector = Selector.Speed() }
                     settingRow(stringResource(R.string.unit_altitude), unitText(preferences.altitude)) { selector = Selector.Altitude() }
                     settingRow(stringResource(R.string.unit_distance), unitText(preferences.distance)) { selector = Selector.Distance() }
@@ -236,7 +242,9 @@ fun UnitSettingsScreen(
                         selector =
                             Selector.VerticalSpeed()
                     }
-                    settingRow(stringResource(R.string.unit_pressure), unitText(preferences.pressure)) { selector = Selector.Pressure() }
+                    settingRow(stringResource(R.string.unit_pressure), unitText(preferences.pressure), divider = false) {
+                        selector = Selector.Pressure()
+                    }
                 }
             }
         }
@@ -244,6 +252,22 @@ fun UnitSettingsScreen(
     selector?.let { current -> UnitChoiceDialog(current, preferences, onPreferenceChange) { selector = null } }
     if (choosingTheme) {
         ThemeChoiceDialog(displayPreferences.themeMode, onThemeModeChange) { choosingTheme = false }
+    }
+}
+
+/**
+ * A Settings section of the redesign (TASK-048): a card with an icon header and its [rows],
+ * separated by dividers.
+ */
+@Composable
+private fun SettingsSection(
+    @DrawableRes icon: Int,
+    @StringRes title: Int,
+    rows: @Composable () -> Unit,
+) {
+    SmartFlightCard(contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp)) {
+        CardHeader(icon, stringResource(title), titleStyle = MaterialTheme.typography.titleMedium)
+        Column(Modifier.padding(top = 4.dp)) { rows() }
     }
 }
 
@@ -298,6 +322,8 @@ private fun displaysettingRow(
     checked: Boolean,
     warning: Int? = null,
     description: Int? = null,
+    explanation: Int? = null,
+    divider: Boolean = true,
     highlight: Boolean = false,
     onHighlightFinished: () -> Unit = {},
     modifier: Modifier = Modifier,
@@ -335,7 +361,7 @@ private fun displaysettingRow(
         Row(
             modifier
                 .fillMaxWidth()
-                .heightIn(min = 64.dp)
+                .heightIn(min = ROW_MIN_HEIGHT)
                 .drawBehind {
                     // An interrupted highlight leaves no tint behind.
                     val alpha = if (highlight) highlightAlpha.value * HIGHLIGHT_MAX_ALPHA else 0f
@@ -354,7 +380,13 @@ private fun displaysettingRow(
         ) {
             Column(Modifier.weight(1f)) {
                 ValueText(labelText, style = MaterialTheme.typography.bodyLarge)
-                LabelText(summaryText, style = MaterialTheme.typography.bodyMedium)
+                // The switch shows the state: the subtitle explains the setting, or shows a state
+                // that needs attention (blocked notifications) in the error color.
+                if (explanation != null) {
+                    LabelText(stringResource(explanation), style = MaterialTheme.typography.bodyMedium)
+                } else {
+                    Text(summaryText, color = SmartFlightTheme.colors.error, style = MaterialTheme.typography.bodyMedium)
+                }
             }
             androidx.compose.material3.Switch(
                 checked = checked,
@@ -366,11 +398,11 @@ private fun displaysettingRow(
         warning?.let {
             ValueText(
                 stringResource(it),
-                Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
+                Modifier.padding(bottom = 12.dp),
                 style = MaterialTheme.typography.bodyMedium,
             )
         }
-        HorizontalDivider()
+        if (divider) HorizontalDivider()
     }
 }
 
@@ -398,7 +430,7 @@ private fun ShowHiddenCardsRow(
         Row(
             Modifier
                 .fillMaxWidth()
-                .heightIn(min = 64.dp)
+                .heightIn(min = ROW_MIN_HEIGHT)
                 .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
                 .padding(vertical = 12.dp)
                 .alpha(if (enabled) 1f else DISABLED_ROW_ALPHA),
@@ -412,8 +444,8 @@ private fun ShowHiddenCardsRow(
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }
+            Chevron()
         }
-        HorizontalDivider()
     }
 }
 
@@ -424,6 +456,19 @@ private fun HideableCard.nameResource(): Int =
     }
 
 private const val DISABLED_ROW_ALPHA = 0.5f
+
+private val ROW_MIN_HEIGHT = 56.dp
+
+/** The trailing ">" of rows that open a choice. Decorative: the row is the button. */
+@Composable
+private fun Chevron() {
+    Icon(
+        painterResource(R.drawable.ic_chevron_right),
+        contentDescription = null,
+        modifier = Modifier.padding(start = 8.dp).size(20.dp),
+        tint = SmartFlightTheme.colors.labelText,
+    )
+}
 
 /** The highlighted row flashes `accentLight` (the original's `cyan_light` start color) this many times. */
 private const val HIGHLIGHT_FLASHES = 3
@@ -437,6 +482,8 @@ private const val HIGHLIGHT_MAX_ALPHA = 0.8f
 private fun settingRow(
     label: String,
     value: String,
+    valueColor: Color = SmartFlightTheme.colors.labelText,
+    divider: Boolean = true,
     onClick: () -> Unit,
 ) {
     val rowDescription = stringResource(R.string.settings_row_description, label, value)
@@ -444,17 +491,19 @@ private fun settingRow(
         Row(
             Modifier
                 .fillMaxWidth()
-                .heightIn(min = 64.dp)
+                .heightIn(min = ROW_MIN_HEIGHT)
                 .clickable(onClick = onClick)
                 .semantics(mergeDescendants = true) {
                     contentDescription = rowDescription
                     role = Role.Button
                 }.padding(vertical = 12.dp),
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
         ) {
             ValueText(label, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
-            LabelText(value, style = MaterialTheme.typography.bodyLarge)
+            Text(value, color = valueColor, style = MaterialTheme.typography.bodyMedium)
+            Chevron()
         }
-        HorizontalDivider()
+        if (divider) HorizontalDivider()
     }
 }
 

@@ -135,7 +135,7 @@ class PaletteGuardTest {
     private companion object {
         val SCHEMES = listOf("dark" to DarkSmartFlightColors, "light" to LightSmartFlightColors)
 
-        /** The plane marker, the route pins, the city picker marker and the button icons drawn on the maps. */
+        /** The plane marker, the route pins, the city picker marker and the expand/collapse icons drawn on the maps. */
         val MAP_DRAWABLES =
             listOf(
                 "ic_plane_marker",
@@ -144,15 +144,28 @@ class PaletteGuardTest {
                 "ic_city_found_marker",
                 "ic_expand",
                 "ic_shrink",
-                "drawing_pin_icon",
             )
 
         /** The original take-off, landing and trash icons of the route card. */
         val ROUTE_CARD_DRAWABLES = listOf("ic_route_take_off", "ic_route_landing", "ic_route_delete")
 
-        /** The card header icons and the Calibrate icon of the redesign (TASK-040, TASK-042), tinted in code. */
+        /** The redesign's icons (card headers, Calibrate, flight tiles, Settings; TASK-040–048), tinted in code. */
         val CARD_HEADER_DRAWABLES =
-            listOf("ic_card_satellite", "ic_card_course", "ic_card_horizon", "ic_card_flight", "ic_card_place", "ic_calibrate")
+            listOf(
+                "ic_card_satellite",
+                "ic_card_course",
+                "ic_card_horizon",
+                "ic_card_flight",
+                "ic_card_place",
+                "ic_calibrate",
+                "ic_tile_gauge",
+                "ic_tile_altitude",
+                "ic_tile_vertical_speed",
+                "ic_settings_display",
+                "ic_settings_monitoring",
+                "ic_settings_units",
+                "ic_chevron_right",
+            )
 
         /** The launcher icon's plane layers (TASK-034) and the top bar's overflow icon. */
         val LAUNCHER_DRAWABLES = listOf("ic_launcher_foreground", "ic_launcher_monochrome", "ic_more_vert")
@@ -171,7 +184,7 @@ class PaletteGuardTest {
         val PALETTE =
             setOf(
                 // Original colors.xml, still used on the map and the launcher icon
-                0xFF484685, // purple_dark: map ink, launcher background
+                0xFF484685, // purple_dark: map ink, light route line, launcher background
                 0xFFD9D9ED, // text_color_light: map halo, route card icon sources (tinted in code)
                 0x80000000, // dark_overlay_alpha_50: scrim
                 0x33000000, // dark_overlay_alpha_20: switch track, launcher shadow
@@ -184,11 +197,10 @@ class PaletteGuardTest {
                 0xFF1E2735, // topBarScrolled
                 0xFF283245, // cardOutline
                 0xFF4A9BFD, // accent, compassPlane
-                0x804A9BFD, // accentPressed
                 0xFF1C304A, // accentContainer
                 0xFF23436B, // accentLight
                 0xFF9DAED0, // labelText
-                0xFFE8ECF5, // valueText, toolbarTitle, inverseSurface
+                0xFFE8ECF5, // valueText, toolbarTitle, inverseSurface, mapRoute
                 0xFFFF7A6E, // satelliteUnused
                 0xFFFFB4AB, // error
                 0xFF1558C0, // inversePrimary (snackbar action)
@@ -196,13 +208,13 @@ class PaletteGuardTest {
                 0xFF1C5EA0, // horizonSky
                 0xFF295744, // horizonGround
                 0xFF143839, // horizonGroundBottom
+                0xFF4A5878, // mapTileTint: dims the tiles (TASK-047)
                 // Light scheme (TASK-039 redesign)
                 0xFFF4F6FB, // page and topBar (and window_light)
                 0xFFF9FAFD, // raised: dialogs and menus
                 0xFFE9EDF5, // topBarScrolled
                 0xFFE2E7F0, // cardOutline
                 0xFF1A66D9, // accent
-                0x801A66D9, // accentPressed
                 0xFFE7F0FD, // accentContainer
                 0xFFCFE0FA, // accentLight
                 0xFF5B6785, // labelText

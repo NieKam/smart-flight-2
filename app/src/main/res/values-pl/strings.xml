@@ -200,6 +200,7 @@
     <string name="keep_screen_always_on">Nigdy nie wyłączaj ekranu</string>
     <string name="portrait_orientation">Orientacja ekranu</string>
     <string name="larger_map_zoom">Wymuś większe powiększenie mapy</string>
+    <string name="keep_screen_always_on_summary">Zapobiega wygaszaniu ekranu podczas lotu</string><string name="portrait_orientation_summary">Blokuje aplikację w orientacji pionowej</string><string name="larger_map_zoom_summary">Włącza większe przybliżenie mapy</string>
     <string name="settings_on">Włączone</string>
     <string name="settings_off">Wyłączone</string>
     <string name="orientation_portrait">Pionowa</string>
