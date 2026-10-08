@@ -33,8 +33,8 @@ data class SmartFlightColors(
     val cardOutline: Color,
     /** Actions, switches, radio buttons, text-field indicator, compass cardinal (Material `primary`). */
     val accent: Color,
-    /** Pressed/highlight accent, checked switch track (accent at 50%). */
-    val accentPressed: Color,
+    /** Content on an accent fill: the checked switch thumb. */
+    val onAccent: Color,
     /** Tinted container of accent content: card icon badges, status pills, tonal buttons (Material `primaryContainer`). */
     val accentContainer: Color,
     /** Secondary accent: the Settings row highlight. */
@@ -114,7 +114,7 @@ val DarkSmartFlightColors =
         topBarScrolled = Color(0xFF1E2735),
         cardOutline = Color(0xFF283245),
         accent = DarkBlue,
-        accentPressed = Color(0x804A9BFD),
+        onAccent = White,
         accentContainer = Color(0xFF1C304A),
         accentLight = Color(0xFF23436B),
         labelText = Color(0xFF9DAED0),
@@ -155,7 +155,7 @@ val LightSmartFlightColors =
         topBarScrolled = Color(0xFFE9EDF5),
         cardOutline = Color(0xFFE2E7F0),
         accent = LightBlue,
-        accentPressed = Color(0x801A66D9),
+        onAccent = White,
         accentContainer = Color(0xFFE7F0FD),
         accentLight = Color(0xFFCFE0FA),
         labelText = Color(0xFF5B6785),

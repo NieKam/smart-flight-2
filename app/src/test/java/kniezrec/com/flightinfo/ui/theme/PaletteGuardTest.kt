@@ -149,9 +149,23 @@ class PaletteGuardTest {
         /** The original take-off, landing and trash icons of the route card. */
         val ROUTE_CARD_DRAWABLES = listOf("ic_route_take_off", "ic_route_landing", "ic_route_delete")
 
-        /** The card header icons and the Calibrate icon of the redesign (TASK-040, TASK-042), tinted in code. */
+        /** The redesign's icons (card headers, Calibrate, flight tiles, Settings; TASK-040–048), tinted in code. */
         val CARD_HEADER_DRAWABLES =
-            listOf("ic_card_satellite", "ic_card_course", "ic_card_horizon", "ic_card_flight", "ic_card_place", "ic_calibrate")
+            listOf(
+                "ic_card_satellite",
+                "ic_card_course",
+                "ic_card_horizon",
+                "ic_card_flight",
+                "ic_card_place",
+                "ic_calibrate",
+                "ic_tile_gauge",
+                "ic_tile_altitude",
+                "ic_tile_vertical_speed",
+                "ic_settings_display",
+                "ic_settings_monitoring",
+                "ic_settings_units",
+                "ic_chevron_right",
+            )
 
         /** The launcher icon's plane layers (TASK-034) and the top bar's overflow icon. */
         val LAUNCHER_DRAWABLES = listOf("ic_launcher_foreground", "ic_launcher_monochrome", "ic_more_vert")
@@ -183,7 +197,6 @@ class PaletteGuardTest {
                 0xFF1E2735, // topBarScrolled
                 0xFF283245, // cardOutline
                 0xFF4A9BFD, // accent, compassPlane
-                0x804A9BFD, // accentPressed
                 0xFF1C304A, // accentContainer
                 0xFF23436B, // accentLight
                 0xFF9DAED0, // labelText
@@ -202,7 +215,6 @@ class PaletteGuardTest {
                 0xFFE9EDF5, // topBarScrolled
                 0xFFE2E7F0, // cardOutline
                 0xFF1A66D9, // accent
-                0x801A66D9, // accentPressed
                 0xFFE7F0FD, // accentContainer
                 0xFFCFE0FA, // accentLight
                 0xFF5B6785, // labelText

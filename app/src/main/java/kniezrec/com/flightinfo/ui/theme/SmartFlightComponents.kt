@@ -78,16 +78,19 @@ fun smartFlightTextFieldColors(): TextFieldColors {
     )
 }
 
-/** Switches as the original `colorAccent` switches. */
+/**
+ * Material 3 switches of the redesign (TASK-048): checked, an [SmartFlightColors.onAccent] thumb on
+ * an accent track; unchecked, a muted thumb and border on a [SmartFlightColors.cardOutline] track.
+ */
 @Composable
 fun smartFlightSwitchColors(): SwitchColors {
     val colors = SmartFlightTheme.colors
     return SwitchDefaults.colors(
-        checkedThumbColor = colors.accent,
-        checkedTrackColor = colors.accentPressed,
+        checkedThumbColor = colors.onAccent,
+        checkedTrackColor = colors.accent,
         checkedBorderColor = Color.Transparent,
-        uncheckedThumbColor = colors.valueText,
-        uncheckedTrackColor = colors.overlay20,
+        uncheckedThumbColor = colors.labelText,
+        uncheckedTrackColor = colors.cardOutline,
         uncheckedBorderColor = colors.labelText,
     )
 }

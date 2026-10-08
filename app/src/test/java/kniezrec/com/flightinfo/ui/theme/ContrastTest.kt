@@ -97,8 +97,9 @@ class ContrastTest {
         listOf(
             ColorPair("valueText (card icons)", colors.valueText, "card", colors.card),
             ColorPair("toolbarTitle (top bar icons)", colors.toolbarTitle, "topBar", colors.topBar),
-            ColorPair("accent (checked switch thumb, focus border)", colors.accent, "page", colors.page),
-            ColorPair("valueText (unchecked switch thumb)", colors.valueText, "page", colors.page),
+            ColorPair("accent (checked switch track, focus border)", colors.accent, "page", colors.page),
+            ColorPair("accent (checked switch track)", colors.accent, "card", colors.card),
+            ColorPair("labelText (unchecked switch thumb)", colors.labelText, "cardOutline (unchecked switch track)", colors.cardOutline),
             ColorPair("labelText (switch and field border)", colors.labelText, "page", colors.page),
             ColorPair("accent (selected radio)", colors.accent, "raised", colors.raised),
             ColorPair("labelText (unselected radio)", colors.labelText, "raised", colors.raised),
