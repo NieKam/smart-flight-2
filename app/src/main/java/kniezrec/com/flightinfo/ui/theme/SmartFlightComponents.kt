@@ -9,6 +9,7 @@ import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.SwitchColors
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.TextFieldColors
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -51,6 +52,55 @@ fun smartFlightButtonColors(): ButtonColors {
         contentColor = colors.valueText,
         disabledContainerColor = colors.card,
         disabledContentColor = colors.labelText,
+    )
+}
+
+/** Tonal pill buttons of the redesign (TASK-051, the picker's Search): accent on `accentContainer`. */
+@Composable
+fun smartFlightTonalButtonColors(): ButtonColors {
+    val colors = SmartFlightTheme.colors
+    return ButtonDefaults.buttonColors(
+        containerColor = colors.accentContainer,
+        contentColor = colors.accent,
+        disabledContainerColor = colors.accentContainer,
+        disabledContentColor = colors.labelText,
+    )
+}
+
+/**
+ * The primary action of a screen (TASK-051, the picker's Confirm): page-colored text on the accent
+ * (AA in both schemes); disabled, muted text on `accentContainer`.
+ */
+@Composable
+fun smartFlightFilledButtonColors(): ButtonColors {
+    val colors = SmartFlightTheme.colors
+    return ButtonDefaults.buttonColors(
+        containerColor = colors.accent,
+        contentColor = colors.page,
+        disabledContainerColor = colors.accentContainer,
+        disabledContentColor = colors.labelText,
+    )
+}
+
+/**
+ * The search field of the redesign (TASK-051): a card-colored pill without an indicator line, the
+ * label and icon muted, an accent cursor.
+ */
+@Composable
+fun smartFlightSearchFieldColors(): TextFieldColors {
+    val colors = SmartFlightTheme.colors
+    return TextFieldDefaults.colors(
+        focusedTextColor = colors.valueText,
+        unfocusedTextColor = colors.valueText,
+        focusedContainerColor = colors.card,
+        unfocusedContainerColor = colors.card,
+        cursorColor = colors.accent,
+        focusedIndicatorColor = Color.Transparent,
+        unfocusedIndicatorColor = Color.Transparent,
+        focusedLabelColor = colors.accent,
+        unfocusedLabelColor = colors.labelText,
+        focusedLeadingIconColor = colors.labelText,
+        unfocusedLeadingIconColor = colors.labelText,
     )
 }
 

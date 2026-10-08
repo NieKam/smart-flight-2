@@ -94,7 +94,7 @@ class RouteCardTest {
     fun emptyRouteShowsTheHintAndBothPickSlotsWithoutClearActions() {
         showActions(RouteState())
 
-        composeRule.onNodeWithText("Tap to select flight route").assertIsDisplayed()
+        composeRule.onNodeWithText("Select flight route").assertIsDisplayed()
         composeRule.onNodeWithText("Pick departure").assertIsDisplayed()
         composeRule.onNodeWithText("Pick destination").assertIsDisplayed()
         val departure = composeRule.onNodeWithContentDescription("Departure, Pick departure").fetchSemanticsNode()
@@ -123,7 +123,7 @@ class RouteCardTest {
         composeRule.onNodeWithText("A").assertIsDisplayed()
         composeRule.onNodeWithText("Beta").assertIsDisplayed()
         composeRule.onNodeWithText("B").assertIsDisplayed()
-        composeRule.onAllNodesWithText("Tap to select flight route").assertCountEquals(0)
+        composeRule.onAllNodesWithText("Select flight route").assertCountEquals(0)
 
         composeRule.onNodeWithContentDescription("Destination, Beta, B").performClick()
         composeRule.runOnIdle {
@@ -184,7 +184,7 @@ class RouteCardTest {
     fun trashIsOfferedWithOnlyADeparture() {
         showActions(RouteState(departure = DEPARTURE))
 
-        composeRule.onNodeWithText("Tap to select flight route").assertIsDisplayed()
+        composeRule.onNodeWithText("Select flight route").assertIsDisplayed()
         composeRule.onNodeWithText("Pick destination").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Clear route").performClick()
         composeRule.runOnIdle { assertEquals(1, clearedAll) }

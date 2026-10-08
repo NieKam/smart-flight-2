@@ -21,6 +21,7 @@ import kniezrec.com.flightinfo.displayunits.UnitPreferences
 import kniezrec.com.flightinfo.displayunits.VerticalSpeedUnit
 import kniezrec.com.flightinfo.flight.FlightParametersState
 import kniezrec.com.flightinfo.flight.ui.FlightParametersCard
+import kniezrec.com.flightinfo.nearby.NearbyCityRecord
 import kniezrec.com.flightinfo.nearby.NearbyCityState
 import kniezrec.com.flightinfo.nearby.ui.NearbyCityCard
 import kniezrec.com.flightinfo.route.RouteDetails
@@ -56,7 +57,12 @@ class DashboardCardsUnitsTest {
                     distanceUnit = preferences.distance,
                 )
                 RouteCard(
-                    state = RouteState(details = RouteDetails(100.0, 50.0, ARRIVAL, ZoneOffset.UTC, Duration.ofHours(1))),
+                    // Details exist only with a destination (RouteViewModel); the card shows them then.
+                    state =
+                        RouteState(
+                            destination = NearbyCityRecord(2L, "Destination", "UTC", 0.0, 1.0, "UTC"),
+                            details = RouteDetails(100.0, 50.0, ARRIVAL, ZoneOffset.UTC, Duration.ofHours(1)),
+                        ),
                     onChoose = {},
                     onClear = {},
                     onClearAll = {},

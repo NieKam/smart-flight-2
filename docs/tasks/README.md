@@ -80,6 +80,8 @@ The order follows four phases. Every task leaves the app building, tests green a
 | 047 | [Redesign: themed map tiles, route line and map buttons](047-map-card-theme/task.md) | 039 | DONE |
 | 048 | [Redesign: Settings as grouped cards](048-settings-cards/task.md) | 040 | DONE |
 | 049 | [Map gestures win over the card list scroll](049-map-gestures/task.md) | 047 | DONE |
+| 050 | [Redesign: Route card before a destination is chosen](050-route-planning-card/task.md) | 045, 046 | DONE |
+| 051 | [Redesign: city picker](051-city-picker-design/task.md) | 047 | DONE |
 
 ## Coverage
 

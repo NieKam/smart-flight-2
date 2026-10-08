@@ -140,7 +140,7 @@
     <string name="map_unavailable">Mapa niedostępna</string>
     <string name="map_unavailable_body">Nie można otworzyć archiwum mapy offline. Mapa z sieci nie jest używana.</string>
     <string name="map_try_again">Spróbuj ponownie</string>
-    <string name="map_recenter">Moja lokalizacja</string>
+    <string name="map_recenter">Moja lokalizacja</string><string name="map_zoom_in">Przybliż</string><string name="map_zoom_out">Oddal</string>
     <string name="map_expand">Rozwiń mapę</string>
     <string name="map_collapse">Zwiń mapę</string>
     <string name="map_ready_summary">Mapa offline z pozycją samolotu</string>
@@ -163,7 +163,7 @@
     <string name="route_search">Szukaj</string>
     <string name="route_searching">Wyszukiwanie w danych miast offline…</string>
     <string name="route_no_cities">Nie znaleziono miast. Spróbuj innej pisowni lub przytrzymaj palec na mapie.</string>
-    <string name="route_map_instruction">Przytrzymaj palec na punkcie mapy offline, aby znaleźć najbliższe miasto.</string>
+    <string name="route_map_instruction">&lt;b>Przytrzymaj palec&lt;/b> na punkcie mapy offline, aby znaleźć najbliższe miasto.</string>
     <string name="route_cancel">Anuluj</string>
     <string name="route_confirm">Potwierdź</string>
     <string name="route_retry">Ponów</string>
@@ -171,7 +171,8 @@
     <string name="route_invalid_city">Ten rekord miasta jest nieprawidłowy. Wybierz inne miasto.</string>
     <string name="route_restore_error">Nie można przywrócić zapisanej trasy. Ponów, aby odczytać dane miast.</string>
     <string name="route_map_summary">Trasa: %1$s – %2$s</string>
-    <string name="route_hint">Dotknij, aby wyznaczyć trasę</string>
+    <string name="route_hint">Wybierz trasę lotu</string>
+    <string name="route_planning_body">Wybierz miasto wylotu i miasto docelowe, aby zaplanować lot</string>
     <string name="route_clear_departure">Wyczyść miejsce wylotu</string>
     <string name="route_clear_destination">Wyczyść cel</string>
     <string name="route_selected_city">Wybrano: %1$s (%2$s)</string>

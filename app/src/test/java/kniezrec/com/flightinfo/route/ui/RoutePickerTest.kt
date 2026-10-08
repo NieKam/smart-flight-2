@@ -14,6 +14,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -91,7 +92,7 @@ class RoutePickerTest {
     @Test fun invalidSelectionIsShownAndCannotBeConfirmed() {
         show(open().copy(selected = badZone))
 
-        composeRule.onNodeWithText("Selected: Bad zone (D)").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Selected: Bad zone (D)").assertIsDisplayed()
         composeRule.onNodeWithText("This city record is invalid. Choose another city.").assertIsDisplayed()
         composeRule.onNodeWithText("Confirm").assertIsNotEnabled()
     }
@@ -99,7 +100,7 @@ class RoutePickerTest {
     @Test fun validSelectionIsConfirmableUnlessLoading() {
         show(open().copy(selected = paris, loading = true))
 
-        composeRule.onNodeWithText("Selected: Paris (France)").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Selected: Paris (France)").assertIsDisplayed()
         composeRule.onNodeWithText("Searching offline city data…").assertIsDisplayed()
         composeRule.onNodeWithText("Confirm").assertIsNotEnabled()
         composeRule.onNodeWithText("Search").assertIsNotEnabled()
@@ -140,7 +141,7 @@ class RoutePickerTest {
             viewModel.nearest(NearbyCoordinate(48.0, 2.0))
         }
 
-        composeRule.onNodeWithText("Selected: Paris (France)").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Selected: Paris (France)").assertIsDisplayed()
         composeRule.onNodeWithText("Confirm").assertIsEnabled().performClick()
 
         composeRule.onNodeWithText("Confirm").assertDoesNotExist()
@@ -173,9 +174,9 @@ class RoutePickerTest {
                 )
             }
             composeRule.onNodeWithText("Paris (France)").performClick()
-            composeRule.onNodeWithText("Selected: Paris (France)").assertIsDisplayed()
+            composeRule.onNodeWithContentDescription("Selected: Paris (France)").assertIsDisplayed()
             composeRule.onNodeWithText("Berlin (Germany)").performClick()
-            composeRule.onNodeWithText("Selected: Berlin (Germany)").assertIsDisplayed()
+            composeRule.onNodeWithContentDescription("Selected: Berlin (Germany)").assertIsDisplayed()
         } finally {
             archive.delete()
         }
@@ -222,7 +223,7 @@ class RoutePickerTest {
         state = open().copy(results = listOf(paris), selected = paris)
 
         composeRule.onNodeWithText("Paris (France)").assertDoesNotExist()
-        composeRule.onNodeWithText("Selected: Paris (France)").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Selected: Paris (France)").assertIsDisplayed()
         composeRule.onNodeWithText("Confirm").assertIsEnabled()
     }
 

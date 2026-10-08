@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -23,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
@@ -53,11 +55,14 @@ import kniezrec.com.flightinfo.route.RouteDetails
 import kniezrec.com.flightinfo.route.RouteEndpoint
 import kniezrec.com.flightinfo.route.RouteError
 import kniezrec.com.flightinfo.route.RouteState
+import kniezrec.com.flightinfo.ui.theme.CardHeader
 import kniezrec.com.flightinfo.ui.theme.LabelText
 import kniezrec.com.flightinfo.ui.theme.SmartFlightCard
 import kniezrec.com.flightinfo.ui.theme.SmartFlightCardDefaults
 import kniezrec.com.flightinfo.ui.theme.SmartFlightTheme
 import kniezrec.com.flightinfo.ui.theme.ValueText
+import kniezrec.com.flightinfo.ui.theme.drawCloud
+import kniezrec.com.flightinfo.ui.theme.drawSkyline
 import kniezrec.com.flightinfo.ui.theme.withSmallerUnit
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
@@ -80,33 +85,24 @@ fun RouteCard(
 ) {
     SmartFlightCard(modifier, minHeight = SmartFlightCardDefaults.MinHeight) {
         Column(Modifier.fillMaxWidth()) {
-            // As in the original, the hint stays until the destination (and with it the details) is set.
+            // As in the original, the planning state stays until the destination (and with it the
+            // details) is set.
             if (state.destination == null) {
-                LabelText(stringResource(R.string.route_hint), style = routeBody())
-                Spacer(Modifier.height(8.dp))
-            }
-            // Empty slots are large until the details appear, then the remaining one shrinks.
-            val iconSize = if (state.destination == null) LARGE_ICON else SMALL_ICON
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                EndpointSlot(RouteEndpoint.DEPARTURE, state.departure, iconSize, onChoose, onClear, Modifier.weight(1f))
-                // Both cities chosen: the design's flight arc between them (TASK-046).
-                if (state.departure != null && state.destination != null) {
-                    RouteArc(Modifier.align(Alignment.CenterVertically).size(ARC_WIDTH, ARC_HEIGHT))
-                }
-                EndpointSlot(RouteEndpoint.DESTINATION, state.destination, iconSize, onChoose, onClear, Modifier.weight(1f))
-            }
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
-                Column(Modifier.weight(1f)) {
-                    state.details?.let { details -> Details(details, distanceUnit) }
-                }
-                if (state.departure != null || state.destination != null) {
-                    IconButton(onClick = onClearAll) {
-                        Icon(
-                            painterResource(R.drawable.ic_route_delete),
-                            contentDescription = stringResource(R.string.route_clear_all),
-                            tint = SmartFlightTheme.colors.valueText,
-                        )
+                RoutePlanning(state, onChoose, onClear, onClearAll)
+            } else {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    EndpointSlot(RouteEndpoint.DEPARTURE, state.departure, SMALL_ICON, onChoose, onClear, Modifier.weight(1f))
+                    // Both cities chosen: the design's flight arc between them (TASK-046).
+                    if (state.departure != null) {
+                        RouteArc(Modifier.align(Alignment.CenterVertically).size(ARC_WIDTH, ARC_HEIGHT))
                     }
+                    EndpointSlot(RouteEndpoint.DESTINATION, state.destination, SMALL_ICON, onChoose, onClear, Modifier.weight(1f))
+                }
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
+                    Column(Modifier.weight(1f)) {
+                        state.details?.let { details -> Details(details, distanceUnit) }
+                    }
+                    ClearAllButton(onClearAll)
                 }
             }
             state.error?.let {
@@ -127,16 +123,133 @@ fun RouteCard(
 }
 
 /**
- * One endpoint: its icon and "Pick …" while empty, the city name (22sp, one line) and country once
+ * The route before a destination is chosen (TASK-050): the "Select flight route" header (with the
+ * trash once a departure is set), a one-line explanation, and the two endpoint slots over the
+ * planning illustration, each half of it being its endpoint's button.
+ */
+@Composable private fun RoutePlanning(
+    state: RouteState,
+    onChoose: (RouteEndpoint) -> Unit,
+    onClear: (RouteEndpoint) -> Unit,
+    onClearAll: () -> Unit,
+) {
+    CardHeader(
+        R.drawable.ic_plane,
+        stringResource(R.string.route_hint),
+        trailing = if (state.departure != null) ({ ClearAllButton(onClearAll) }) else null,
+    )
+    LabelText(
+        stringResource(R.string.route_planning_body),
+        Modifier.fillMaxWidth().padding(top = 8.dp),
+        style = MaterialTheme.typography.bodyMedium,
+        textAlign = TextAlign.Center,
+    )
+    Box(Modifier.fillMaxWidth().padding(top = 8.dp)) {
+        RoutePlanningIllustration(Modifier.fillMaxWidth().height(PLANNING_ILLUSTRATION_HEIGHT))
+        Row(Modifier.fillMaxWidth()) {
+            val slot = Modifier.weight(1f)
+            EndpointSlot(RouteEndpoint.DEPARTURE, state.departure, null, onChoose, onClear, slot, PLANNING_ILLUSTRATION_HEIGHT)
+            EndpointSlot(RouteEndpoint.DESTINATION, null, null, onChoose, onClear, slot, PLANNING_ILLUSTRATION_HEIGHT)
+        }
+    }
+}
+
+/**
+ * Two skylines under clouds, a pin over each endpoint and a dashed arc between them with the plane
+ * at its top, in the accent. Decorative.
+ */
+@Composable private fun RoutePlanningIllustration(modifier: Modifier) {
+    val colors = SmartFlightTheme.colors
+    BoxWithConstraints(modifier.semantics { hideFromAccessibility() }) {
+        Canvas(Modifier.matchParentSize()) {
+            val base = size.height * PLANNING_BASE
+            val cloud = colors.accentLight.copy(alpha = CLOUD_ALPHA)
+            drawCloud(cloud, Offset(size.width * 0.12f, size.height * 0.2f), 9.dp.toPx())
+            drawCloud(cloud, Offset(size.width * 0.86f, size.height * 0.16f), 11.dp.toPx())
+            drawSkyline(colors.accentLight, 0f, size.width * 0.34f, base, size.height * 0.55f)
+            drawSkyline(colors.accentLight, size.width * 0.66f, size.width, base, size.height * 0.55f)
+            val start = Offset(size.width * PLANNING_PIN_X, base)
+            val end = Offset(size.width * (1 - PLANNING_PIN_X), base)
+            val arc =
+                Path().apply {
+                    moveTo(start.x, start.y)
+                    // A quadratic curve peaks halfway between its ends and the control point.
+                    quadraticTo(size.width / 2, 2 * size.height * PLANNING_ARC_APEX - base, end.x, end.y)
+                }
+            drawPath(
+                arc,
+                colors.accent.copy(alpha = ARC_ALPHA),
+                style =
+                    Stroke(
+                        width = 2.dp.toPx(),
+                        cap = StrokeCap.Round,
+                        pathEffect = PathEffect.dashPathEffect(floatArrayOf(6.dp.toPx(), 6.dp.toPx())),
+                    ),
+            )
+            drawCircle(colors.accent, 4.dp.toPx(), start)
+            drawCircle(colors.accent, 4.dp.toPx(), end)
+        }
+        for (pinX in listOf(PLANNING_PIN_X, 1 - PLANNING_PIN_X)) {
+            Icon(
+                painterResource(R.drawable.ic_card_place),
+                contentDescription = null,
+                modifier =
+                    Modifier
+                        .offset(x = maxWidth * pinX - PLANNING_PIN_SIZE / 2, y = maxHeight * PLANNING_BASE - PLANNING_PIN_SIZE)
+                        .size(PLANNING_PIN_SIZE),
+                tint = colors.accent,
+            )
+        }
+        Icon(
+            painterResource(R.drawable.ic_plane),
+            contentDescription = null,
+            modifier =
+                Modifier
+                    .offset(x = maxWidth / 2 - PLANNING_PLANE_SIZE / 2, y = maxHeight * PLANNING_ARC_APEX - PLANNING_PLANE_SIZE / 2)
+                    .size(PLANNING_PLANE_SIZE)
+                    .graphicsLayer { rotationZ = 90f },
+            tint = colors.accent,
+        )
+    }
+}
+
+private val PLANNING_ILLUSTRATION_HEIGHT = 120.dp
+private val PLANNING_PIN_SIZE = 32.dp
+private val PLANNING_PLANE_SIZE = 28.dp
+
+/** Ground line of the skylines and the arc's ends, as a fraction of the illustration's height. */
+private const val PLANNING_BASE = 0.86f
+
+/** Top of the arc (and the plane's center), as a fraction of the illustration's height. */
+private const val PLANNING_ARC_APEX = 0.18f
+
+/** Horizontal position of the departure pin; the destination pin mirrors it. */
+private const val PLANNING_PIN_X = 0.2f
+private const val CLOUD_ALPHA = 0.6f
+
+/** The trash icon that clears the whole route. */
+@Composable private fun ClearAllButton(onClearAll: () -> Unit) {
+    IconButton(onClick = onClearAll) {
+        Icon(
+            painterResource(R.drawable.ic_route_delete),
+            contentDescription = stringResource(R.string.route_clear_all),
+            tint = SmartFlightTheme.colors.valueText,
+        )
+    }
+}
+
+/**
+ * One endpoint: its icon (if [iconSize] is set) and "Pick …" while empty, the city name (22sp, one line) and country once
  * chosen. Departure is aligned to the start, destination to the end.
  */
 @Composable private fun EndpointSlot(
     endpoint: RouteEndpoint,
     city: NearbyCityRecord?,
-    iconSize: Dp,
+    iconSize: Dp?,
     onChoose: (RouteEndpoint) -> Unit,
     onClear: (RouteEndpoint) -> Unit,
     modifier: Modifier = Modifier,
+    topSpace: Dp = 0.dp,
 ) {
     val departure = endpoint == RouteEndpoint.DEPARTURE
     val roleText = stringResource(if (departure) R.string.route_departure else R.string.route_destination)
@@ -173,13 +286,17 @@ fun RouteCard(
             },
         horizontalAlignment = alignment,
     ) {
+        // Over the planning illustration: the slot's upper part is its half of the picture.
+        if (topSpace > 0.dp) Spacer(Modifier.height(topSpace))
         if (city == null) {
-            Icon(
-                painterResource(if (departure) R.drawable.ic_route_take_off else R.drawable.ic_route_landing),
-                contentDescription = null,
-                modifier = Modifier.size(iconSize),
-                tint = SmartFlightTheme.colors.valueText,
-            )
+            if (iconSize != null) {
+                Icon(
+                    painterResource(if (departure) R.drawable.ic_route_take_off else R.drawable.ic_route_landing),
+                    contentDescription = null,
+                    modifier = Modifier.size(iconSize),
+                    tint = SmartFlightTheme.colors.valueText,
+                )
+            }
             LabelText(pickText, textAlign = textAlign, style = routeBody())
         } else {
             Text(
@@ -284,7 +401,6 @@ private const val ARC_ALPHA = 0.7f
 @Composable
 private fun routeBody() = MaterialTheme.typography.bodyLarge.copy(fontSize = 18.sp, lineHeight = 25.sp)
 
-private val LARGE_ICON = 100.dp
 private val SMALL_ICON = 44.dp
 
 @Composable
