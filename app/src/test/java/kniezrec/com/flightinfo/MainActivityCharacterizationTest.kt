@@ -70,6 +70,7 @@ import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 import kotlin.math.cos
 import kotlin.math.sin
+import androidx.compose.ui.test.hasText as hasTextMatcher
 
 /**
  * Pins the observable orchestration of [MainActivity] (permission gate, lifecycle, fix fan-out,
@@ -403,7 +404,7 @@ class MainActivityCharacterizationTest {
 
         composeRule.onNodeWithText(string(R.string.route_picker_departure)).assertIsDisplayed()
         // The typed query survives (the selected city card shows "Warsaw" too).
-        composeRule.onNode(hasSetTextAction() and androidx.compose.ui.test.hasText("Warsaw")).assertIsDisplayed()
+        composeRule.onNode(hasSetTextAction() and hasTextMatcher("Warsaw")).assertIsDisplayed()
         composeRule.onNodeWithContentDescription(selectedDescription).assertIsDisplayed()
         composeRule.onNodeWithText(string(R.string.route_confirm)).assertIsEnabled()
     }
